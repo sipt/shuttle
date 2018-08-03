@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"encoding/json"
-	"context"
-	"net"
 )
 
 type IPInfo struct {
@@ -29,14 +27,14 @@ type IP struct {
 }
 
 func tabaoAPI(ip string) (*IPInfo, error) {
-	tr := &http.Transport{
-		DialContext: func(_ context.Context, network, addr string) (net.Conn, error) {
-			return net.Dial(network, addr)
-		},
-	}
-	client := &http.Client{Transport: tr}
+	//tr := &http.Transport{
+	//	DialContext: func(_ context.Context, network, addr string) (net.Conn, error) {
+	//		return net.Dial(network, addr)
+	//	},
+	//}
+	//client := &http.Client{Transport: tr}
 	url := fmt.Sprintf("http://ip.taobao.com/service/getIpInfo.php?ip=%s", ip)
-	resp, err := client.Get(url)
+	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}

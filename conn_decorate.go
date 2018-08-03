@@ -6,10 +6,9 @@ import (
 	"bytes"
 	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/util"
-	"fmt"
 )
 
-var defaultTimeOut = 20 * time.Second
+var defaultTimeOut = 10 * time.Second
 
 //
 func DefaultDecorate(c net.Conn, network string) (IConn, error) {
@@ -40,16 +39,16 @@ func (c *DefaultConn) GetNetwork() string {
 
 func (c *DefaultConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
-	Logger.Debugf("[ID:%d] Read Data: %v", c.GetID(), b[:n])
+	Logger.Tracef("[ID:%d] Read Data: %v", c.GetID(), b[:n])
 	return
 }
 
 func (c *DefaultConn) Write(b []byte) (n int, err error) {
-	Logger.Debugf("[ID:%d] Write Data: %v", c.GetID(), b)
+	Logger.Tracef("[ID:%d] Write Data: %v", c.GetID(), b)
 	return c.Conn.Write(b)
 }
 func (c *DefaultConn) Close() error {
-	Logger.Debugf("[ID:%d] close connection", c.GetID())
+	Logger.Tracef("[ID:%d] close connection", c.GetID())
 	return c.Conn.Close()
 }
 
@@ -105,7 +104,6 @@ func (c *BufferConn) Flush() (n int, err error) {
 	}
 	c.buffer.Reset()
 	n, err = c.IConn.Flush()
-	fmt.Println("flush over !!!!!")
 	return
 }
 

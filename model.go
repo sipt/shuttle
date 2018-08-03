@@ -19,7 +19,7 @@ type Request struct {
 	Addr       string
 	IP         net.IP
 	Port       uint16
-	DomainHost *DomainHost
+	DomainHost DomainHost
 	Data       []byte //for udp
 }
 

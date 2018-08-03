@@ -2,10 +2,7 @@ package selector
 
 import (
 	"github.com/sipt/shuttle"
-	"net/http"
-	"net"
 	"time"
-	"context"
 	"sync/atomic"
 )
 
@@ -16,8 +13,9 @@ const (
 func init() {
 	shuttle.RegisterSelector("rtt", func(group *shuttle.ServerGroup) (shuttle.ISelector, error) {
 		s := &rttSelector{
-			group: group,
-			timer: time.NewTimer(timerDulation),
+			group:    group,
+			timer:    time.NewTimer(timerDulation),
+			selected: group.Servers[0].(shuttle.IServer),
 		}
 		go func() {
 			for {
@@ -62,11 +60,11 @@ func (m *rttSelector) autoTest() {
 			return
 		}
 	}
+	shuttle.Logger.Debug("[RTT-Selector] start testing ...")
 	var is shuttle.IServer
 	var s *shuttle.Server
 	var err error
 	c := make(chan *shuttle.Server, 1)
-	start := time.Now()
 	for _, v := range m.group.Servers {
 		is = v.(shuttle.IServer)
 		s, err = is.GetServer()
@@ -76,27 +74,54 @@ func (m *rttSelector) autoTest() {
 		go urlTest(s, c)
 	}
 	s = <-c
-	shuttle.Logger.Infof("[RTT Select] %s  RTT: %dms", s.Name, time.Now().Sub(start).Nanoseconds()/1000)
-	close(c)
+	shuttle.Logger.Infof("[RTT-Select] rtt select server: [%s]", s.Name)
 	m.selected = s
 	m.timer.Reset(timerDulation)
 	atomic.CompareAndSwapUint32(&m.status, 1, 0)
 }
 
-const url = "http://www.gstatic.com/generate_204"
-
 func urlTest(s *shuttle.Server, c chan *shuttle.Server) {
-	tr := &http.Transport{
-		DialContext: func(_ context.Context, _, addr string) (net.Conn, error) {
-			return s.Conn(addr)
-		},
+	var closer func()
+	start := time.Now()
+	conn, err := s.Conn(shuttle.TCP)
+	if err != nil {
+		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+		return
 	}
-	client := &http.Client{Transport: tr, Timeout: 2 * time.Second}
-	resp, err := client.Get(url)
-	if err == nil && resp.StatusCode != 204 {
+	defer conn.Close()
+	eAddr, err := shuttle.DomainEncodeing("www.gstatic.com:80")
+	if err != nil {
+		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+		return
+	}
+	_, err = conn.Write(eAddr)
+	if err != nil {
+		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+		return
+	}
+	_, err = conn.Write([]byte("GET http://www.gstatic.com/generate_204 HTTP/1.1\r\nHost: www.gstatic.com\r\nAccept: */*\r\nProxy-Connection: Keep-Alive\r\n\r\n"))
+	if err != nil {
+		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+		return
+	}
+	buf := make([]byte, 128)
+	_, err = conn.Read(buf)
+	if err != nil {
+		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+		return
+	}
+	if err == nil && string(buf[9:12]) == "204" {
 		select {
 		case c <- s:
 		default:
 		}
+	}
+	if err != nil {
+		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+	} else {
+		shuttle.Logger.Debugf("[RTT-Select] [%s]  RTT:[%dms]", s.Name, time.Now().Sub(start).Nanoseconds()/1000000)
+	}
+	if closer != nil {
+		closer()
 	}
 }

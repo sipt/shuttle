@@ -44,9 +44,6 @@ func CipherDecorate(password, method string, conn IConn) (IConn, error) {
 	if _, err := io.ReadFull(rand.Reader, cipherConn.iv); err != nil {
 		return nil, err
 	}
-	//cipherConn.iv = []byte{203, 63, 174, 189, 49, 139, 9, 54, 159, 146, 88, 224, 30, 9, 12, 238}
-	fmt.Println("iv -> ", cipherConn.iv)
-	fmt.Println("key -> ", cipherConn.key)
 	var err error
 	cipherConn.Encrypter, err = cipher.NewEncrypter(cipherConn.key, cipherConn.iv)
 	if err != nil {
@@ -99,7 +96,6 @@ func (c *cipherConn) Read(b []byte) (n int, err error) {
 }
 
 func (c *cipherConn) Write(b []byte) (n int, err error) {
-	fmt.Println("berfore cipher: ", b)
 	buf := pool.GetBuf()
 	if len(buf) < len(b) {
 		pool.PutBuf(buf)
@@ -158,6 +154,5 @@ func (c *cipherConn) readUDP(b []byte) (n int, err error) {
 		return
 	}
 	c.Decrypter.XORKeyStream(b[:n], buf[:n])
-	fmt.Println("udp read: ", b[:n])
 	return
 }

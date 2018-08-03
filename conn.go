@@ -3,13 +3,25 @@ package shuttle
 import (
 	"net"
 	"bytes"
-	"fmt"
+	"strconv"
 )
 
 const (
 	TCP = "tcp"
 	UDP = "udp"
 )
+
+func DomainEncodeing(host string) ([]byte, error) {
+	domain, port, err := net.SplitHostPort(host)
+	if err != nil {
+		return nil, err
+	}
+	p, err := strconv.ParseUint(port, 10, 16)
+	if err != nil {
+		return nil, err
+	}
+	return AddressEncoding(addrTypeDomain, []byte(domain), uint16(p))
+}
 
 func AddressEncoding(atyp uint8, addr []byte, port uint16) ([]byte, error) {
 	portBytes := []byte{byte(port >> 8), byte(port & 0xff)}
@@ -27,7 +39,6 @@ func AddressEncoding(atyp uint8, addr []byte, port uint16) ([]byte, error) {
 		buffer.Write(portBytes)
 	default:
 	}
-	fmt.Println(buffer.Bytes())
 	return buffer.Bytes(), nil
 }
 

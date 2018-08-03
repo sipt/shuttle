@@ -8,20 +8,29 @@ import (
 	"fmt"
 	"time"
 	"sync"
+	"github.com/sipt/shuttle/util"
+)
+
+const (
+	DNSTypeStatic = "static"
+	DNSTypeDirect = "direct"
+	DNSTypeRemote = "remote"
 )
 
 type DomainHost struct {
 	IP            net.IP
 	Country       string
-	DNS           string
+	DNS           net.IP
 	RemoteResolve bool
 }
 
 type DNS struct {
-	Domain        string
-	IPs           []net.IP
-	DNSs          []net.IP
-	RemoteResolve bool
+	MatchType string
+	Domain    string
+	IPs       []net.IP
+	DNSs      []net.IP
+	Type      string
+	Country   string
 }
 
 func (d *DNS) String() string {
@@ -40,7 +49,7 @@ func (d *DNS) String() string {
 		}
 		buffer.WriteString(v.String())
 	}
-	buffer.WriteString("]")
+	buffer.WriteString("] Country:[" + d.Country + "]")
 	return buffer.String()
 }
 
@@ -74,9 +83,22 @@ func ResolveDomain(req *Request) error {
 	//DomainHost
 	temp := _LocalDNS
 	for _, v := range temp {
-		if v.Domain[0] == '*' && strings.HasSuffix(req.Addr, v.Domain[1:]) || v.Domain == req.Addr {
-			Logger.Debug("[DNS] [Local] ", v.String())
-			return localResolve(v, req)
+		switch v.MatchType {
+		case RuleDomainSuffix:
+			if strings.HasSuffix(req.Addr, v.Domain) {
+				Logger.Debug("[DNS] [Local] ", v.String())
+				return localResolve(v, req)
+			}
+		case RuleDomain:
+			if req.Addr == v.Domain {
+				Logger.Debug("[DNS] [Local] ", v.String())
+				return localResolve(v, req)
+			}
+		case RuleDomainKeyword:
+			if strings.Index(req.Addr, v.Domain) >= 0 {
+				Logger.Debug("[DNS] [Local] ", v.String())
+				return localResolve(v, req)
+			}
 		}
 	}
 	d := _CacheDNS.Pop(req.Addr)
@@ -88,7 +110,8 @@ func ResolveDomain(req *Request) error {
 }
 
 func localResolve(dns *DNS, req *Request) error {
-	if len(dns.IPs) > 0 {
+	switch dns.Type {
+	case DNSTypeStatic:
 		if len(req.IP) >= len(dns.IPs[0]) {
 			req.IP = req.IP[:len(dns.IPs[0])]
 		} else {
@@ -96,22 +119,23 @@ func localResolve(dns *DNS, req *Request) error {
 		}
 		copy(req.IP, dns.IPs[0])
 		return nil
-	}
-	if dns.RemoteResolve {
+	case DNSTypeDirect:
+		//直连DNS解析
+		return directResolve(dns.DNSs, req)
+	case DNSTypeRemote:
 		//remote 到proxy-server上解析
 		//remoteResolve(dns, req)
 		Logger.Debug("[DNS] [Remote] ", req.Addr)
 		return nil
+	default:
+		return fmt.Errorf("not support DNSType [%s]", dns.Type)
 	}
-	//直连DNS解析
-	return directResolve(dns.DNSs, req)
 }
 
 func directResolve(servers []net.IP, req *Request) error {
 	reply := make(chan *_Reply, 1)
 	for _, v := range servers {
 		go func(v net.IP) {
-			fmt.Println(v.String())
 			err := resolveDomain(req, v, reply)
 			if err != nil {
 				Logger.Error("[DNS] [%s] failed: ", err)
@@ -136,6 +160,13 @@ func directResolve(servers []net.IP, req *Request) error {
 	}
 	_CacheDNS.Push(cache)
 	req.IP = cache.IPs[0]
+	ip, err := util.WatchIP(req.IP.String())
+	if err != nil {
+		Logger.Errorf("[DNS] watch ip[%s] country failed : %v", req.IP.String(), err)
+	}
+	cache.Country = ip.CountryID
+	req.DomainHost.Country = ip.CountryID
+	req.DomainHost.DNS = r.DNS
 	Logger.Debug("[DNS] ", cache.String())
 	return nil
 }

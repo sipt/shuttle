@@ -47,7 +47,7 @@ func Filter(req *Request) (*Rule, error) {
 				return rules[i], nil
 			}
 		case RuleGeoIP:
-			if req.DomainHost != nil && v.Value == req.DomainHost.Country {
+			if v.Value == req.DomainHost.Country {
 				return rules[i], nil
 			}
 		case RuleFinal:
