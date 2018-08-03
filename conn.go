@@ -47,10 +47,12 @@ func NewDefaultConn(conn net.Conn, network string) (IConn, error) {
 }
 
 func ConnectToServer(req *Request) (IConn, error) {
+	//DNS
 	err := ResolveDomain(req)
 	if err != nil {
 		return nil, err
 	}
+	//Rules filter
 	rule, err := Filter(req)
 	if err != nil {
 		return nil, err
@@ -60,6 +62,7 @@ func ConnectToServer(req *Request) (IConn, error) {
 		return DirectConn(req) // 没有匹配规则，直连
 	}
 	Logger.Debugf("[%s] rule: [%v]", req.Host(), rule)
+	//Select proxy server
 	s, err := GetServer(rule.Policy)
 	if err != nil {
 		return nil, err

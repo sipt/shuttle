@@ -29,7 +29,6 @@ type ICipher interface {
 	NewDecrypter(key, iv []byte) (cipher.Stream, error)
 }
 
-var d cipher.Stream
 //加密装饰
 func CipherDecorate(password, method string, conn IConn) (IConn, error) {
 	cipher, ok := ciphers[method]
@@ -54,7 +53,6 @@ func CipherDecorate(password, method string, conn IConn) (IConn, error) {
 		return nil, err
 	}
 	_, err = conn.Write(cipherConn.iv)
-	d, err = cipher.NewDecrypter(cipherConn.key, cipherConn.iv)
 	return cipherConn, err
 }
 
@@ -91,7 +89,31 @@ type cipherConn struct {
 }
 
 func (c *cipherConn) Read(b []byte) (n int, err error) {
-	if c.Decrypter == nil || c.GetNetwork() == UDP {
+	switch c.GetNetwork() {
+	case TCP:
+		n, err = c.readTCP(b)
+	case UDP:
+		n, err = c.readUDP(b)
+	}
+	return
+}
+
+func (c *cipherConn) Write(b []byte) (n int, err error) {
+	fmt.Println("berfore cipher: ", b)
+	buf := pool.GetBuf()
+	if len(buf) < len(b) {
+		pool.PutBuf(buf)
+		buf = make([]byte, len(b))
+	} else {
+		buf = buf[:len(b)]
+		defer pool.PutBuf(buf)
+	}
+	c.Encrypter.XORKeyStream(buf, b)
+	return c.IConn.Write(buf)
+}
+
+func (c *cipherConn) readTCP(b []byte) (n int, err error) {
+	if c.Decrypter == nil {
 		iv := make([]byte, c.cipher.IVLen())
 		if _, err = c.IConn.Read(iv); err != nil {
 			return
@@ -115,17 +137,27 @@ func (c *cipherConn) Read(b []byte) (n int, err error) {
 	return
 }
 
-func (c *cipherConn) Write(b []byte) (n int, err error) {
+func (c *cipherConn) readUDP(b []byte) (n int, err error) {
 	buf := pool.GetBuf()
-	if len(buf) < len(b) {
+	if len(buf) < len(b)+c.cipher.IVLen() {
 		pool.PutBuf(buf)
-		buf = make([]byte, len(b))
+		buf = make([]byte, len(b)+c.cipher.IVLen())
 	} else {
-		buf = buf[:len(b)]
+		buf = buf[:len(b)+c.cipher.IVLen()]
 		defer pool.PutBuf(buf)
 	}
-	c.Encrypter.XORKeyStream(buf, b)
-	dst := pool.GetBuf()
-	d.XORKeyStream(dst[:len(b)], buf)
-	return c.IConn.Write(buf)
+	if n, err = c.IConn.Read(buf); err != nil {
+		return
+	}
+	iv := buf[:c.cipher.IVLen()]
+	buf = buf[c.cipher.IVLen():]
+	n -= c.cipher.IVLen()
+
+	c.Decrypter, err = c.cipher.NewDecrypter(c.key, iv)
+	if err != nil {
+		return
+	}
+	c.Decrypter.XORKeyStream(b[:n], buf[:n])
+	fmt.Println("udp read: ", b[:n])
+	return
 }

@@ -65,14 +65,13 @@ func (s *Server) Conn(network string) (IConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	c, err = CipherDecorate(s.Password, s.Method, c)
-	if err != nil {
-		return nil, err
-	}
 	if network == UDP {
 		c, err = BufferDecorate(c)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return c, err
+	return CipherDecorate(s.Password, s.Method, c)
 }
 
 func GetServer(name string) (*Server, error) {

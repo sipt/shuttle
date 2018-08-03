@@ -1,5 +1,7 @@
 package shuttle
 
+import "net"
+
 func InitConfig() error {
 	ss := []*Server{
 		{
@@ -45,5 +47,16 @@ func InitConfig() error {
 		},
 	}
 	InitRule(rules)
+
+	//DNS
+	InitDNS([]net.IP{
+		net.ParseIP("114.114.114.114"),
+		net.ParseIP("223.5.5.5"),
+	}, []*DNS{
+		{
+			Domain:        "*google.com",
+			RemoteResolve: true,
+		},
+	})
 	return nil
 }

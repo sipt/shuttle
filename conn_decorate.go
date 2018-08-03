@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/util"
+	"fmt"
 )
 
 var defaultTimeOut = 20 * time.Second
@@ -84,7 +85,7 @@ func (c *TimerConn) Write(b []byte) (n int, err error) {
 func BufferDecorate(c IConn) (IConn, error) {
 	return &BufferConn{
 		IConn:  c,
-		buffer: bytes.NewBuffer(pool.GetBuf()),
+		buffer: bytes.NewBuffer(pool.GetBuf()[:0]),
 	}, nil
 }
 
@@ -99,6 +100,31 @@ func (c *BufferConn) Write(b []byte) (n int, err error) {
 
 func (c *BufferConn) Flush() (n int, err error) {
 	n, err = c.IConn.Write(c.buffer.Bytes())
+	if err != nil {
+		return
+	}
 	c.buffer.Reset()
+	n, err = c.IConn.Flush()
+	fmt.Println("flush over !!!!!")
+	return
+}
+
+//实时写出
+func RealTimeDecorate(c IConn) (IConn, error) {
+	return &RealTimeFlush{
+		IConn: c,
+	}, nil
+}
+
+type RealTimeFlush struct {
+	IConn
+}
+
+func (r *RealTimeFlush) Write(b []byte) (n int, err error) {
+	n, err = r.IConn.Write(b)
+	if err != nil {
+		return
+	}
+	_, err = r.IConn.Flush()
 	return
 }
