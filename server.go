@@ -10,7 +10,6 @@ var servers []*Server
 func InitServers(gs []*ServerGroup, ss []*Server) error {
 	groups = gs
 	servers = ss
-	servers = make([]*Server, 0, 10)
 	var err error
 	for i, v := range gs {
 		v.Selector, err = seletors[gs[i].SelectType](v)
@@ -19,6 +18,11 @@ func InitServers(gs []*ServerGroup, ss []*Server) error {
 		}
 	}
 	return nil
+}
+func DestroyServers() {
+	for _, v := range groups {
+		v.Selector.Destroy()
+	}
 }
 
 type IServer interface {
@@ -44,9 +48,9 @@ func (s *ServerGroup) GetServer() (*Server, error) {
 type Server struct {
 	Name     string
 	Host     string
-	Port     string
-	Method   string
-	Password string
+	Port     string `json:"-"`
+	Method   string `json:"-"`
+	Password string `json:"-"`
 }
 
 func (s *Server) GetName() string {
@@ -57,7 +61,17 @@ func (s *Server) GetServer() (*Server, error) {
 }
 
 func (s *Server) Conn(network string) (IConn, error) {
-	conn, err := net.DialTimeout(network, net.JoinHostPort(s.Host, s.Port), defaultTimeOut)
+	req := &Request{
+		Addr: s.Host,
+	}
+	addr := s.Host
+	err := ResolveDomain(req)
+	if err != nil {
+		Logger.Errorf("Resolve domain failed [%s]: %v", s.Host, err)
+	} else {
+		addr = req.IP.String()
+	}
+	conn, err := net.DialTimeout(network, net.JoinHostPort(addr, s.Port), defaultTimeOut)
 	if err != nil {
 		return nil, err
 	}

@@ -14,6 +14,7 @@ type Config struct {
 	Proxy      map[string][]string `yaml:"proxy"`
 	ProxyGroup map[string][]string `yaml:"proxy-group"`
 	LocalDNSs  [][]string          `yaml:"local-dns"`
+	Mitm       *Mitm               `yaml:"mitm"`
 	Rule       [][]string          `yaml:"rule"`
 }
 
@@ -24,14 +25,43 @@ type General struct {
 	HttpPort       string   `yaml:"http-port"`
 	HttpInterface  string   `yaml:"http-interface"`
 	SocksInterface string   `yaml:"socks-interface"`
+	ControllerPort string   `yaml:"controller-port"`
 }
 
+type Mitm struct {
+	CA  string `yaml:"ca"`
+	Key string `yaml:"key"`
+}
+
+func ReloadConfig(filepath string) error {
+	DestroyServers()
+
+	//
+	_, err := InitConfig(filepath)
+	return err
+}
+func SetMimt(mitm *Mitm) {
+	conf.Mitm = mitm
+	bytes, err := yaml.Marshal(conf)
+	if err != nil {
+		Logger.Errorf("[CONF] yaml marshal config failed : %v", err)
+	}
+	err = ioutil.WriteFile(configFile, bytes, 0644)
+	if err != nil {
+		Logger.Errorf("[CONF] save config file failed : %v", err)
+	}
+}
+
+var configFile string
+var conf *Config
+
 func InitConfig(filepath string) (*General, error) {
+	configFile = filepath
 	data, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("read config file failed: %v", err)
 	}
-	conf := &Config{}
+	conf = &Config{}
 	err = yaml.Unmarshal(data, conf)
 	if err != nil {
 		return nil, fmt.Errorf("resolve config file failed: %v", err)
@@ -165,6 +195,11 @@ func InitConfig(filepath string) (*General, error) {
 
 	//logger level
 	SetLeve(conf.General.LogLevel)
+
+	err = InitCert(conf.Mitm)
+	if err != nil {
+		return nil, fmt.Errorf("mitm init failed: %v", err)
+	}
 	return conf.General, nil
 }
 

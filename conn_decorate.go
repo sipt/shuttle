@@ -19,6 +19,14 @@ func DefaultDecorate(c net.Conn, network string) (IConn, error) {
 	}, nil
 }
 
+func DefaultDecorateForTls(c net.Conn, network string, id int64) (IConn, error) {
+	return &DefaultConn{
+		Conn:    c,
+		ID:      id,
+		Network: network,
+	}, nil
+}
+
 type DefaultConn struct {
 	net.Conn
 	ID      int64
@@ -49,6 +57,7 @@ func (c *DefaultConn) Write(b []byte) (n int, err error) {
 }
 func (c *DefaultConn) Close() error {
 	Logger.Tracef("[ID:%d] close connection", c.GetID())
+	go storage.Put(c.GetID(), RecordStatus, RecordStatusCompleted)
 	return c.Conn.Close()
 }
 
@@ -124,5 +133,35 @@ func (r *RealTimeFlush) Write(b []byte) (n int, err error) {
 		return
 	}
 	_, err = r.IConn.Flush()
+	return
+}
+
+var AllowDump = false
+//导出装饰器
+func DumperDecorate(c IConn) (IConn, error) {
+	return &Dumper{
+		IConn: c,
+	}, nil
+}
+
+type Dumper struct {
+	IConn
+}
+
+func (d *Dumper) Read(b []byte) (n int, err error) {
+	n, err = d.IConn.Read(b)
+	go dump.WriteResponse(d.GetID(), b[:n])
+	return
+}
+
+func (d *Dumper) Write(b []byte) (n int, err error) {
+	n, err = d.IConn.Write(b)
+	go dump.WriteRequest(d.GetID(), b[:n])
+	return
+}
+
+func (d *Dumper) Close() (err error) {
+	err = d.IConn.Close()
+	go dump.Complete(d.GetID())
 	return
 }

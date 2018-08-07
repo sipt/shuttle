@@ -12,6 +12,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	go shuttle.StartController(general.ControllerPort) // 启动api控制
 	//go HandleUDP()
 	go HandleHTTP(general.HttpPort, general.HttpInterface)
 	HandleSocks5(general.SocksPort, general.SocksInterface)

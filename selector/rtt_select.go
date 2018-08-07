@@ -16,11 +16,14 @@ func init() {
 			group:    group,
 			timer:    time.NewTimer(timerDulation),
 			selected: group.Servers[0].(shuttle.IServer),
+			cancel:   make(chan bool, 1),
 		}
 		go func() {
 			for {
 				select {
 				case <-s.timer.C:
+				case <-s.cancel:
+					return
 				}
 				s.autoTest()
 				s.timer.Reset(timerDulation)
@@ -36,36 +39,41 @@ type rttSelector struct {
 	selected shuttle.IServer
 	status   uint32
 	timer    *time.Timer
+	cancel   chan bool
 }
 
-func (m *rttSelector) Get() (*shuttle.Server, error) {
-	return m.selected.GetServer()
+func (r *rttSelector) Get() (*shuttle.Server, error) {
+	return r.selected.GetServer()
 }
-func (m *rttSelector) Select(name string) error {
+func (r *rttSelector) Select(name string) error {
 	return nil
 }
-func (m *rttSelector) Refresh() error {
-	m.autoTest()
+func (r *rttSelector) Refresh() error {
+	r.autoTest()
 	return nil
 }
-func (m *rttSelector) Reset(group *shuttle.ServerGroup) error {
-	m.group = group
-	m.selected = m.group.Servers[0].(shuttle.IServer)
-	go m.autoTest()
+func (r *rttSelector) Reset(group *shuttle.ServerGroup) error {
+	r.group = group
+	r.selected = r.group.Servers[0].(shuttle.IServer)
+	go r.autoTest()
 	return nil
 }
-func (m *rttSelector) autoTest() {
-	if m.status == 0 {
-		if ok := atomic.CompareAndSwapUint32(&m.status, 0, 1); !ok {
+func (r *rttSelector) Destroy() {
+	r.cancel <- true
+}
+func (r *rttSelector) autoTest() {
+	if r.status == 0 {
+		if ok := atomic.CompareAndSwapUint32(&r.status, 0, 1); !ok {
 			return
 		}
 	}
+	r.timer.Stop()
 	shuttle.Logger.Debug("[RTT-Selector] start testing ...")
 	var is shuttle.IServer
 	var s *shuttle.Server
 	var err error
 	c := make(chan *shuttle.Server, 1)
-	for _, v := range m.group.Servers {
+	for _, v := range r.group.Servers {
 		is = v.(shuttle.IServer)
 		s, err = is.GetServer()
 		if err != nil {
@@ -75,9 +83,9 @@ func (m *rttSelector) autoTest() {
 	}
 	s = <-c
 	shuttle.Logger.Infof("[RTT-Select] rtt select server: [%s]", s.Name)
-	m.selected = s
-	m.timer.Reset(timerDulation)
-	atomic.CompareAndSwapUint32(&m.status, 1, 0)
+	r.selected = s
+	r.timer.Reset(timerDulation)
+	atomic.CompareAndSwapUint32(&r.status, 1, 0)
 }
 
 func urlTest(s *shuttle.Server, c chan *shuttle.Server) {

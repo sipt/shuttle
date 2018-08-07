@@ -41,6 +41,7 @@ func CipherDecorate(password, method string, conn IConn) (IConn, error) {
 		iv:     make([]byte, cipher.IVLen()),
 		cipher: cipher,
 	}
+	fmt.Println(cipherConn.key)
 	if _, err := io.ReadFull(rand.Reader, cipherConn.iv); err != nil {
 		return nil, err
 	}
@@ -125,6 +126,7 @@ func (c *cipherConn) readTCP(b []byte) (n int, err error) {
 		buf = make([]byte, len(b))
 	}
 	defer pool.PutBuf(buf)
+	buf = buf[:len(b)]
 	n, err = c.IConn.Read(buf)
 	if err != nil {
 		return

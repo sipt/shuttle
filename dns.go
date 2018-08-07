@@ -15,6 +15,7 @@ const (
 	DNSTypeStatic = "static"
 	DNSTypeDirect = "direct"
 	DNSTypeRemote = "remote"
+	DNSTypeCache  = "cache"
 )
 
 type DomainHost struct {
@@ -25,11 +26,11 @@ type DomainHost struct {
 }
 
 type DNS struct {
-	MatchType string
+	MatchType string `json:",omitempty"`
 	Domain    string
 	IPs       []net.IP
 	DNSs      []net.IP
-	Type      string
+	Type      string `json:",omitempty"`
 	Country   string
 }
 
@@ -80,6 +81,9 @@ func ClearDNSCache() {
 }
 
 func ResolveDomain(req *Request) error {
+	if req.IP = net.ParseIP(req.Addr); len(req.IP) != 0 {
+		return nil
+	}
 	//DomainHost
 	temp := _LocalDNS
 	for _, v := range temp {
@@ -111,13 +115,15 @@ func ResolveDomain(req *Request) error {
 
 func localResolve(dns *DNS, req *Request) error {
 	switch dns.Type {
-	case DNSTypeStatic:
+	case DNSTypeStatic, DNSTypeCache:
 		if len(req.IP) >= len(dns.IPs[0]) {
 			req.IP = req.IP[:len(dns.IPs[0])]
 		} else {
 			req.IP = make([]byte, len(dns.IPs[0]))
 		}
 		copy(req.IP, dns.IPs[0])
+		req.DomainHost.Country = dns.Country
+		req.DomainHost.DNS = dns.DNSs[0]
 		return nil
 	case DNSTypeDirect:
 		//直连DNS解析
@@ -138,7 +144,7 @@ func directResolve(servers []net.IP, req *Request) error {
 		go func(v net.IP) {
 			err := resolveDomain(req, v, reply)
 			if err != nil {
-				Logger.Error("[DNS] [%s] failed: ", err)
+				Logger.Errorf("[DNS] [%s] failed: %v", req.Addr, err)
 			}
 		}(v)
 	}
@@ -150,6 +156,7 @@ func directResolve(servers []net.IP, req *Request) error {
 			Domain: req.Addr,
 			IPs:    make([]net.IP, 0),
 			DNSs:   []net.IP{r.DNS},
+			Type:   DNSTypeCache,
 		}
 	)
 	for _, v := range r.Msg.Answer {
@@ -163,6 +170,7 @@ func directResolve(servers []net.IP, req *Request) error {
 	ip, err := util.WatchIP(req.IP.String())
 	if err != nil {
 		Logger.Errorf("[DNS] watch ip[%s] country failed : %v", req.IP.String(), err)
+		return nil
 	}
 	cache.Country = ip.CountryID
 	req.DomainHost.Country = ip.CountryID
@@ -214,6 +222,7 @@ type IDNSCache interface {
 	Push(*DNS)
 	Pop(string) *DNS
 	Clear()
+	List() []*DNS
 }
 
 type CacheNode struct {
@@ -230,7 +239,7 @@ type DefaultDNSCache struct {
 func (d *DefaultDNSCache) Init() {
 	d.rw = &sync.RWMutex{}
 	d.vs = make([]*CacheNode, 0, 16)
-	d.duration = 60 * time.Second // DNS缓存: 60s
+	d.duration = 10 * time.Minute // DNS缓存: 60s
 }
 
 func (d *DefaultDNSCache) Push(dns *DNS) {
@@ -265,4 +274,14 @@ func (d *DefaultDNSCache) Clear() {
 	d.rw.Lock()
 	d.vs = d.vs[:0]
 	d.rw.Unlock()
+}
+func (d *DefaultDNSCache) List() []*DNS {
+	reply := make([]*DNS, len(d.vs))
+	d.rw.RLock()
+	for i := range d.vs {
+		v := *(d.vs[i].v)
+		reply[i] = &v
+	}
+	d.rw.RUnlock()
+	return reply
 }

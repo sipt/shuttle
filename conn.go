@@ -4,6 +4,8 @@ import (
 	"net"
 	"bytes"
 	"strconv"
+	"errors"
+	"time"
 )
 
 const (
@@ -57,31 +59,38 @@ func NewDefaultConn(conn net.Conn, network string) (IConn, error) {
 	return TimerDecorate(c, 0)
 }
 
-func ConnectToServer(req *Request) (IConn, error) {
+func ConnectToServer(req *Request) (rconn IConn, err error) {
 	//DNS
-	err := ResolveDomain(req)
-	if err != nil {
-		return nil, err
+	if len(req.IP) == 0 {
+		req.IP = net.ParseIP(req.Addr)
+		if len(req.IP) == 0 {
+			err := ResolveDomain(req)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 	//Rules filter
 	rule, err := Filter(req)
 	if err != nil {
 		return nil, err
 	}
+	var s *Server
 	if rule == nil {
 		Logger.Debugf("[%s] rule: [%v]", req.Host(), PolicyDirect)
-		return DirectConn(req) // 没有匹配规则，直连
+		s, err = GetServer(PolicyDirect) // 没有匹配规则，直连
+	} else {
+		Logger.Debugf("[RULE] [%s, %s, %s] rule: [%s,%s,%s]", req.Host(), req.Addr, req.DomainHost.Country, rule.Type, rule.Value, rule.Policy)
+		//Select proxy server
+		s, err = GetServer(rule.Policy)
+		if err != nil {
+			return nil, errors.New(err.Error() + ":" + rule.Policy)
+		}
+		Logger.Debugf("get server by policy [%s] => %v", rule.Policy, s)
 	}
-	Logger.Debugf("[%s] rule: [%v]", req.Host(), rule)
-	//Select proxy server
-	s, err := GetServer(rule.Policy)
-	if err != nil {
-		return nil, err
-	}
-	Logger.Debugf("get server by policy [%s] => %v", rule.Policy, s)
 	switch s.Name {
 	case PolicyDirect:
-		return DirectConn(req)
+		rconn, err = DirectConn(req)
 	case PolicyReject:
 		return nil, ErrorReject
 	default:
@@ -89,13 +98,7 @@ func ConnectToServer(req *Request) (IConn, error) {
 		if err != nil {
 			return nil, err
 		}
-		var host []byte
-		if len(req.IP) == 0 {
-			host = []byte(req.Addr)
-		} else {
-			host = req.IP
-		}
-		addr, err := AddressEncoding(req.Atyp, host, req.Port)
+		addr, err := AddressEncoding(req.Atyp, []byte(req.Addr), req.Port)
 		if err != nil {
 			return nil, err
 		}
@@ -103,8 +106,18 @@ func ConnectToServer(req *Request) (IConn, error) {
 		if err != nil {
 			return nil, err
 		}
-		return sc, nil
+		rconn, err = sc, nil
 	}
+	recordChan <- &Record{
+		ID:       rconn.GetID(),
+		Protocol: req.Protocol,
+		Created:  time.Now(),
+		Proxy:    s,
+		Status:   RecordStatusActive,
+		URL:      req.Target,
+		Rule:     rule,
+	}
+	return
 }
 
 func DirectConn(req *Request) (IConn, error) {

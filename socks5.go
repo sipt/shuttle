@@ -45,6 +45,8 @@ func SocksHandle(co net.Conn) {
 		Logger.Error("parseRequest failed: ", err)
 		return
 	}
+	req.Protocol = ProtocolSocks
+	req.Target = req.Host()
 	_, err = conn.Write([]byte{socksVer5, 0x00, 0x00, req.Atyp, 0x00, 0x00, 0x00, 0x00, 0x08, 0x43})
 	if err != nil {
 		Logger.Error("send connection confirmation:", err)
@@ -52,7 +54,11 @@ func SocksHandle(co net.Conn) {
 	}
 	sc, err := ConnectToServer(req)
 	if err != nil {
-		Logger.Error("ConnectToServer failed: ", req.Atyp, req.Host())
+		if err == ErrorReject {
+			Logger.Debugf("Reject [%s]", req.Target)
+		} else {
+			Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
+		}
 		return
 	}
 	direct := &DirectChannel{}
@@ -78,7 +84,7 @@ func handShake(conn net.Conn) error {
 }
 
 //获取协议
-func parseRequest(conn net.Conn) (*Request, error) {
+func parseRequest(conn IConn) (*Request, error) {
 	//+----+-----+-------+------+----------+----------+
 	//|VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
 	//+----+-----+-------+------+----------+----------+
@@ -103,10 +109,11 @@ func parseRequest(conn net.Conn) (*Request, error) {
 		return nil, err
 	}
 	request := &Request{
-		Ver:  uint8(buf[verIndex]),
-		Cmd:  uint8(buf[cmdIndex]),
-		Rsv:  uint8(buf[rsvIndex]),
-		Atyp: uint8(buf[atypIndex]),
+		Ver:    uint8(buf[verIndex]),
+		Cmd:    uint8(buf[cmdIndex]),
+		Rsv:    uint8(buf[rsvIndex]),
+		Atyp:   uint8(buf[atypIndex]),
+		ConnID: conn.GetID(),
 	}
 	switch request.Atyp {
 	case addrTypeIPv4:

@@ -44,3 +44,4 @@ func (m *manualSelector) Reset(group *shuttle.ServerGroup) error {
 	m.selected = m.group.Servers[0].(shuttle.IServer)
 	return nil
 }
+func (m *manualSelector) Destroy() {}

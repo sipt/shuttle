@@ -8,12 +8,16 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/sipt/shuttle/pool"
+	"strings"
 )
 
 const (
 	HTTP  = "http"
 	HTTPS = "https"
 )
+
+var mitm = false
+var allowDump = false
 
 func HandleHTTP(co net.Conn) {
 	Logger.Debug("start shuttle.IConn wrap net.Con")
@@ -29,25 +33,53 @@ func HandleHTTP(co net.Conn) {
 		Logger.Error("prepareRequest failed: ", err)
 		return
 	}
-	sc, err := ConnectToServer(req.Request)
+	sc, err := ConnectToServer(req)
 	if err != nil {
-		Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
+		if err == ErrorReject {
+			Logger.Debugf("Reject [%s]", req.Target)
+		} else {
+			Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
+		}
 		return
 	}
 	Logger.Debugf("Bind [client-local](%d) [local-server](%d)", conn.GetID(), sc.GetID())
-	//http
-	if req.Scheme == HTTP {
-		_, err = sc.Write(req.Data)
-		if err != nil {
-			Logger.Error("send http request to ss-server failed: ", err)
-			conn.Close()
-			return
-		}
-	} else if req.Scheme == HTTPS {
+	if req.Protocol == ProtocolHttps {
 		_, err = conn.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n"))
 		if err != nil {
 			Logger.Error("reply https-CONNECT failed: ", err)
 			conn.Close()
+			sc.Close()
+			return
+		}
+	}
+	//Dump Decorate
+	if allowDump {
+		if req.Protocol == ProtocolHttps && mitm {
+			//MITM
+			lct, sct, err := Mimt(conn, sc, req)
+			if err != nil {
+				Logger.Error("[HTTPS] Mitm failed: ", err)
+				conn.Close()
+				sc.Close()
+				return
+			}
+			conn, sc = lct, sct
+		}
+		sc, err = DumperDecorate(sc)
+		if err != nil {
+			Logger.Error("DumperDecorate failed: ", err)
+			conn.Close()
+			sc.Close()
+			return
+		}
+	}
+	//http
+	if req.Protocol == ProtocolHttp {
+		_, err = sc.Write(req.Data)
+		if err != nil {
+			Logger.Error("send http request to ss-server failed: ", err)
+			conn.Close()
+			sc.Close()
 			return
 		}
 	}
@@ -56,20 +88,19 @@ func HandleHTTP(co net.Conn) {
 	direct.Transport(conn, sc)
 }
 
-func prepareRequest(conn IConn) (*HttpRequest, error) {
+func prepareRequest(conn IConn) (*Request, error) {
 	br := bufio.NewReader(conn)
 	hreq, err := http.ReadRequest(br)
 	if err != nil {
 		return nil, err
 	}
 	Logger.Debugf("[ID:%d] [HTTP/HTTPS] %s:%s", conn.GetID(), hreq.URL.Hostname(), hreq.URL.Port())
-	req := &HttpRequest{
-		Request: &Request{
-			Ver:  socksVer5,
-			Cmd:  cmdTCP,
-			Addr: hreq.URL.Hostname(),
-			Atyp: addrTypeDomain,
-		},
+	req := &Request{
+		Ver:    socksVer5,
+		Cmd:    cmdTCP,
+		Addr:   hreq.URL.Hostname(),
+		Atyp:   addrTypeDomain,
+		ConnID: conn.GetID(),
 	}
 	if port := hreq.URL.Port(); len(port) > 0 {
 		req.Port, err = strToUint16(port)
@@ -77,8 +108,12 @@ func prepareRequest(conn IConn) (*HttpRequest, error) {
 			return nil, errors.New("http port error:" + port)
 		}
 	}
+	req.Target = hreq.URL.String()
+	if strings.HasPrefix(req.Target, "//") {
+		req.Target = req.Target[2:]
+	}
 	if hreq.URL.Scheme == HTTP {
-		req.Scheme = HTTP
+		req.Protocol = ProtocolHttp
 		if req.Port == 0 {
 			req.Port = 80
 		}
@@ -86,7 +121,7 @@ func prepareRequest(conn IConn) (*HttpRequest, error) {
 		hreq.Write(buffer)
 		req.Data = buffer.Bytes()
 	} else if hreq.Method == http.MethodConnect {
-		req.Scheme = HTTPS
+		req.Protocol = ProtocolHttps
 		if req.Port == 0 {
 			req.Port = 443
 		}
