@@ -102,6 +102,7 @@ func prepareRequest(conn IConn) (*Request, error) {
 		Atyp:   addrTypeDomain,
 		ConnID: conn.GetID(),
 	}
+	req.IP = net.ParseIP(req.Addr)
 	if port := hreq.URL.Port(); len(port) > 0 {
 		req.Port, err = strToUint16(port)
 		if err != nil {

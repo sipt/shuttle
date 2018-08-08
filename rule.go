@@ -2,6 +2,8 @@ package shuttle
 
 import (
 	"strings"
+	"net"
+	"fmt"
 )
 
 const (
@@ -14,12 +16,25 @@ const (
 	RuleDomainKeyword = "DOMAIN-KEYWORD"
 	RuleGeoIP         = "GEOIP"
 	RuleFinal         = "FINAL"
+	RuleIPCIDR        = "IP-CIDR"
 )
 
 var rules []*Rule
 
+var ipCidrMap map[string]*net.IPNet
+
 func InitRule(rs []*Rule) error {
 	rules = rs
+	ipCidrMap = make(map[string]*net.IPNet)
+	for _, v := range rs {
+		if v.Type == RuleIPCIDR {
+			_, ipNet, err := net.ParseCIDR(v.Value)
+			if err != nil {
+				return fmt.Errorf("[Rule] [IP-CIDR] [%s] error: %v", v.Value, err)
+			}
+			ipCidrMap[v.Value] = ipNet
+		}
+	}
 	return nil
 }
 
@@ -44,6 +59,10 @@ func Filter(req *Request) (*Rule, error) {
 			}
 		case RuleDomainKeyword:
 			if strings.Index(req.Addr, v.Value) >= 0 {
+				return rules[i], nil
+			}
+		case RuleIPCIDR:
+			if ipCidrMap[v.Value].Contains(req.IP) {
 				return rules[i], nil
 			}
 		case RuleGeoIP:

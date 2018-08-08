@@ -41,7 +41,6 @@ func CipherDecorate(password, method string, conn IConn) (IConn, error) {
 		iv:     make([]byte, cipher.IVLen()),
 		cipher: cipher,
 	}
-	fmt.Println(cipherConn.key)
 	if _, err := io.ReadFull(rand.Reader, cipherConn.iv); err != nil {
 		return nil, err
 	}
