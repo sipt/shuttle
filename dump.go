@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sync"
+	"bytes"
+	"github.com/sipt/shuttle/pool"
 )
 
 var dump IDump
@@ -61,16 +63,12 @@ type fileDumpEntity struct {
 }
 
 func (f *FileDump) InitDump(id int64) error {
-	request, err := os.OpenFile(fmt.Sprintf("./temp/%d_request.txt", id), os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-	response, err := os.OpenFile(fmt.Sprintf("./temp/%d_reponse.txt", id), os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
+	reqBuf := bytes.NewBuffer(pool.GetBuf()[:0])
+	respBuf := bytes.NewBuffer(pool.GetBuf()[:0])
 	dataChan := make(chan *fileDumpEntity, 8)
+	f.Lock()
 	f.Actives[id] = dataChan
+	f.Unlock()
 	go func() {
 		var data *fileDumpEntity
 		for {
@@ -79,13 +77,39 @@ func (f *FileDump) InitDump(id int64) error {
 			case DumpOrderWrite:
 				switch data.entityType {
 				case DumpRequestEntity:
-					request.Write(data.data)
+					reqBuf.Write(data.data)
 				case DumpResponseEntity:
-					response.Write(data.data)
+					respBuf.Write(data.data)
 				}
 			case DumpOrderClose:
-				request.Close()
-				response.Close()
+				err := ioutil.WriteFile(fmt.Sprintf("./temp/%d_request.txt", id), reqBuf.Bytes(), 0644)
+				if err != nil {
+					Logger.Errorf("[%d] save request failed: %v", id, err)
+				}
+				err = ioutil.WriteFile(fmt.Sprintf("./temp/%d_reponse.txt", id), respBuf.Bytes(), 0644)
+				if err != nil {
+					Logger.Errorf("[%d] save response failed: %v", id, err)
+				}
+				//解析返回值
+				//b := bufio.NewReader(reqBuf)
+				//req, err := http.ReadRequest(b)
+				//if err != nil {
+				//	Logger.Errorf("[%d] parse http request failed: %v", id, err)
+				//}
+				//b = bufio.NewReader(respBuf)
+				//resp, err := http.ReadResponse(b, req)
+				//if err != nil {
+				//	Logger.Errorf("[%d] parse http response failed: %v", id, err)
+				//}
+				//respFile, err := os.OpenFile(fmt.Sprintf("./temp/%d_reponse.txt", id), os.O_RDWR|os.O_CREATE, 0644)
+				//if err != nil {
+				//	Logger.Errorf("[%d] save response failed: %v", id, err)
+				//	return
+				//}
+				//err = resp.Write(respFile)
+				//if err != nil {
+				//	Logger.Errorf("[%d] save response failed: %v", id, err)
+				//}
 				return
 			}
 		}
@@ -125,7 +149,7 @@ func (f *FileDump) ReadRequest(id int64) ([]byte, error) {
 	if os.IsNotExist(err) {
 		return []byte{}, nil
 	}
-	return ioutil.ReadFile(fmt.Sprintf(file, id))
+	return ioutil.ReadFile(file)
 }
 func (f *FileDump) ReadResponse(id int64) ([]byte, error) {
 	file := fmt.Sprintf("./temp/%d_reponse.txt", id)
@@ -133,20 +157,24 @@ func (f *FileDump) ReadResponse(id int64) ([]byte, error) {
 	if os.IsNotExist(err) {
 		return []byte{}, nil
 	}
-	return ioutil.ReadFile(fmt.Sprintf(file, id))
+	return ioutil.ReadFile(file)
 }
 func (f *FileDump) Complete(id int64) error {
+	f.RLock()
 	_, ok := f.Actives[id]
+	f.RUnlock()
 	if ok {
 		f.Lock()
 		c, ok := f.Actives[id]
 		if ok {
-			c <- &fileDumpEntity{
-				order: DumpOrderClose,
-			}
 			delete(f.Actives, id)
 		}
 		f.Unlock()
+		if ok {
+			c <- &fileDumpEntity{
+				order: DumpOrderClose,
+			}
+		}
 	}
 	return nil
 }

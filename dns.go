@@ -200,7 +200,7 @@ func directResolve(servers []net.IP, req *Request) error {
 
 func resolveDomain(req *Request, s net.IP, c chan *_Reply) (err error) {
 	conn, err := DirectConn(&Request{
-		Cmd:  cmdUDP,
+		Cmd:  CmdUDP,
 		IP:   s,
 		Port: 53,
 	})

@@ -6,12 +6,16 @@ import (
 )
 
 const (
-	cmdTCP = 0x01
-	cmdUDP = 0x03
+	CmdTCP = 0x01
+	CmdUDP = 0x03
 
 	ProtocolSocks = "SOCKS"
 	ProtocolHttp  = "HTTP"
 	ProtocolHttps = "HTTPS"
+
+	AddrTypeIPv4   = 0x01 //    0x01：IPv4
+	AddrTypeDomain = 0x03 //    0x03：域名
+	AddrTypeIPv6   = 0x04 //    0x04：IPv6
 )
 
 //|VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
@@ -48,9 +52,9 @@ func (r *Request) Host2() string {
 
 func (r *Request) Network() string {
 	switch r.Cmd {
-	case cmdTCP:
+	case CmdTCP:
 		return TCP
-	case cmdUDP:
+	case CmdUDP:
 		return UDP
 	}
 	return ""

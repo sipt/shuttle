@@ -72,16 +72,29 @@ func (s *Server) GetServer() (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) Conn(network string) (IConn, error) {
-	req := &Request{
+func (s *Server) Conn(req *Request) (IConn, error) {
+	switch s.Name {
+	case PolicyDirect:
+		return DirectConn(req)
+	case PolicyReject:
+		return nil, ErrorReject
+	}
+	var network string
+	switch req.Cmd {
+	case CmdTCP:
+		network = "tcp"
+	case CmdUDP:
+		network = "udp"
+	}
+	ssReq := &Request{
 		Addr: s.Host,
 	}
 	addr := s.Host
-	err := ResolveDomain(req)
+	err := ResolveDomain(ssReq)
 	if err != nil {
 		Logger.Errorf("Resolve domain failed [%s]: %v", s.Host, err)
 	} else {
-		addr = req.IP.String()
+		addr = ssReq.IP.String()
 	}
 	conn, err := net.DialTimeout(network, net.JoinHostPort(addr, s.Port), defaultTimeOut)
 	if err != nil {
@@ -97,7 +110,19 @@ func (s *Server) Conn(network string) (IConn, error) {
 			return nil, err
 		}
 	}
-	return CipherDecorate(s.Password, s.Method, c)
+	rc, err := CipherDecorate(s.Password, s.Method, c)
+	if err != nil {
+		return nil, err
+	}
+	rawAddr, err := AddressEncoding(req.Atyp, []byte(req.Addr), req.Port)
+	if err != nil {
+		return nil, err
+	}
+	_, err = rc.Write(rawAddr)
+	if err != nil {
+		return nil, err
+	}
+	return rc, nil
 }
 
 func GetServer(name string) (*Server, error) {

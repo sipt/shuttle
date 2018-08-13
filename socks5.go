@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/sipt/shuttle/pool"
 	"encoding/binary"
+	"time"
 )
 
 const (
@@ -21,9 +22,6 @@ const (
 	domianLenIndex = rsvIndex + 1
 	ipv4PortIndex  = addrIndex + 4
 	ipv6PortIndex  = addrIndex + 16
-	addrTypeIPv4   = 0x01 //    0x01：IPv4
-	addrTypeDomain = 0x03 //    0x03：域名
-	addrTypeIPv6   = 0x04 //    0x04：IPv6
 )
 
 func SocksHandle(co net.Conn) {
@@ -52,7 +50,15 @@ func SocksHandle(co net.Conn) {
 		Logger.Error("send connection confirmation:", err)
 		return
 	}
-	sc, err := ConnectToServer(req)
+
+	//filter by Rules and DNS
+	rule, s, err := FilterByReq(req)
+	if err != nil {
+		Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
+	}
+
+	//connnet to server
+	sc, err := s.Conn(req)
 	if err != nil {
 		if err == ErrorReject {
 			Logger.Debugf("Reject [%s]", req.Target)
@@ -60,6 +66,15 @@ func SocksHandle(co net.Conn) {
 			Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
 		}
 		return
+	}
+	recordChan <- &Record{
+		ID:       sc.GetID(),
+		Protocol: req.Protocol,
+		Created:  time.Now(),
+		Proxy:    s,
+		Status:   RecordStatusActive,
+		URL:      req.Target,
+		Rule:     rule,
 	}
 	direct := &DirectChannel{}
 	direct.Transport(conn, sc)
@@ -116,27 +131,27 @@ func parseRequest(conn IConn) (*Request, error) {
 		ConnID: conn.GetID(),
 	}
 	switch request.Atyp {
-	case addrTypeIPv4:
+	case AddrTypeIPv4:
 		request.IP = buf[atypIndex+1 : ipv4PortIndex]
 		request.Port = binary.BigEndian.Uint16(buf[ipv4PortIndex : ipv4PortIndex+2])
-		if request.Cmd == cmdUDP {
+		if request.Cmd == CmdUDP {
 			request.Data = buf[ipv4PortIndex+2:]
 		}
-	case addrTypeDomain:
+	case AddrTypeDomain:
 		end := buf[domianLenIndex] + 1 + domianLenIndex
 		request.IP = buf[domianLenIndex+1 : end]
 		request.Port = binary.BigEndian.Uint16(buf[end : end+2])
-		if request.Cmd == cmdUDP {
+		if request.Cmd == CmdUDP {
 			request.Data = buf[end+2:]
 		}
-	case addrTypeIPv6:
+	case AddrTypeIPv6:
 		request.IP = buf[atypIndex+1 : ipv6PortIndex]
 		request.Port = binary.BigEndian.Uint16(buf[ipv6PortIndex : ipv6PortIndex+2])
-		if request.Cmd == cmdUDP {
+		if request.Cmd == CmdUDP {
 			request.Data = buf[ipv6PortIndex+2:]
 		}
 	}
-	if request.Cmd != cmdUDP {
+	if request.Cmd != CmdUDP {
 		pool.PutBuf(buf) // 回收
 	}
 	return request, nil

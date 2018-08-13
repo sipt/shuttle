@@ -46,7 +46,7 @@ type Rule struct {
 	Comment string
 }
 
-func Filter(req *Request) (*Rule, error) {
+func filter(req *Request) (*Rule, error) {
 	for i, v := range rules {
 		switch v.Type {
 		case RuleDomainSuffix:

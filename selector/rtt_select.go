@@ -4,6 +4,7 @@ import (
 	"github.com/sipt/shuttle"
 	"time"
 	"sync/atomic"
+	"io"
 )
 
 const (
@@ -91,22 +92,16 @@ func (r *rttSelector) autoTest() {
 func urlTest(s *shuttle.Server, c chan *shuttle.Server) {
 	var closer func()
 	start := time.Now()
-	conn, err := s.Conn(shuttle.TCP)
+	conn, err := s.Conn(&shuttle.Request{
+		Cmd:  shuttle.CmdTCP,
+		Atyp: shuttle.AddrTypeDomain,
+		Addr: "www.gstatic.com:80",
+	})
 	if err != nil {
 		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
 		return
 	}
 	defer conn.Close()
-	eAddr, err := shuttle.DomainEncodeing("www.gstatic.com:80")
-	if err != nil {
-		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
-		return
-	}
-	_, err = conn.Write(eAddr)
-	if err != nil {
-		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
-		return
-	}
 	_, err = conn.Write([]byte("GET http://www.gstatic.com/generate_204 HTTP/1.1\r\nHost: www.gstatic.com\r\nAccept: */*\r\nProxy-Connection: Keep-Alive\r\n\r\n"))
 	if err != nil {
 		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
@@ -115,7 +110,9 @@ func urlTest(s *shuttle.Server, c chan *shuttle.Server) {
 	buf := make([]byte, 128)
 	_, err = conn.Read(buf)
 	if err != nil {
-		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+		if err != io.EOF {
+			shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+		}
 		return
 	}
 	if err == nil && string(buf[9:12]) == "204" {

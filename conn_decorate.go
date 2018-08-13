@@ -6,9 +6,11 @@ import (
 	"bytes"
 	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/util"
+	"net/http"
+	"bufio"
 )
 
-var defaultTimeOut = 10 * time.Second
+var defaultTimeOut = 30 * time.Second
 
 //
 func DefaultDecorate(c net.Conn, network string) (IConn, error) {
@@ -62,29 +64,38 @@ func (c *DefaultConn) Close() error {
 }
 
 //超时装饰
-func TimerDecorate(c IConn, timeOut time.Duration) (IConn, error) {
-	if timeOut <= 0 {
-		timeOut = defaultTimeOut
+func TimerDecorate(c IConn, rto, wto time.Duration) (IConn, error) {
+	if rto == 0 {
+		rto = defaultTimeOut
+	}
+	if wto == 0 {
+		wto = defaultTimeOut
 	}
 	return &TimerConn{
-		IConn:   c,
-		TimeOut: timeOut,
+		IConn:        c,
+		ReadTimeOut:  rto,
+		WriteTimeOut: wto,
 	}, nil
 }
 
 type TimerConn struct {
 	IConn
-	TimeOut time.Duration
+	ReadTimeOut  time.Duration
+	WriteTimeOut time.Duration
 }
 
 func (c *TimerConn) Read(b []byte) (n int, err error) {
-	c.SetReadDeadline(time.Now().Add(c.TimeOut))
+	if c.ReadTimeOut > -1 {
+		c.SetReadDeadline(time.Now().Add(c.ReadTimeOut))
+	}
 	n, err = c.IConn.Read(b)
 	return
 }
 
 func (c *TimerConn) Write(b []byte) (n int, err error) {
-	c.SetWriteDeadline(time.Now().Add(c.TimeOut))
+	if c.WriteTimeOut > -1 {
+		c.SetWriteDeadline(time.Now().Add(c.WriteTimeOut))
+	}
 	n, err = c.IConn.Write(b)
 	return
 }
@@ -137,30 +148,77 @@ func (r *RealTimeFlush) Write(b []byte) (n int, err error) {
 }
 
 //导出装饰器
-func DumperDecorate(c IConn) (IConn, error) {
-	return &Dumper{
-		IConn: c,
-	}, nil
+func DumperDecorate(c IConn, allowDump bool, template *Record) (IConn, error) {
+	buffer := bytes.NewBuffer(make([]byte, 0, 4096))
+	dumper := &HttpDumper{
+		IConn:      c,
+		allowDump:  allowDump,
+		template:   template,
+		readWriter: bufio.NewReadWriter(bufio.NewReader(buffer), bufio.NewWriter(buffer)),
+	}
+	return dumper, nil
 }
 
-type Dumper struct {
+type HttpDumper struct {
+	id, oldID  int64
+	req        *http.Request
+	allowDump  bool
+	template   *Record
+	readWriter *bufio.ReadWriter
 	IConn
 }
 
-func (d *Dumper) Read(b []byte) (n int, err error) {
+func (d *HttpDumper) Read(b []byte) (n int, err error) {
 	n, err = d.IConn.Read(b)
-	go dump.WriteResponse(d.GetID(), b[:n])
+	if d.allowDump {
+		go func(id, oldID int64) {
+			dump.WriteResponse(id, b[:n])
+			if oldID != 0 && oldID != id {
+				dump.Complete(oldID)
+			}
+		}(d.id, d.oldID)
+	}
+	d.oldID = d.id
 	return
 }
 
-func (d *Dumper) Write(b []byte) (n int, err error) {
-	n, err = d.IConn.Write(b)
-	go dump.WriteRequest(d.GetID(), b[:n])
+func (d *HttpDumper) Write(b []byte) (n int, err error) {
+	return d.readWriter.Write(b)
+}
+
+func (d *HttpDumper) BufferWrite() (n int, err error) {
+	d.req, err = http.ReadRequest(d.readWriter.Reader)
+	if err != nil {
+		return 0, err
+	}
+	d.id = util.NextID()
+	err = d.req.Write(d.IConn)
+	if d.id == 0 {
+		d.id = d.GetID()
+	} else {
+		d.id = util.NextID()
+	}
+	if d.allowDump {
+		go func(id int64, req *http.Request) {
+			record := *d.template
+			record.ID = d.id
+			record.URL = d.req.URL.String()
+			record.Status = RecordStatusActive
+			record.Created = time.Now()
+			recordChan <- &record
+			dump.InitDump(d.id)
+			writer := bytes.NewBuffer(pool.GetBuf()[:0])
+			req.Write(writer)
+			dump.WriteRequest(d.id, writer.Bytes())
+		}(d.id, d.req)
+	}
 	return
 }
 
-func (d *Dumper) Close() (err error) {
+func (d *HttpDumper) Close() (err error) {
 	err = d.IConn.Close()
-	go dump.Complete(d.GetID())
+	if d.allowDump {
+		go dump.Complete(d.id)
+	}
 	return
 }

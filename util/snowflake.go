@@ -16,11 +16,6 @@ func init() {
 	}
 }
 
-func NextID() int64 {
-	id, _ := IW.NextId()
-	return id
-}
-
 const (
 	CEpoch         = 1474802888000
 	CWorkerIdBits  = 10 // Num of WorkerId Bits
