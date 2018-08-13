@@ -16,8 +16,22 @@ const (
 	HTTPS = "https"
 )
 
-var mitm = false
+var allowMitm = false
 var allowDump = false
+
+func SetAllowMitm(b bool) {
+	allowMitm = b
+}
+func SetAllowDump(b bool) {
+	allowDump = b
+}
+
+func GetAllowMitm() bool {
+	return allowMitm
+}
+func GetAllowDump() bool {
+	return allowDump
+}
 
 func HandleHTTP(co net.Conn) {
 	Logger.Debug("start shuttle.IConn wrap net.Con")
@@ -54,7 +68,7 @@ func HandleHTTP(co net.Conn) {
 	}
 	//Dump Decorate
 	if allowDump {
-		if req.Protocol == ProtocolHttps && mitm {
+		if req.Protocol == ProtocolHttps && allowMitm {
 			//MITM
 			lct, sct, err := Mimt(conn, sc, req)
 			if err != nil {
@@ -65,12 +79,15 @@ func HandleHTTP(co net.Conn) {
 			}
 			conn, sc = lct, sct
 		}
-		sc, err = DumperDecorate(sc)
-		if err != nil {
-			Logger.Error("DumperDecorate failed: ", err)
-			conn.Close()
-			sc.Close()
-			return
+		if req.Protocol == ProtocolHttp || (req.Protocol == ProtocolHttps && allowMitm) {
+			sc, err = DumperDecorate(sc)
+			if err != nil {
+				Logger.Error("DumperDecorate failed: ", err)
+				conn.Close()
+				sc.Close()
+				return
+			}
+			dump.InitDump(sc.GetID())
 		}
 	}
 	//http

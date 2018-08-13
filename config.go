@@ -4,48 +4,53 @@ import (
 	"net"
 	"io/ioutil"
 	"fmt"
-	"gopkg.in/yaml.v2"
+	"github.com/sipt/yaml"
 	"strings"
 )
 
 type Config struct {
 	Ver        string              `yaml:"ver"`
-	General    *General            `yaml:"general"`
-	Proxy      map[string][]string `yaml:"proxy"`
-	ProxyGroup map[string][]string `yaml:"proxy-group"`
-	LocalDNSs  [][]string          `yaml:"local-dns"`
-	Mitm       *Mitm               `yaml:"mitm"`
-	Rule       [][]string          `yaml:"rule"`
+	General    *General            `yaml:"General"`
+	Proxy      map[string][]string `yaml:"Proxy,[flow],2quoted"`
+	ProxyGroup map[string][]string `yaml:"Proxy-Group,[flow],2quoted"`
+	LocalDNSs  [][]string          `yaml:"Local-DNS,[flow],2quoted"`
+	Mitm       *Mitm               `yaml:"MITM"`
+	Rule       [][]string          `yaml:"Rule,[flow],2quoted"`
 }
 
 type General struct {
-	LogLevel       string   `yaml:"loglevel"`
-	DNSServer      []string `yaml:"dns-server"`
-	SocksPort      string   `yaml:"socks-port"`
-	HttpPort       string   `yaml:"http-port"`
-	HttpInterface  string   `yaml:"http-interface"`
-	SocksInterface string   `yaml:"socks-interface"`
-	ControllerPort string   `yaml:"controller-port"`
+	LogLevel       string   `yaml:"loglevel,2quoted"`
+	DNSServer      []string `yaml:"dns-server,2quoted"`
+	SocksPort      string   `yaml:"socks-port,2quoted"`
+	HttpPort       string   `yaml:"http-port,2quoted"`
+	HttpInterface  string   `yaml:"http-interface,2quoted"`
+	SocksInterface string   `yaml:"socks-interface,2quoted"`
+	ControllerPort string   `yaml:"controller-port,2quoted"`
 }
 
 type Mitm struct {
-	CA  string `yaml:"ca"`
-	Key string `yaml:"key"`
+	CA  string `yaml:"ca,2quoted"`
+	Key string `yaml:"key,2quoted"`
 }
 
-func ReloadConfig(filepath string) error {
+func ReloadConfig() error {
 	DestroyServers()
-
 	//
-	_, err := InitConfig(filepath)
+	_, err := InitConfig(configFile)
 	return err
 }
 func SetMimt(mitm *Mitm) {
 	conf.Mitm = mitm
+	SaveToFile()
+}
+
+func SaveToFile() {
 	bytes, err := yaml.Marshal(conf)
 	if err != nil {
 		Logger.Errorf("[CONF] yaml marshal config failed : %v", err)
 	}
+	offset := EmojiDecode(bytes)
+	bytes = bytes[:offset]
 	err = ioutil.WriteFile(configFile, bytes, 0644)
 	if err != nil {
 		Logger.Errorf("[CONF] save config file failed : %v", err)
@@ -69,6 +74,47 @@ func InitConfig(filepath string) (*General, error) {
 	if conf.Ver != "v1.0.0" {
 		return nil, fmt.Errorf("resolve config file failed: only support ver:v1.0.0 current:[%s]", conf.Ver)
 	}
+
+	//DNS
+	dns := make([]net.IP, len(conf.General.DNSServer))
+	for i, v := range conf.General.DNSServer {
+		dns[i] = net.ParseIP(v)
+		if dns[i] == nil {
+			return nil, fmt.Errorf("resolve config file [general.dns-server] not support [%s]", v)
+		}
+	}
+	localDNS := make([]*DNS, len(conf.LocalDNSs))
+	for i, v := range conf.LocalDNSs {
+		if len(v) != 4 {
+			return nil, fmt.Errorf("resolve config file [host] %v length must be 4", v)
+		}
+		localDNS[i] = &DNS{
+			MatchType: v[0],
+			Domain:    v[1],
+			Type:      v[2],
+		}
+		if v[0] != RuleDomain && v[0] != RuleDomainSuffix && v[0] != RuleDomainKeyword {
+			return nil, fmt.Errorf("resolve config file [host] not support rule type [%v]", v[0])
+		}
+		switch v[2] {
+		case DNSTypeStatic:
+			localDNS[i].IPs, err = parseIPs(v[3])
+		case DNSTypeDirect:
+			localDNS[i].DNSs, err = parseIPs(v[3])
+		case DNSTypeRemote:
+		default:
+			return nil, fmt.Errorf("resolve config file [host] not support DNSType [%s]", v[1])
+		}
+		if err != nil {
+			return nil, fmt.Errorf("resolve config file [host] [%v] [%v]", v, err)
+		}
+	}
+
+	err = InitDNS(dns, localDNS)
+	if err != nil {
+		return nil, fmt.Errorf("init rule failed: %v", err)
+	}
+
 	//Servers
 	ss := make([]*Server, len(conf.Proxy)+2)
 	index := 0
@@ -153,46 +199,6 @@ func InitConfig(filepath string) (*General, error) {
 		return nil, fmt.Errorf("init rule failed: %v", err)
 	}
 
-	//DNS
-	dns := make([]net.IP, len(conf.General.DNSServer))
-	for i, v := range conf.General.DNSServer {
-		dns[i] = net.ParseIP(v)
-		if dns[i] == nil {
-			return nil, fmt.Errorf("resolve config file [general.dns-server] not support [%s]", v)
-		}
-	}
-	localDNS := make([]*DNS, len(conf.LocalDNSs))
-	for i, v := range conf.LocalDNSs {
-		if len(v) != 4 {
-			return nil, fmt.Errorf("resolve config file [host] %v length must be 4", v)
-		}
-		localDNS[i] = &DNS{
-			MatchType: v[0],
-			Domain:    v[1],
-			Type:      v[2],
-		}
-		if v[0] != RuleDomain && v[0] != RuleDomainSuffix && v[0] != RuleDomainKeyword {
-			return nil, fmt.Errorf("resolve config file [host] not support rule type [%v]", v[0])
-		}
-		switch v[2] {
-		case DNSTypeStatic:
-			localDNS[0].IPs, err = parseIPs(v[3])
-		case DNSTypeDirect:
-			localDNS[0].DNSs, err = parseIPs(v[3])
-		case DNSTypeRemote:
-		default:
-			return nil, fmt.Errorf("resolve config file [host] not support DNSType [%s]", v[1])
-		}
-		if err != nil {
-			return nil, fmt.Errorf("resolve config file [host] [%v] [%v]", v, err)
-		}
-	}
-
-	err = InitDNS(dns, localDNS)
-	if err != nil {
-		return nil, fmt.Errorf("init rule failed: %v", err)
-	}
-
 	//logger level
 	SetLeve(conf.General.LogLevel)
 
@@ -216,4 +222,72 @@ func parseIPs(line string) ([]net.IP, error) {
 		}
 	}
 	return reply, nil
+}
+func EmojiDecode(data []byte) int {
+	index, length := 0, len(data)
+	offset := 0
+	for index < length {
+		if data[index] == '\\' && data[index+1] == 'U' {
+			index += 2
+			decodeEmoji(data[offset:offset], data[index:index+8])
+			offset += 4
+			index += 8
+		} else {
+			if index != offset {
+				data[offset] = data[index]
+			}
+			offset ++
+			index ++
+		}
+	}
+	return offset
+}
+
+func decodeEmoji(dst []byte, src []byte) (err error) {
+	const code_length = 8
+	var value int
+	for k := 0; k < code_length; k++ {
+		if !is_hex(src, k) {
+			err = fmt.Errorf("is not hex :%v", src[k])
+			return
+		}
+		value = (value << 4) + as_hex(src, k)
+	}
+
+	// Check the value and write the character.
+	if (value >= 0xD800 && value <= 0xDFFF) || value > 0x10FFFF {
+		err = fmt.Errorf("is not hex :%v", value)
+		return
+	}
+	if value <= 0x7F {
+		dst = append(dst, byte(value))
+	} else if value <= 0x7FF {
+		dst = append(dst, byte(0xC0+(value>>6)))
+		dst = append(dst, byte(0x80+(value&0x3F)))
+	} else if value <= 0xFFFF {
+		dst = append(dst, byte(0xE0+(value>>12)))
+		dst = append(dst, byte(0x80+((value>>6)&0x3F)))
+		dst = append(dst, byte(0x80+(value&0x3F)))
+	} else {
+		dst = append(dst, byte(0xF0+(value>>18)))
+		dst = append(dst, byte(0x80+((value>>12)&0x3F)))
+		dst = append(dst, byte(0x80+((value>>6)&0x3F)))
+		dst = append(dst, byte(0x80+(value&0x3F)))
+	}
+	return nil
+}
+func is_hex(b []byte, i int) bool {
+	return b[i] >= '0' && b[i] <= '9' || b[i] >= 'A' && b[i] <= 'F' || b[i] >= 'a' && b[i] <= 'f'
+}
+
+// Get the value of a hex-digit.
+func as_hex(b []byte, i int) int {
+	bi := b[i]
+	if bi >= 'A' && bi <= 'F' {
+		return int(bi) - 'A' + 10
+	}
+	if bi >= 'a' && bi <= 'f' {
+		return int(bi) - 'a' + 10
+	}
+	return int(bi) - '0'
 }

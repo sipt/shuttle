@@ -2,6 +2,7 @@ package shuttle
 
 import (
 	"net"
+	"fmt"
 )
 
 var groups []*ServerGroup
@@ -23,6 +24,17 @@ func DestroyServers() {
 	for _, v := range groups {
 		v.Selector.Destroy()
 	}
+}
+func GetGroups() []*ServerGroup {
+	return groups
+}
+func SelectServer(groupName, serverName string) error {
+	for _, g := range groups {
+		if g.Name == groupName {
+			return g.Selector.Select(serverName)
+		}
+	}
+	return fmt.Errorf("group[%s] is not exist", groupName)
 }
 
 type IServer interface {

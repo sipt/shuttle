@@ -16,11 +16,12 @@ func (d *DirectChannel) Transport(lc, sc IConn) {
 
 func (d *DirectChannel) send(from, to IConn) {
 	var (
-		buf = pool.GetBuf()
+		buf []byte
 		n   int
 		err error
 	)
 	for {
+		buf = pool.GetBuf()
 		n, err = from.Read(buf)
 		if n == 0 {
 			return

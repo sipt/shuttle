@@ -133,3 +133,6 @@ func urlTest(s *shuttle.Server, c chan *shuttle.Server) {
 		closer()
 	}
 }
+func (r *rttSelector) Current() shuttle.IServer {
+	return r.selected
+}

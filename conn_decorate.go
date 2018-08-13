@@ -136,7 +136,6 @@ func (r *RealTimeFlush) Write(b []byte) (n int, err error) {
 	return
 }
 
-var AllowDump = false
 //导出装饰器
 func DumperDecorate(c IConn) (IConn, error) {
 	return &Dumper{

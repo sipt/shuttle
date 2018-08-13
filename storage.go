@@ -28,6 +28,16 @@ func init() {
 	}()
 }
 
+func GetRecords() []Record {
+	return storage.List()
+}
+func ClearRecords() {
+	storage.Clear()
+}
+func GetRecord(id int64) *Record {
+	return storage.Get(id)
+}
+
 type Record struct {
 	ID       int64
 	Protocol string
@@ -93,6 +103,7 @@ func (l *LinkedList) Append(r *Record) {
 	for l.count > maxCount {
 		// 收缩
 		l.head.next, l.head = nil, l.head.next
+		l.count --
 	}
 	l.Unlock()
 }
@@ -108,6 +119,7 @@ func (l *LinkedList) Put(id int64, op int, v interface{}) {
 func (l *LinkedList) Clear() {
 	l.Lock()
 	l.head = nil
+	l.count = 0
 	l.Unlock()
 }
 func (n *node) Put(op int, v interface{}) {

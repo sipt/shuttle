@@ -2,6 +2,7 @@ package selector
 
 import (
 	"github.com/sipt/shuttle"
+	"fmt"
 )
 
 func init() {
@@ -31,9 +32,10 @@ func (m *manualSelector) Select(name string) error {
 		n, ok = v.(shuttle.IServer)
 		if ok && n.GetName() == name {
 			m.selected = n
+			return nil
 		}
 	}
-	return nil
+	return fmt.Errorf("server[%s] is not exist", name)
 }
 func (m *manualSelector) Refresh() error {
 	m.selected = m.group.Servers[0].(shuttle.IServer)
@@ -45,3 +47,6 @@ func (m *manualSelector) Reset(group *shuttle.ServerGroup) error {
 	return nil
 }
 func (m *manualSelector) Destroy() {}
+func (m *manualSelector) Current() shuttle.IServer {
+	return m.selected
+}

@@ -72,12 +72,27 @@ func InitDNS(dns []net.IP, localDNS []*DNS) error {
 		_CacheDNS = NewDefaultDNSCache()
 	}
 	_CacheDNS.Init()
+	for _, v := range _LocalDNS {
+		if v.Type == DNSTypeStatic {
+			_CacheDNS.Push(v)
+		}
+	}
 	return nil
 }
 
 //清除DNS缓存
 func ClearDNSCache() {
 	_CacheDNS.Clear()
+	for _, v := range _LocalDNS {
+		if v.Type == DNSTypeStatic {
+			_CacheDNS.Push(v)
+		}
+	}
+}
+
+//DNS缓存列表
+func DNSCacheList() []*DNS {
+	return _CacheDNS.List()
 }
 
 func ResolveDomain(req *Request) error {
@@ -165,8 +180,12 @@ func directResolve(servers []net.IP, req *Request) error {
 			cache.IPs = append(cache.IPs, net.ParseIP(a.A.String()))
 		}
 	}
-	_CacheDNS.Push(cache)
+	if len(cache.IPs) == 0 {
+		Logger.Errorf("[DNS] resolve ip is empty")
+		return nil
+	}
 	req.IP = cache.IPs[0]
+	_CacheDNS.Push(cache)
 	ip, err := util.WatchIP(req.IP.String())
 	if err != nil {
 		Logger.Errorf("[DNS] watch ip[%s] country failed : %v", req.IP.String(), err)
@@ -252,16 +271,16 @@ func (d *DefaultDNSCache) Push(dns *DNS) {
 }
 
 func (d *DefaultDNSCache) Pop(domain string) *DNS {
+	d.rw.Lock()
+	defer d.rw.Unlock()
 	temp := d.vs
 	for i, v := range temp {
 		if v.v.Domain == domain {
 			if v.t.Before(time.Now()) {
-				d.rw.Lock()
 				if d.vs[i].v.Domain == v.v.Domain && d.vs[i].t.Before(time.Now()) {
 					d.vs[i] = d.vs[len(d.vs)-1]
 					d.vs = d.vs[:len(d.vs)-1]
 				}
-				d.rw.Unlock()
 				return nil
 			}
 			return temp[i].v

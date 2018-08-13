@@ -91,6 +91,9 @@ func ConnectToServer(req *Request) (rconn IConn, err error) {
 	switch s.Name {
 	case PolicyDirect:
 		rconn, err = DirectConn(req)
+		if err != nil {
+			return nil, err
+		}
 	case PolicyReject:
 		return nil, ErrorReject
 	default:

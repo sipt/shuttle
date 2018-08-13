@@ -50,7 +50,7 @@ func Filter(req *Request) (*Rule, error) {
 	for i, v := range rules {
 		switch v.Type {
 		case RuleDomainSuffix:
-			if strings.HasSuffix(req.Addr, v.Value) {
+			if req.Addr == v.Value || strings.HasSuffix(req.Addr, "."+v.Value) {
 				return rules[i], nil
 			}
 		case RuleDomain:

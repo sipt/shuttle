@@ -1,7 +1,6 @@
 package shuttle
 
 import (
-	"io"
 	"os"
 	"fmt"
 	"io/ioutil"
@@ -13,7 +12,7 @@ var dump IDump
 func init() {
 	if dump == nil {
 		dump = &FileDump{
-			Actives: make(map[string]io.WriteCloser),
+			Actives: make(map[int64]chan *fileDumpEntity),
 		}
 	}
 	err := dump.Clear()
@@ -26,7 +25,20 @@ func SetDump(d IDump) {
 	dump = d
 }
 
+func GetDump() IDump {
+	return dump
+}
+
+const (
+	DumpOrderWrite = iota
+	DumpOrderClose
+
+	DumpRequestEntity
+	DumpResponseEntity
+)
+
 type IDump interface {
+	InitDump(int64) error
 	WriteRequest(int64, []byte) (n int, err error)
 	WriteResponse(int64, []byte) (n int, err error)
 	ReadRequest(int64) ([]byte, error)
@@ -37,73 +49,119 @@ type IDump interface {
 
 type FileDump struct {
 	sync.RWMutex
-	Actives      map[string]io.WriteCloser
-	OldActives   map[string]io.WriteCloser
+	Actives      map[int64]chan *fileDumpEntity
 	completeList []string
+	cancel       chan bool
+}
+
+type fileDumpEntity struct {
+	data       []byte
+	order      int
+	entityType int
+}
+
+func (f *FileDump) InitDump(id int64) error {
+	request, err := os.OpenFile(fmt.Sprintf("./temp/%d_request.txt", id), os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	response, err := os.OpenFile(fmt.Sprintf("./temp/%d_reponse.txt", id), os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	dataChan := make(chan *fileDumpEntity, 8)
+	f.Actives[id] = dataChan
+	go func() {
+		var data *fileDumpEntity
+		for {
+			data = <-dataChan
+			switch data.order {
+			case DumpOrderWrite:
+				switch data.entityType {
+				case DumpRequestEntity:
+					request.Write(data.data)
+				case DumpResponseEntity:
+					response.Write(data.data)
+				}
+			case DumpOrderClose:
+				request.Close()
+				response.Close()
+				return
+			}
+		}
+	}()
+	return nil
 }
 
 func (f *FileDump) WriteRequest(id int64, data []byte) (n int, err error) {
-	name := fmt.Sprintf("./temp/%d_request.txt", id)
-	return f.write(name, data)
+	f.RLock()
+	c, ok := f.Actives[id]
+	if ok {
+		c <- &fileDumpEntity{
+			data:       data,
+			order:      DumpOrderWrite,
+			entityType: DumpRequestEntity,
+		}
+	}
+	f.RUnlock()
+	return len(data), nil
 }
 func (f *FileDump) WriteResponse(id int64, data []byte) (n int, err error) {
-	name := fmt.Sprintf("./temp/%d_reponse.txt", id)
-	return f.write(name, data)
-}
-func (f *FileDump) write(fileName string, data []byte) (n int, err error) {
-	f.Lock()
-	defer f.Unlock()
-	if len(f.OldActives) > 0 {
-		_, ok := f.OldActives[fileName]
-		if ok {
-			return
+	f.RLock()
+	c, ok := f.Actives[id]
+	if ok {
+		c <- &fileDumpEntity{
+			data:       data,
+			order:      DumpOrderWrite,
+			entityType: DumpResponseEntity,
 		}
 	}
-	w, ok := f.Actives[fileName]
-	if !ok {
-		Logger.Debugf("[DUMP FILE] create file: %s", fileName)
-		file, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, 0644)
-		if err != nil {
-			return 0, err
-		}
-		f.Actives[fileName] = file
-		w = file
-	}
-	Logger.Debugf("[DUMP FILE] write to file: %s", fileName)
-	return w.Write(data)
+	f.RUnlock()
+	return len(data), nil
 }
 func (f *FileDump) ReadRequest(id int64) ([]byte, error) {
-	return ioutil.ReadFile(fmt.Sprintf("./temp/%d_request.txt", id))
+	file := fmt.Sprintf("./temp/%d_request.txt", id)
+	_, err := os.Stat(file)
+	if os.IsNotExist(err) {
+		return []byte{}, nil
+	}
+	return ioutil.ReadFile(fmt.Sprintf(file, id))
 }
 func (f *FileDump) ReadResponse(id int64) ([]byte, error) {
-	return ioutil.ReadFile(fmt.Sprintf("./temp/%d_reponse.txt", id))
+	file := fmt.Sprintf("./temp/%d_reponse.txt", id)
+	_, err := os.Stat(file)
+	if os.IsNotExist(err) {
+		return []byte{}, nil
+	}
+	return ioutil.ReadFile(fmt.Sprintf(file, id))
 }
 func (f *FileDump) Complete(id int64) error {
-	f.close(fmt.Sprintf("./temp/%d_request.txt", id))
-	f.close(fmt.Sprintf("./temp/%d_reponse.txt", id))
-	return nil
-}
-func (f *FileDump) close(name string) error {
-	f.Lock()
-	defer f.Unlock()
-	if len(f.OldActives) > 0 {
-		w, ok := f.OldActives[name]
-		if ok {
-			delete(f.OldActives, name)
-			w.Close()
-			return nil
-		}
-	}
-	w, ok := f.Actives[name]
+	_, ok := f.Actives[id]
 	if ok {
-		delete(f.Actives, name)
-		w.Close()
+		f.Lock()
+		c, ok := f.Actives[id]
+		if ok {
+			c <- &fileDumpEntity{
+				order: DumpOrderClose,
+			}
+			delete(f.Actives, id)
+		}
+		f.Unlock()
 	}
 	return nil
 }
 func (f *FileDump) Clear() error {
 	f.Lock()
-	defer f.Unlock()
+	for k := range f.Actives {
+		c, ok := f.Actives[k]
+		if ok {
+			c <- &fileDumpEntity{
+				order: DumpOrderClose,
+			}
+		}
+	}
+	f.Actives = make(map[int64]chan *fileDumpEntity)
+	// Clear files
 	_, err := os.Stat("temp/")
 	if !os.IsNotExist(err) {
 		err := os.RemoveAll("temp")
@@ -117,9 +175,6 @@ func (f *FileDump) Clear() error {
 		Logger.Errorf("mkdir failed![%v]\n", err)
 		return err
 	}
-	if len(f.Actives) > 0 {
-		f.OldActives = f.Actives
-		f.Actives = make(map[string]io.WriteCloser)
-	}
+	f.Unlock()
 	return nil
 }

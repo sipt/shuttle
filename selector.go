@@ -20,6 +20,7 @@ type ISelector interface {
 	Refresh() error
 	Reset(group *ServerGroup) error
 	Destroy()
+	Current() IServer
 }
 
 func ParseServer(v interface{}) (*ServerGroup, *Server, error) {

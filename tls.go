@@ -37,8 +37,17 @@ func InitCert(mitm *Mitm) error {
 	ca, key, err = LoadCA(caBytes, keyBytes)
 	return err
 }
+func GetCACert() []byte {
+	l := len(caBytes)
+	if l == 0 {
+		return nil
+	}
+	bak := make([]byte, l)
+	copy(bak, caBytes)
+	return bak
+}
 
-func generateCA() error {
+func GenerateCA() error {
 	var err error
 	key, err = rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
