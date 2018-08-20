@@ -12,7 +12,6 @@ func SetAllowDump(ctx *gin.Context) {
 	var response Response
 	allow_mitm := ctx.PostForm("allow_mitm")
 	allow_dump := ctx.PostForm("allow_dump")
-	fmt.Println("allow_dump: ", allow_dump)
 	switch allow_dump {
 	case "true":
 		shuttle.SetAllowDump(true)

@@ -8,6 +8,7 @@ import (
 	"github.com/sipt/shuttle/controller"
 	"time"
 	"strings"
+	"runtime/debug"
 )
 
 var (
@@ -18,8 +19,8 @@ var (
 )
 
 func main() {
-	var configFile = "/Users/sipt/Documents/GOPATH/src/github.com/sipt/shuttle/.conf/sipt.yaml"
-	var geoIPDB = "/Users/sipt/Documents/GOPATH/src/github.com/sipt/shuttle/GeoLite2-Country.mmdb"
+	var configFile = "sipt.yaml"
+	var geoIPDB = "GeoLite2-Country.mmdb"
 	general, err := shuttle.InitConfig(configFile)
 	if err != nil {
 		panic(err)
@@ -80,7 +81,13 @@ func HandleSocks5(socksPort, socksInterface string, stopHandle chan bool) {
 			continue
 		}
 		go func() {
-			defer conn.Close()
+			defer func() {
+				conn.Close()
+				if err := recover(); err != nil {
+					shuttle.Logger.Error("[HTTP/HTTPS]panic :", err)
+					shuttle.Logger.Error("[HTTP/HTTPS]stack :", debug.Stack())
+				}
+			}()
 			shuttle.Logger.Debug("[SOCKS]Accept tcp connection")
 			shuttle.SocksHandle(conn)
 		}()
@@ -113,7 +120,13 @@ func HandleHTTP(httpPort, httpInterface string, stopHandle chan bool) {
 			continue
 		}
 		go func() {
-			defer conn.Close()
+			defer func() {
+				conn.Close()
+				if err := recover(); err != nil {
+					shuttle.Logger.Error("[HTTP/HTTPS]panic :", err)
+					shuttle.Logger.Error("[HTTP/HTTPS]stack :", debug.Stack())
+				}
+			}()
 			shuttle.Logger.Debug("[HTTP/HTTPS]Accept tcp connection")
 			shuttle.HandleHTTP(conn)
 		}()

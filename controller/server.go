@@ -6,12 +6,14 @@ import (
 	"strings"
 	"fmt"
 	"net/http"
+	"github.com/sipt/shuttle/controller/web"
 )
 
 func StartController(inter, port string, shutdownSignal chan bool, reloadConfigSignal chan bool) {
 	e := gin.Default()
 	e.Use(Cors())
 	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal)
+	web.WebRoute(e)
 	e.Run(inter + ":" + port)
 }
 

@@ -47,30 +47,30 @@ type Rule struct {
 }
 
 func filter(req *Request) (*Rule, error) {
-	for i, v := range rules {
+	for _, v := range rules {
 		switch v.Type {
 		case RuleDomainSuffix:
 			if req.Addr == v.Value || strings.HasSuffix(req.Addr, "."+v.Value) {
-				return rules[i], nil
+				return v, nil
 			}
 		case RuleDomain:
 			if req.Addr == v.Value {
-				return rules[i], nil
+				return v, nil
 			}
 		case RuleDomainKeyword:
 			if strings.Index(req.Addr, v.Value) >= 0 {
-				return rules[i], nil
+				return v, nil
 			}
 		case RuleIPCIDR:
 			if ipCidrMap[v.Value].Contains(req.IP) {
-				return rules[i], nil
+				return v, nil
 			}
 		case RuleGeoIP:
 			if v.Value == req.DomainHost.Country {
-				return rules[i], nil
+				return v, nil
 			}
 		case RuleFinal:
-			return rules[i], nil
+			return v, nil
 		}
 	}
 	return nil, nil
