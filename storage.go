@@ -12,6 +12,7 @@ const (
 
 	RecordStatusActive    = "Active"
 	RecordStatusCompleted = "Completed"
+	RecordStatusReject    = "Reject"
 )
 
 var maxCount = 1000
@@ -48,6 +49,7 @@ type Record struct {
 	Up       int
 	Down     int
 	URL      string
+	Dumped   bool
 }
 
 type LinkedList struct {

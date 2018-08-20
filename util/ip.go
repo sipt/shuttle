@@ -9,6 +9,8 @@ import (
 	"context"
 )
 
+var ipCache = make(map[string]*IP)
+
 type IPInfo struct {
 	Code int `json:"code"`
 	Data IP  `json:"data`
@@ -55,11 +57,15 @@ func tabaoAPI(ip string) (*IPInfo, error) {
 }
 
 func WatchIP(addr string) (*IP, error) {
+	if ip, ok := ipCache[addr]; ok {
+		return ip, nil
+	}
 	reply, err := tabaoAPI(addr)
 	if err != nil {
 		return nil, err
 	}
 	if reply != nil {
+		ipCache[addr] = &(reply.Data)
 		return &(reply.Data), nil
 	}
 	return nil, nil

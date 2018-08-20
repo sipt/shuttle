@@ -10,7 +10,7 @@ import (
 	"bufio"
 )
 
-var defaultTimeOut = 30 * time.Second
+var defaultTimeOut = 10 * time.Second
 
 //
 func DefaultDecorate(c net.Conn, network string) (IConn, error) {

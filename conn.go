@@ -55,7 +55,7 @@ func NewDefaultConn(conn net.Conn, network string) (IConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return TimerDecorate(c, 0, -1)
+	return TimerDecorate(c, -1, -1)
 }
 
 func FilterByReq(req *Request) (rule *Rule, s *Server, err error) {
@@ -67,7 +67,11 @@ func FilterByReq(req *Request) (rule *Rule, s *Server, err error) {
 			if err != nil {
 				return
 			}
+		} else if len(req.DomainHost.Country) == 0 {
+			req.DomainHost.Country = GeoLookUp(req.IP)
 		}
+	} else if len(req.DomainHost.Country) == 0 {
+		req.DomainHost.Country = GeoLookUp(req.IP)
 	}
 	//Rules filter
 	rule, err = filter(req)

@@ -6,29 +6,77 @@ import (
 	_ "github.com/sipt/shuttle/ciphers"
 	_ "github.com/sipt/shuttle/selector"
 	"github.com/sipt/shuttle/controller"
+	"time"
+	"strings"
+)
+
+var (
+	ShutdownSignal     = make(chan bool, 1)
+	StopSocksSignal    = make(chan bool, 1)
+	StopHTTPSignal     = make(chan bool, 1)
+	ReloadConfigSignal = make(chan bool, 1)
 )
 
 func main() {
-	general, err := shuttle.InitConfig("/Users/sipt/Documents/GOPATH/src/github.com/sipt/shuttle/.conf/sipt.yaml")
+	var configFile = "/Users/sipt/Documents/GOPATH/src/github.com/sipt/shuttle/.conf/sipt.yaml"
+	var geoIPDB = "/Users/sipt/Documents/GOPATH/src/github.com/sipt/shuttle/GeoLite2-Country.mmdb"
+	general, err := shuttle.InitConfig(configFile)
 	if err != nil {
 		panic(err)
 	}
-	go controller.StartController(general.ControllerPort) // 启动api控制
+	shuttle.InitGeoIP(geoIPDB)
+	// 启动api控制
+	go controller.StartController(general.ControllerInterface, general.ControllerPort,
+		ShutdownSignal,     // shutdown program
+		ReloadConfigSignal, // reload config
+	)
 	//go HandleUDP()
-	go HandleHTTP(general.HttpPort, general.HttpInterface)
-	HandleSocks5(general.SocksPort, general.SocksInterface)
+	go HandleHTTP(general.HttpPort, general.HttpInterface, StopSocksSignal)
+	go HandleSocks5(general.SocksPort, general.SocksInterface, StopHTTPSignal)
+	for {
+		select {
+		case <-ShutdownSignal:
+			StopSocksSignal <- true
+			StopHTTPSignal <- true
+			time.Sleep(time.Second)
+			shuttle.Logger.Info("[Shuttle] is shutdown, see you later!")
+			return
+		case <-ReloadConfigSignal:
+			StopSocksSignal <- true
+			StopHTTPSignal <- true
+			general, err := shuttle.ReloadConfig()
+			if err != nil {
+				shuttle.Logger.Error("Reload Config failed: ", err)
+			}
+			go HandleHTTP(general.HttpPort, general.HttpInterface, StopSocksSignal)
+			go HandleSocks5(general.SocksPort, general.SocksInterface, StopHTTPSignal)
+		}
+	}
 }
 
-func HandleSocks5(socksPort, socksInterface string) {
+func HandleSocks5(socksPort, socksInterface string, stopHandle chan bool) {
 	listener, err := net.Listen("tcp", net.JoinHostPort(socksInterface, socksPort))
 	if err != nil {
 		panic(err)
 	}
 	shuttle.Logger.Info("Listen to [SOCKS]: ", net.JoinHostPort(socksInterface, socksPort))
+	var shutdown = false
+	go func() {
+		for {
+			if shutdown = <-stopHandle; shutdown {
+				listener.Close()
+			}
+		}
+	}()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			shuttle.Logger.Error(err)
+			if shutdown && strings.Contains(err.Error(), "use of closed network connection") {
+				shuttle.Logger.Info("Stopped HTTP/HTTPS Proxy goroutine...")
+				return
+			} else {
+				shuttle.Logger.Error(err)
+			}
 			continue
 		}
 		go func() {
@@ -38,17 +86,30 @@ func HandleSocks5(socksPort, socksInterface string) {
 		}()
 	}
 }
-
-func HandleHTTP(httpPort, httpInterface string) {
+func HandleHTTP(httpPort, httpInterface string, stopHandle chan bool) {
 	listener, err := net.Listen("tcp", net.JoinHostPort(httpInterface, httpPort))
 	if err != nil {
 		panic(err)
 	}
 	shuttle.Logger.Info("Listen to [HTTP/HTTPS]: ", net.JoinHostPort(httpInterface, httpPort))
+
+	var shutdown = false
+	go func() {
+		for {
+			if shutdown = <-stopHandle; shutdown {
+				listener.Close()
+			}
+		}
+	}()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			shuttle.Logger.Error(err)
+			if shutdown && strings.Contains(err.Error(), "use of closed network connection") {
+				shuttle.Logger.Info("Stopped HTTP/HTTPS Proxy goroutine...")
+				return
+			} else {
+				shuttle.Logger.Error(err)
+			}
 			continue
 		}
 		go func() {

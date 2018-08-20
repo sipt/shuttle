@@ -19,7 +19,7 @@ const (
 	rsvIndex       = cmdIndex + 1
 	atypIndex      = rsvIndex + 1
 	addrIndex      = atypIndex + 1
-	domianLenIndex = rsvIndex + 1
+	domianLenIndex = atypIndex + 1
 	ipv4PortIndex  = addrIndex + 4
 	ipv6PortIndex  = addrIndex + 16
 )
@@ -45,7 +45,7 @@ func SocksHandle(co net.Conn) {
 	}
 	req.Protocol = ProtocolSocks
 	req.Target = req.Host()
-	_, err = conn.Write([]byte{socksVer5, 0x00, 0x00, req.Atyp, 0x00, 0x00, 0x00, 0x00, 0x08, 0x43})
+	_, err = conn.Write([]byte{socksVer5, 0x00, 0x00, AddrTypeIPv4, 0x00, 0x00, 0x00, 0x00, 0x08, 0x43})
 	if err != nil {
 		Logger.Error("send connection confirmation:", err)
 		return
@@ -139,7 +139,7 @@ func parseRequest(conn IConn) (*Request, error) {
 		}
 	case AddrTypeDomain:
 		end := buf[domianLenIndex] + 1 + domianLenIndex
-		request.IP = buf[domianLenIndex+1 : end]
+		request.Addr = string(buf[domianLenIndex+1 : end])
 		request.Port = binary.BigEndian.Uint16(buf[end : end+2])
 		if request.Cmd == CmdUDP {
 			request.Data = buf[end+2:]

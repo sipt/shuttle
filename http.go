@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"strings"
 	"time"
+	"github.com/sipt/shuttle/util"
 )
 
 const (
@@ -46,6 +47,15 @@ func HandleHTTP(co net.Conn) {
 		Logger.Error("prepareRequest failed: ", err)
 		return
 	}
+	//inner controller domain
+	if req.Addr == "c.sipt.top" {
+		port, err := strconv.ParseUint(controllerPort, 10, 16)
+		if err == nil {
+			req.IP = []byte{127, 0, 0, 1}
+			req.Port = uint16(port)
+		}
+	}
+
 	//filter by Rules and DNS
 	rule, s, err := FilterByReq(req)
 	if err != nil {
@@ -57,6 +67,15 @@ func HandleHTTP(co net.Conn) {
 	if err != nil {
 		if err == ErrorReject {
 			Logger.Debugf("Reject [%s]", req.Target)
+			recordChan <- &Record{
+				ID:       util.NextID(),
+				Protocol: req.Protocol,
+				Created:  time.Now(),
+				Proxy:    s,
+				Status:   RecordStatusReject,
+				URL:      req.Target,
+				Rule:     rule,
+			}
 		} else {
 			Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
 		}

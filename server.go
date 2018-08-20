@@ -3,6 +3,7 @@ package shuttle
 import (
 	"net"
 	"fmt"
+	"time"
 )
 
 var groups []*ServerGroup
@@ -36,6 +37,14 @@ func SelectServer(groupName, serverName string) error {
 	}
 	return fmt.Errorf("group[%s] is not exist", groupName)
 }
+func SelectRefresh(groupName string) error {
+	for _, g := range groups {
+		if g.Name == groupName {
+			return g.Selector.Refresh()
+		}
+	}
+	return fmt.Errorf("group[%s] is not exist", groupName)
+}
 
 type IServer interface {
 	GetName() string
@@ -63,6 +72,7 @@ type Server struct {
 	Port     string `json:"-"`
 	Method   string `json:"-"`
 	Password string `json:"-"`
+	Rtt      time.Duration
 }
 
 func (s *Server) GetName() string {
@@ -114,7 +124,13 @@ func (s *Server) Conn(req *Request) (IConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	rawAddr, err := AddressEncoding(req.Atyp, []byte(req.Addr), req.Port)
+	var addrBytes []byte
+	if len(req.Addr) > 0 {
+		addrBytes = []byte(req.Addr)
+	} else {
+		addrBytes = req.IP
+	}
+	rawAddr, err := AddressEncoding(req.Atyp, addrBytes, req.Port)
 	if err != nil {
 		return nil, err
 	}

@@ -1,14 +1,14 @@
 package shuttle
 
 import (
+	"bytes"
+	"fmt"
 	"net"
 	"strings"
-	"bytes"
-	"github.com/miekg/dns"
-	"fmt"
-	"time"
 	"sync"
-	"github.com/sipt/shuttle/util"
+	"time"
+
+	"github.com/miekg/dns"
 )
 
 const (
@@ -138,7 +138,9 @@ func localResolve(dns *DNS, req *Request) error {
 		}
 		copy(req.IP, dns.IPs[0])
 		req.DomainHost.Country = dns.Country
-		req.DomainHost.DNS = dns.DNSs[0]
+		if len(dns.DNSs) > 0 {
+			req.DomainHost.DNS = dns.DNSs[0]
+		}
 		return nil
 	case DNSTypeDirect:
 		//直连DNS解析
@@ -186,13 +188,9 @@ func directResolve(servers []net.IP, req *Request) error {
 	}
 	req.IP = cache.IPs[0]
 	_CacheDNS.Push(cache)
-	ip, err := util.WatchIP(req.IP.String())
-	if err != nil {
-		Logger.Errorf("[DNS] watch ip[%s] country failed : %v", req.IP.String(), err)
-		return nil
-	}
-	cache.Country = ip.CountryID
-	req.DomainHost.Country = ip.CountryID
+	country := GeoLookUp(req.IP)
+	cache.Country = country
+	req.DomainHost.Country = country
 	req.DomainHost.DNS = r.DNS
 	Logger.Debug("[DNS] ", cache.String())
 	return nil

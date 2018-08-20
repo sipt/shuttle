@@ -7,6 +7,12 @@ import (
 	"sync"
 	"bytes"
 	"github.com/sipt/shuttle/pool"
+	"bufio"
+	"net/http"
+	"compress/gzip"
+	"compress/zlib"
+	"io"
+	"encoding/base64"
 )
 
 var dump IDump
@@ -43,8 +49,7 @@ type IDump interface {
 	InitDump(int64) error
 	WriteRequest(int64, []byte) (n int, err error)
 	WriteResponse(int64, []byte) (n int, err error)
-	ReadRequest(int64) ([]byte, error)
-	ReadResponse(int64) ([]byte, error)
+	Dump(int64) ([]byte, error)
 	Complete(int64) error
 	Clear() error
 }
@@ -82,34 +87,49 @@ func (f *FileDump) InitDump(id int64) error {
 					respBuf.Write(data.data)
 				}
 			case DumpOrderClose:
-				err := ioutil.WriteFile(fmt.Sprintf("./temp/%d_request.txt", id), reqBuf.Bytes(), 0644)
+				file, err := os.OpenFile(fmt.Sprintf("./temp/%d_data.txt", id), os.O_RDWR|os.O_CREATE, 0644)
 				if err != nil {
-					Logger.Errorf("[%d] save request failed: %v", id, err)
+					Logger.Errorf("[%d] create data file failed: %v", id, err)
 				}
-				err = ioutil.WriteFile(fmt.Sprintf("./temp/%d_reponse.txt", id), respBuf.Bytes(), 0644)
-				if err != nil {
-					Logger.Errorf("[%d] save response failed: %v", id, err)
-				}
+				file.WriteString(`{"req":"`)
+				file.WriteString(base64.StdEncoding.EncodeToString(reqBuf.Bytes()))
+				file.WriteString(`"`)
 				//解析返回值
-				//b := bufio.NewReader(reqBuf)
-				//req, err := http.ReadRequest(b)
-				//if err != nil {
-				//	Logger.Errorf("[%d] parse http request failed: %v", id, err)
-				//}
-				//b = bufio.NewReader(respBuf)
-				//resp, err := http.ReadResponse(b, req)
-				//if err != nil {
-				//	Logger.Errorf("[%d] parse http response failed: %v", id, err)
-				//}
-				//respFile, err := os.OpenFile(fmt.Sprintf("./temp/%d_reponse.txt", id), os.O_RDWR|os.O_CREATE, 0644)
-				//if err != nil {
-				//	Logger.Errorf("[%d] save response failed: %v", id, err)
-				//	return
-				//}
-				//err = resp.Write(respFile)
-				//if err != nil {
-				//	Logger.Errorf("[%d] save response failed: %v", id, err)
-				//}
+				b := bufio.NewReader(reqBuf)
+				req, err := http.ReadRequest(b)
+				if err != nil {
+					Logger.Errorf("[%d] parse http request failed: %v", id, err)
+				}
+				b = bufio.NewReader(respBuf)
+				resp, err := http.ReadResponse(b, req)
+				if err != nil {
+					Logger.Errorf("[%d] parse http response failed: %v", id, err)
+				}
+				var r io.Reader
+				if resp.Header.Get("Content-Encoding") == "gzip" {
+					r, err = gzip.NewReader(resp.Body)
+					if err != nil {
+						Logger.Errorf("[%d] gzip init for response failed: %v", id, err)
+					}
+				} else if resp.Header.Get("Content-Encoding") == "deflate" {
+					r, err = zlib.NewReader(resp.Body)
+					if err != nil {
+						Logger.Errorf("[%d] deflate init for response failed: %v", id, err)
+					}
+				} else {
+					r = resp.Body
+				}
+
+				file.WriteString(`,"resp_body":"`)
+				reqBuf.Reset()
+				reqBuf.ReadFrom(r)
+				file.WriteString(base64.StdEncoding.EncodeToString(reqBuf.Bytes()))
+				resp.Body.Close()
+				file.WriteString(`","resp_header":"`)
+				reqBuf.Reset()
+				resp.Write(reqBuf)
+				file.WriteString(base64.StdEncoding.EncodeToString(reqBuf.Bytes()))
+				file.WriteString(`"}`)
 				return
 			}
 		}
@@ -143,16 +163,8 @@ func (f *FileDump) WriteResponse(id int64, data []byte) (n int, err error) {
 	f.RUnlock()
 	return len(data), nil
 }
-func (f *FileDump) ReadRequest(id int64) ([]byte, error) {
-	file := fmt.Sprintf("./temp/%d_request.txt", id)
-	_, err := os.Stat(file)
-	if os.IsNotExist(err) {
-		return []byte{}, nil
-	}
-	return ioutil.ReadFile(file)
-}
-func (f *FileDump) ReadResponse(id int64) ([]byte, error) {
-	file := fmt.Sprintf("./temp/%d_reponse.txt", id)
+func (f *FileDump) Dump(id int64) ([]byte, error) {
+	file := fmt.Sprintf("./temp/%d_data.txt", id)
 	_, err := os.Stat(file)
 	if os.IsNotExist(err) {
 		return []byte{}, nil

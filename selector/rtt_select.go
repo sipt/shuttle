@@ -91,18 +91,19 @@ func (r *rttSelector) autoTest() {
 
 func urlTest(s *shuttle.Server, c chan *shuttle.Server) {
 	var closer func()
-	start := time.Now()
 	conn, err := s.Conn(&shuttle.Request{
 		Cmd:  shuttle.CmdTCP,
 		Atyp: shuttle.AddrTypeDomain,
-		Addr: "www.gstatic.com:80",
+		Addr: "www.gstatic.com",
+		Port: 80,
 	})
 	if err != nil {
 		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
 		return
 	}
 	defer conn.Close()
-	_, err = conn.Write([]byte("GET http://www.gstatic.com/generate_204 HTTP/1.1\r\nHost: www.gstatic.com\r\nAccept: */*\r\nProxy-Connection: Keep-Alive\r\n\r\n"))
+	start := time.Now()
+	_, err = conn.Write([]byte("GET /generate_204 HTTP/1.1\r\nHost: www.gstatic.com\r\n\r\n"))
 	if err != nil {
 		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
 		return
@@ -116,15 +117,18 @@ func urlTest(s *shuttle.Server, c chan *shuttle.Server) {
 		return
 	}
 	if err == nil && string(buf[9:12]) == "204" {
+		s.Rtt = time.Now().Sub(start)
 		select {
 		case c <- s:
 		default:
 		}
+	} else {
+		s.Rtt = 0
 	}
 	if err != nil {
 		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
 	} else {
-		shuttle.Logger.Debugf("[RTT-Select] [%s]  RTT:[%dms]", s.Name, time.Now().Sub(start).Nanoseconds()/1000000)
+		shuttle.Logger.Debugf("[RTT-Select] [%s]  RTT:[%dms]", s.Name, s.Rtt.Nanoseconds()/1000000)
 	}
 	if closer != nil {
 		closer()

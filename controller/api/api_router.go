@@ -2,7 +2,7 @@ package api
 
 import "github.com/gin-gonic/gin"
 
-func APIRoute(router *gin.RouterGroup) {
+func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSignal chan bool) {
 	//dns
 	router.GET("/dns", DNSCacheList)
 	router.DELETE("/dns", ClearDNSCache)
@@ -26,10 +26,15 @@ func APIRoute(router *gin.RouterGroup) {
 	//server
 	router.GET("/servers", ServerList)
 	router.POST("/server/select", SelectServer)
+	router.POST("/server/select/refresh", SelectRefresh)
+
+	//general
+	router.POST("/shutdown", NewShutdown(shutdownSingnal))
+	router.POST("/reload", ReloadConfig(reloadConfigSignal))
 }
 
 type Response struct {
-	Code    int
-	Message string
-	Data    interface{} `json:"omitempty"`
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
 }

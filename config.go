@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+const ControllerDomain = "c.sipt.top"
+
+var controllerDomain string
+var controllerPort string
+
 type Config struct {
 	Ver        string              `yaml:"ver"`
 	General    *General            `yaml:"General"`
@@ -19,13 +24,14 @@ type Config struct {
 }
 
 type General struct {
-	LogLevel       string   `yaml:"loglevel,2quoted"`
-	DNSServer      []string `yaml:"dns-server,2quoted"`
-	SocksPort      string   `yaml:"socks-port,2quoted"`
-	HttpPort       string   `yaml:"http-port,2quoted"`
-	HttpInterface  string   `yaml:"http-interface,2quoted"`
-	SocksInterface string   `yaml:"socks-interface,2quoted"`
-	ControllerPort string   `yaml:"controller-port,2quoted"`
+	LogLevel            string   `yaml:"loglevel,2quoted"`
+	DNSServer           []string `yaml:"dns-server,2quoted"`
+	HttpPort            string   `yaml:"http-port,2quoted"`
+	HttpInterface       string   `yaml:"http-interface,2quoted"`
+	SocksPort           string   `yaml:"socks-port,2quoted"`
+	SocksInterface      string   `yaml:"socks-interface,2quoted"`
+	ControllerPort      string   `yaml:"controller-port,2quoted"`
+	ControllerInterface string   `yaml:"controller-interface,2quoted"`
 }
 
 type Mitm struct {
@@ -33,12 +39,14 @@ type Mitm struct {
 	Key string `yaml:"key,2quoted"`
 }
 
-func ReloadConfig() error {
+func ReloadConfig() (*General, error) {
 	DestroyServers()
+	ClearDNSCache()
+	ClearRecords()
 	//
-	_, err := InitConfig(configFile)
-	return err
+	return InitConfig(configFile)
 }
+
 func SetMimt(mitm *Mitm) {
 	conf.Mitm = mitm
 	SaveToFile()
@@ -60,9 +68,9 @@ func SaveToFile() {
 var configFile string
 var conf *Config
 
-func InitConfig(filepath string) (*General, error) {
-	configFile = filepath
-	data, err := ioutil.ReadFile(filepath)
+func InitConfig(filePath string) (*General, error) {
+	configFile = filePath
+	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("read config file failed: %v", err)
 	}
@@ -201,10 +209,16 @@ func InitConfig(filepath string) (*General, error) {
 
 	//logger level
 	SetLeve(conf.General.LogLevel)
+	fmt.Println("use level:", conf.General.LogLevel)
 
 	err = InitCert(conf.Mitm)
 	if err != nil {
 		return nil, fmt.Errorf("mitm init failed: %v", err)
+	}
+	if len(controllerPort) == 0 {
+		controllerPort = conf.General.ControllerPort
+	} else {
+		conf.General.ControllerPort = controllerPort
 	}
 	return conf.General, nil
 }

@@ -13,13 +13,15 @@ import (
 type DirectChannel struct{}
 
 func (d *DirectChannel) Transport(lc, sc IConn) {
-	go d.send(sc, lc)
-	d.send(lc, sc)
+	errChan := make(chan error, 2)
+	go d.send(sc, lc, errChan)
+	go d.send(lc, sc, errChan)
+	<-errChan
 	lc.Close()
 	sc.Close()
 }
 
-func (d *DirectChannel) send(from, to IConn) {
+func (d *DirectChannel) send(from, to IConn, errChan chan error) {
 	var (
 		buf []byte
 		n   int
@@ -29,12 +31,14 @@ func (d *DirectChannel) send(from, to IConn) {
 		buf = pool.GetBuf()
 		n, err = from.Read(buf)
 		if n == 0 {
+			errChan <- nil
 			return
 		}
 		if err != nil {
 			if err != io.EOF {
 				Logger.Errorf("ConnectID [%d] DirectChannel Transport: %v", from.GetID(), err)
 			}
+			errChan <- err
 			return
 		}
 		n, err = to.Write(buf[:n])
@@ -42,6 +46,7 @@ func (d *DirectChannel) send(from, to IConn) {
 			if err != io.EOF {
 				Logger.Error("ConnectID [%d] DirectChannel Transport: %v", to.GetID(), err)
 			}
+			errChan <- err
 			return
 		}
 	}
@@ -71,6 +76,9 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) {
 	}
 	lc.Close()
 	sc.Close()
+	if h.id != 0 {
+		go storage.Put(h.id, RecordStatus, RecordStatusCompleted)
+	}
 }
 
 func (h *HttpChannel) sendToClient(from, to IConn) {
@@ -107,6 +115,7 @@ func (h *HttpChannel) sendToClient(from, to IConn) {
 func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 	var err error
 	var b *bufio.Reader
+	var isHttps = first == nil
 	for {
 		if first != nil {
 			h.req = first
@@ -132,21 +141,32 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 		record := *h.template
 		record.ID = h.id
 		record.URL = h.req.URL.String()
+		if h.req.URL.Host == "" {
+			if isHttps {
+				record.URL = "https://" + h.req.Host + record.URL
+			} else {
+				record.URL = "http://" + h.req.Host + record.URL
+			}
+		}
 		record.Status = RecordStatusActive
 		record.Created = time.Now()
+		record.Dumped = h.allowDump
 		recordChan <- &record
 		err = h.req.Write(to)
 		if h.allowDump {
-			go func(id int64, req *http.Request) {
-				if h.oldID != 0 && h.oldID != h.id {
-					dump.Complete(h.oldID)
-					h.oldID = 0
+			go func(id, oldID int64, req *http.Request) {
+				if oldID != 0 && oldID != id {
+					dump.Complete(oldID)
 				}
-				dump.InitDump(h.id)
+				dump.InitDump(id)
 				writer := bytes.NewBuffer(pool.GetBuf()[:0])
 				req.Write(writer)
-				dump.WriteRequest(h.id, writer.Bytes())
-			}(h.id, h.req)
+				dump.WriteRequest(id, writer.Bytes())
+			}(h.id, h.oldID, h.req)
+		}
+		if h.oldID != 0 && h.oldID != h.id {
+			go storage.Put(h.oldID, RecordStatus, RecordStatusCompleted)
+			h.oldID = 0
 		}
 	}
 	return

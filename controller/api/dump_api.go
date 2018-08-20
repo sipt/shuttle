@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"fmt"
 	"github.com/apaxa-go/helper/strconvh"
-	"encoding/base64"
 	"github.com/sipt/shuttle"
+	"bytes"
 )
 
 func SetAllowDump(ctx *gin.Context) {
@@ -75,10 +75,6 @@ func DumpRequest(ctx *gin.Context) {
 		ctx.JSON(500, response)
 		return
 	}
-	reply := &struct {
-		RequestData  string
-		ResponseData string
-	}{}
 	dump := shuttle.GetDump()
 	if dump == nil {
 		response.Code = 1
@@ -86,22 +82,17 @@ func DumpRequest(ctx *gin.Context) {
 		ctx.JSON(500, response)
 		return
 	}
-	data, err := dump.ReadRequest(id)
+	data, err := dump.Dump(id)
 	if err != nil {
 		response.Code = 1
 		response.Message = err.Error()
 		ctx.JSON(500, response)
 		return
 	}
-	reply.RequestData = base64.RawStdEncoding.EncodeToString(data)
-	data, err = dump.ReadResponse(id)
-	if err != nil {
-		response.Code = 1
-		response.Message = err.Error()
-		ctx.JSON(500, response)
-		return
-	}
-	reply.ResponseData = base64.RawStdEncoding.EncodeToString(data)
-	response.Data = reply
-	ctx.JSON(200, response)
+	ctx.Status(200)
+	ctx.Header("Content-Type", "application/json; charset=utf-8")
+	buf := bytes.NewBufferString(`{"code":0,"message":"","data":`)
+	buf.Write(data)
+	buf.WriteString("}")
+	buf.WriteTo(ctx.Writer)
 }
