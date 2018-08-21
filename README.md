@@ -11,8 +11,9 @@
 代码整理中，即将开源...
 
 ## 介绍
-**Shuttle**是一个ss-local本地化工具，主要为开发者提供便利的工具。
-一句话概括就是：你知道**Surge**么？
+**Shuttle**是一个ss-local工具，具有代理、多服务器选择、HTTP/HTTPS抓包、独立DNS解析机制，目标为开发者提供便利。
+
+参照软件**Surge for Mac**。
 
 ![Introduction](static/dump_mitm.jpg)
 
