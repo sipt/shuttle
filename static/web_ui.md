@@ -4,7 +4,7 @@
 
 ### 1.Servers
 
-![Servers](servers.jpg)
+![Servers](Servers.jpg)
 - select方法，可以手动选择服务器
 - rtt方法，提供卡片右上角刷新按钮，重新计算往返时间
 

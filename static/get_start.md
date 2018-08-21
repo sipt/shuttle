@@ -29,6 +29,11 @@ Proxy-Group: #服务器分组配置
 #### Mac & Linux
 1. 启动方法
 ```
+cd shuttle
 ./start.sh
 ```
+2. 关闭方法：web_ui里点击shutdown。
+
+#### Windows
+1. 启动方法：双击`startup.bat`
 2. 关闭方法：web_ui里点击shutdown。
