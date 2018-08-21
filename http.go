@@ -48,7 +48,7 @@ func HandleHTTP(co net.Conn) {
 		return
 	}
 	//inner controller domain
-	if req.Addr == "c.sipt.top" {
+	if req.Addr == ControllerDomain {
 		port, err := strconv.ParseUint(controllerPort, 10, 16)
 		if err == nil {
 			req.IP = []byte{127, 0, 0, 1}
@@ -91,6 +91,18 @@ func HandleHTTP(co net.Conn) {
 			return
 		}
 	}
+	//todo 白名单判断
+	if req.Addr == ControllerDomain {
+		lc, err := TimerDecorate(conn, defaultTimeOut, -1)
+		if err != nil {
+			Logger.Error("Timer Decorate net.Conn failed: ", err)
+			lc = conn
+		}
+		hreq.Write(sc)
+		direct := &DirectChannel{}
+		direct.Transport(lc, sc)
+		return
+	}
 	//MITM Decorate
 	if allowDump && req.Protocol == ProtocolHttps && allowMitm {
 		lct, sct, err := Mimt(conn, sc, req)
@@ -111,31 +123,24 @@ func HandleHTTP(co net.Conn) {
 		URL:      req.Target,
 		Rule:     rule,
 	}
+	lc, err := TimerDecorate(conn, defaultTimeOut, -1)
+	if err != nil {
+		Logger.Error("Timer Decorate net.Conn failed: ", err)
+		lc = conn
+	}
 	//Dump Decorate
 	if allowDump && req.Protocol == ProtocolHttps && allowMitm {
-		HttpTransport(conn, sc, record, true, nil)
+		HttpTransport(lc, sc, record, true, nil)
 		return
 	} else if req.Protocol == ProtocolHttp {
-		HttpTransport(conn, sc, record, allowDump, hreq)
+		HttpTransport(lc, sc, record, allowDump, hreq)
 		return
 	} else {
 		recordChan <- record
 	}
 
-	//http
-	//recordChan <- record
-	//if req.Protocol == ProtocolHttp {
-	//	err = hreq.Write(sc)
-	//	if err != nil {
-	//		Logger.Error("send http request to ss-server failed: ", err)
-	//		conn.Close()
-	//		sc.Close()
-	//		return
-	//	}
-	//}
-
 	direct := &DirectChannel{}
-	direct.Transport(conn, sc)
+	direct.Transport(lc, sc)
 }
 
 func prepareRequest(conn IConn) (*Request, *http.Request, error) {

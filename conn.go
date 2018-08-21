@@ -51,11 +51,7 @@ type IConn interface {
 }
 
 func NewDefaultConn(conn net.Conn, network string) (IConn, error) {
-	c, err := DefaultDecorate(conn, network)
-	if err != nil {
-		return nil, err
-	}
-	return TimerDecorate(c, -1, -1)
+	return DefaultDecorate(conn, network)
 }
 
 func FilterByReq(req *Request) (rule *Rule, s *Server, err error) {

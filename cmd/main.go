@@ -19,7 +19,7 @@ var (
 )
 
 func main() {
-	var configFile = "sipt.yaml"
+	var configFile = "shuttle.yaml"
 	var geoIPDB = "GeoLite2-Country.mmdb"
 	general, err := shuttle.InitConfig(configFile)
 	if err != nil {

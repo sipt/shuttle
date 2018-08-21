@@ -9,7 +9,9 @@ fi
 cp -rf view _output/
 cp GeoLite2-Country.mmdb _output/
 if [ -d ".conf/" ];then
-cp .conf/sipt.yaml _output/
+cp .conf/sipt.yaml _output/shuttle.yaml
+else
+cp example.yaml _output/shuttle.yaml
 fi
 go build -o _output/shuttle cmd/main.go
 
