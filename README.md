@@ -11,7 +11,7 @@
 代码整理中，即将开源...
 
 ## 介绍
-**Shuttle**是一个ss-local工具，具有代理、多服务器选择、HTTP/HTTPS抓包、独立DNS解析机制，目标为开发者提供便利。
+**Shuttle**是一个基于Go开的**全平台**ss-local工具，具有代理、多服务器选择、HTTP/HTTPS抓包、独立DNS解析机制，目标为开发者提供便利。
 
 参照软件**Surge for Mac**。
 
