@@ -30,10 +30,14 @@ Proxy-Group: #服务器分组配置
 1. 启动方法
 ```
 cd shuttle
-./start.sh
+./start.sh #不会有任何输出内容
 ```
-2. 关闭方法：web_ui里点击shutdown。
+2. 根据配置文件，配置系统网络代理：HTTP Proxy、HTTPS Proxy、Socks Proxy
+3. 设置完成后可以访问`http://c.sipt.top`查看到控件台
+4. 关闭方法：web_ui里点击shutdown。
 
 #### Windows
 1. 启动方法：双击`startup.bat`
-2. 关闭方法：web_ui里点击shutdown。
+2. 根据配置文件，配置系统网络代理
+3. 设置完成后可以访问`http://c.sipt.top`查看到控件台
+4. 关闭方法：web_ui里点击shutdown。
