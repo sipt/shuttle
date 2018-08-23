@@ -404,7 +404,7 @@ module.exports = ".st-sider-menus{\n    height: 100vh;\n}\n.st-switch {\n    pad
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<ul nz-menu class=\"st-sider-menus\">\n  <div (click)=\"githubHome()\" style=\"cursor: pointer;\">\n    <img src=\"/assets/menus_logo.png\" width=\"40px\" height=\"40px\" \n    style=\"float: left;margin: 5px;margin-left: 20px\"/>\n    <h3 style=\"height: 50px;line-height: 50px;margin: 5px;margin-left: 80px;margin-bottom: 0px\">Shuttle</h3>\n  </div>\n  <nz-divider style=\"margin-top: 10px;margin-bottom: 10px\"></nz-divider>\n  <li nz-menu-group>\n    <span title>General</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/servers\" \n      routerLinkActive #rla1_1=\"routerLinkActive\" \n      [nzSelected]=\"rla1_1.isActive\">Servers</li>\n      <li nz-menu-item routerLink=\"/mitm\" \n      routerLinkActive #rla1_2=\"routerLinkActive\" \n      [nzSelected]=\"rla1_2.isActive\">MITM</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>HTTP Records</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/records\" \n      routerLinkActive #rla2=\"routerLinkActive\" \n      [nzSelected]=\"rla2.isActive\">Records</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>DNS</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/dns-cache\"\n      routerLinkActive #rla3=\"routerLinkActive\" \n      [nzSelected]=\"rla3.isActive\">Cache</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>Options</span>\n    <div nz-row class=\"st-switch\">\n      <div nz-col nzOffset=\"4\">\n          <nz-switch [(ngModel)]=\"allow_dump\" (click)=\"dumpChange()\" ></nz-switch>\n          <span>Dump</span>\n      </div>\n    </div>\n    <div nz-row class=\"st-switch\">\n        <div nz-col nzOffset=\"4\">\n            <nz-switch [(ngModel)]=\"allow_mitm\" (click)=\"mitmChange()\" ></nz-switch>\n            <span>MITM</span>\n        </div>\n    </div>\n  </li>\n  <div style=\"width: 100%;position: absolute; bottom: 0; text-align: center;margin-bottom: 20px\">\n    <div style=\"width: 100%;text-align: center;padding: 5px;\">\n      <button nz-button nzType=\"default\" [nzSize]=\"size\" style=\"width: 130px;\" (click)=\"reload()\">\n          <i class=\"anticon anticon-reload\"></i>Reload\n      </button>\n    </div>\n    <div style=\"width: 100%;text-align: center;padding: 5px;\">\n      <button nz-button nzType=\"danger\" [nzSize]=\"size\" style=\"width: 130px\" (click)=\"shutdown()\">\n          <i class=\"anticon anticon-poweroff\"></i>Shutdown\n      </button>\n    </div>\n  </div>\n</ul>\n\n"
+module.exports = "<ul nz-menu class=\"st-sider-menus\">\n  <div (click)=\"githubHome()\" style=\"cursor: pointer;\">\n    <img src=\"/assets/menus_logo.png\" width=\"40px\" height=\"40px\" \n    style=\"float: left;margin: 5px;margin-left: 20px\"/>\n    <h3 style=\"height: 50px;line-height: 50px;margin: 5px;margin-left: 80px;margin-bottom: 0px\">Shuttle</h3>\n  </div>\n  <nz-divider style=\"margin-top: 10px;margin-bottom: 10px\"></nz-divider>\n  <li nz-menu-group>\n    <span title>General</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/servers\" \n      routerLinkActive #rla1_1=\"routerLinkActive\" \n      [nzSelected]=\"rla1_1.isActive\">Servers</li>\n      <li nz-menu-item routerLink=\"/mitm\" \n      routerLinkActive #rla1_2=\"routerLinkActive\" \n      [nzSelected]=\"rla1_2.isActive\">MITM</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>HTTP Records</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/records\" \n      routerLinkActive #rla2=\"routerLinkActive\" \n      [nzSelected]=\"rla2.isActive\">Records</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>DNS</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/dns-cache\"\n      routerLinkActive #rla3=\"routerLinkActive\" \n      [nzSelected]=\"rla3.isActive\">Cache</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>Options</span>\n    <div style=\"padding-left: 10px; padding-right: 10px;\">\n      <nz-select style=\"width: 100%;\" [(ngModel)]=\"currentMode\"\n      (ngModelChange)=\"setMode($event)\">\n        <nz-option *ngFor=\"let mode of modeList\" \n        [nzLabel]=\"mode.label\" \n        [nzValue]=\"mode.value\"\n        ></nz-option>\n      </nz-select>\n    </div>\n    <div nz-row class=\"st-switch\">\n      <div nz-col nzOffset=\"4\">\n          <nz-switch [(ngModel)]=\"allow_dump\" (click)=\"dumpChange()\" ></nz-switch>\n          <span>Dump</span>\n      </div>\n    </div>\n    <div nz-row class=\"st-switch\">\n        <div nz-col nzOffset=\"4\">\n            <nz-switch [(ngModel)]=\"allow_mitm\" (click)=\"mitmChange()\" ></nz-switch>\n            <span>MITM</span>\n        </div>\n    </div>\n  </li>\n  <div style=\"width: 100%;position: absolute; bottom: 0; text-align: center;margin-bottom: 20px\">\n    <div style=\"width: 100%;text-align: center;padding: 5px;\">\n      <button nz-button nzType=\"default\" [nzSize]=\"size\" style=\"width: 130px;\" (click)=\"reload()\">\n          <i class=\"anticon anticon-reload\"></i>Reload\n      </button>\n    </div>\n    <div style=\"width: 100%;text-align: center;padding: 5px;\">\n      <button nz-button nzType=\"danger\" [nzSize]=\"size\" style=\"width: 130px\" (click)=\"shutdown()\">\n          <i class=\"anticon anticon-poweroff\"></i>Shutdown\n      </button>\n    </div>\n  </div>\n</ul>\n\n"
 
 /***/ }),
 
@@ -437,6 +437,12 @@ var MenusComponent = /** @class */ (function () {
     function MenusComponent(dumpService, generalService) {
         this.dumpService = dumpService;
         this.generalService = generalService;
+        this.modeList = [
+            { label: 'Rule Mode', value: 'RULE' },
+            { label: 'Direct Mode', value: 'DIRECT' },
+            { label: 'Remote Mode', value: 'REMOTE' },
+            { label: 'Reject Mode', value: 'REJECT' }
+        ];
     }
     MenusComponent.prototype.ngOnInit = function () {
         var _this = this;
@@ -444,6 +450,7 @@ var MenusComponent = /** @class */ (function () {
             _this.allow_dump = resp.allow_dump;
             _this.allow_mitm = resp.allow_mitm;
         });
+        this.generalService.getMode().subscribe(function (mode) { return _this.currentMode = mode; });
     };
     MenusComponent.prototype.dumpChange = function () {
         var _this = this;
@@ -467,6 +474,10 @@ var MenusComponent = /** @class */ (function () {
     };
     MenusComponent.prototype.githubHome = function () {
         window.open('https://github.com/sipt/shuttle');
+    };
+    MenusComponent.prototype.setMode = function (value) {
+        var _this = this;
+        this.generalService.setMode(value).subscribe(function (mode) { return _this.currentMode = mode; });
     };
     MenusComponent = __decorate([
         Object(_angular_core__WEBPACK_IMPORTED_MODULE_0__["Component"])({
@@ -774,6 +785,7 @@ var Response = /** @class */ (function () {
     return Response;
 }());
 
+// export const Host = 'http://localhost:8082';
 var Host = '';
 
 
@@ -1191,13 +1203,14 @@ var __metadata = (undefined && undefined.__metadata) || function (k, v) {
 var shutdownUrl = _modules_common_module__WEBPACK_IMPORTED_MODULE_2__["Host"] + '/api/shutdown';
 var reloadUrl = _modules_common_module__WEBPACK_IMPORTED_MODULE_2__["Host"] + '/api/reload';
 var certUrl = _modules_common_module__WEBPACK_IMPORTED_MODULE_2__["Host"] + '/api/cert';
+var modeUrl = _modules_common_module__WEBPACK_IMPORTED_MODULE_2__["Host"] + '/api/mode';
 var GeneralService = /** @class */ (function () {
     function GeneralService(http) {
         this.http = http;
     }
     GeneralService.prototype.shutdown = function () {
         return this.http.post(shutdownUrl, {})
-            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(this.handleError('getCache', {
+            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(this.handleError('shutdown', {
             code: 1,
             message: '',
             data: { allow_dump: false, allow_mitm: false }
@@ -1205,7 +1218,7 @@ var GeneralService = /** @class */ (function () {
     };
     GeneralService.prototype.reload = function () {
         return this.http.post(reloadUrl, {})
-            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(this.handleError('getCache', {
+            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(this.handleError('reload', {
             code: 1,
             message: '',
             data: {}
@@ -1213,7 +1226,7 @@ var GeneralService = /** @class */ (function () {
     };
     GeneralService.prototype.generateCert = function () {
         return this.http.post(certUrl, {})
-            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(this.handleError('getCache', {
+            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(this.handleError('generateCert', {
             code: 1,
             message: '',
             data: {}
@@ -1221,6 +1234,22 @@ var GeneralService = /** @class */ (function () {
     };
     GeneralService.prototype.downloadCert = function () {
         window.open(certUrl);
+    };
+    GeneralService.prototype.getMode = function () {
+        return this.http.get(modeUrl)
+            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(this.handleError('getMode', {
+            code: 1,
+            message: '',
+            data: {}
+        }))).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["map"])(function (resp) { return resp.data; }));
+    };
+    GeneralService.prototype.setMode = function (mode) {
+        return this.http.post(modeUrl + '/' + mode, {})
+            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(this.handleError('getMode', {
+            code: 1,
+            message: '',
+            data: {}
+        }))).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["map"])(function (resp) { return resp.data; }));
     };
     /**
      * Handle Http operation that failed.

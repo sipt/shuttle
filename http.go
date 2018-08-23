@@ -4,7 +4,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"errors"
 	"bufio"
 	"strings"
 	"time"
@@ -47,6 +46,28 @@ func HandleHTTP(co net.Conn) {
 		Logger.Error("prepareRequest failed: ", err)
 		return
 	}
+
+	//request update or response mock
+	resp := RequestModify(hreq)
+	req.Addr = hreq.URL.Hostname()
+	req.IP = net.ParseIP(req.Addr)
+	if port := hreq.URL.Port(); len(port) > 0 {
+		req.Port, err = strToUint16(port)
+		if err != nil {
+			Logger.Error("http port error:" + port)
+			return
+		}
+	}
+	req.Target = hreq.URL.String()
+	if strings.HasPrefix(req.Target, "//") {
+		req.Target = req.Target[2:]
+	}
+	if resp != nil {
+		resp.Write(co)
+		//defer close in main func
+		return
+	}
+
 	//inner controller domain
 	if req.Addr == ControllerDomain {
 		port, err := strconv.ParseUint(controllerPort, 10, 16)
@@ -153,20 +174,8 @@ func prepareRequest(conn IConn) (*Request, *http.Request, error) {
 	req := &Request{
 		Ver:    socksVer5,
 		Cmd:    CmdTCP,
-		Addr:   hreq.URL.Hostname(),
 		Atyp:   AddrTypeDomain,
 		ConnID: conn.GetID(),
-	}
-	req.IP = net.ParseIP(req.Addr)
-	if port := hreq.URL.Port(); len(port) > 0 {
-		req.Port, err = strToUint16(port)
-		if err != nil {
-			return nil, nil, errors.New("http port error:" + port)
-		}
-	}
-	req.Target = hreq.URL.String()
-	if strings.HasPrefix(req.Target, "//") {
-		req.Target = req.Target[2:]
 	}
 	if hreq.URL.Scheme == HTTP {
 		req.Protocol = ProtocolHttp

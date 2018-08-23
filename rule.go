@@ -9,6 +9,7 @@ import (
 const (
 	PolicyReject = "REJECT"
 	PolicyDirect = "DIRECT"
+	PolicyGlobal = "GLOBAL"
 	PolicyNone   = "NONE"
 
 	RuleDomainSuffix  = "DOMAIN-SUFFIX"
@@ -17,9 +18,15 @@ const (
 	RuleGeoIP         = "GEOIP"
 	RuleFinal         = "FINAL"
 	RuleIPCIDR        = "IP-CIDR"
+
+	ConnModeDirect = "DIRECT"
+	ConnModeRemote = "REMOTE"
+	ConnModeRule   = "RULE"
+	ConnModeReject = "REJECT"
 )
 
 var rules []*Rule
+var connMode = ConnModeRule
 
 var ipCidrMap map[string]*net.IPNet
 
@@ -38,6 +45,20 @@ func InitRule(rs []*Rule) error {
 	return nil
 }
 
+func SetConnMode(mode string) error {
+	switch connMode {
+	case ConnModeDirect, ConnModeRemote, ConnModeRule, ConnModeReject:
+		connMode = mode
+		return nil
+	default:
+		return nil
+	}
+}
+
+func GetConnMode() string {
+	return connMode
+}
+
 type Rule struct {
 	Type    string
 	Value   string
@@ -47,6 +68,15 @@ type Rule struct {
 }
 
 func filter(req *Request) (*Rule, error) {
+	switch connMode {
+	case ConnModeDirect:
+		return directRule, nil
+	case ConnModeRemote:
+		return remoteRule, nil
+	case ConnModeReject:
+		return rejectRule, nil
+	}
+
 	for _, v := range rules {
 		switch v.Type {
 		case RuleDomainSuffix:
@@ -74,4 +104,17 @@ func filter(req *Request) (*Rule, error) {
 		}
 	}
 	return nil, nil
+}
+
+var directRule = &Rule{
+	Type:   "GLOBAL",
+	Policy: PolicyDirect,
+}
+var remoteRule = &Rule{
+	Type:   "GLOBAL",
+	Policy: PolicyGlobal,
+}
+var rejectRule = &Rule{
+	Type:   "GLOBAL",
+	Policy: PolicyReject,
 }

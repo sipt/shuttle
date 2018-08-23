@@ -123,8 +123,8 @@ func HandleHTTP(httpPort, httpInterface string, stopHandle chan bool) {
 			defer func() {
 				conn.Close()
 				if err := recover(); err != nil {
-					shuttle.Logger.Error("[HTTP/HTTPS]panic :", err)
-					shuttle.Logger.Error("[HTTP/HTTPS]stack :", debug.Stack())
+					shuttle.Logger.Errorf("[HTTP/HTTPS]panic :%v", err)
+					shuttle.Logger.Errorf("[HTTP/HTTPS]stack :%s", debug.Stack())
 				}
 			}()
 			shuttle.Logger.Debug("[HTTP/HTTPS]Accept tcp connection")

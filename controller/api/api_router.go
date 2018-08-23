@@ -31,6 +31,8 @@ func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSi
 	//general
 	router.POST("/shutdown", NewShutdown(shutdownSingnal))
 	router.POST("/reload", ReloadConfig(reloadConfigSignal))
+	router.GET("/mode", GetConnMode)
+	router.POST("/mode/:mode", SetConnMode)
 }
 
 type Response struct {

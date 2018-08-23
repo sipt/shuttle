@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/sipt/yaml"
 	"strings"
+	"regexp"
 )
 
 const ControllerDomain = "c.sipt.top"
@@ -21,6 +22,7 @@ type Config struct {
 	LocalDNSs  [][]string          `yaml:"Local-DNS,[flow],2quoted"`
 	Mitm       *Mitm               `yaml:"MITM"`
 	Rule       [][]string          `yaml:"Rule,[flow],2quoted"`
+	HttpMap    *HttpMap            `yaml:"Http-Map"`
 }
 
 type General struct {
@@ -37,6 +39,17 @@ type General struct {
 type Mitm struct {
 	CA  string `yaml:"ca,2quoted"`
 	Key string `yaml:"key,2quoted"`
+}
+
+type HttpMap struct {
+	ReqMap  []*ModifyMap `yaml:"Req-Map,2quoted"`
+	RespMap []*ModifyMap `yaml:"Resp-Map,2quoted"`
+}
+
+type ModifyMap struct {
+	Type   string     `yaml:"type,2quoted"`
+	UrlRex string     `yaml:"url-rex,2quoted"`
+	Items  [][]string `yaml:"items,[flow],2quoted"`
 }
 
 func ReloadConfig() (*General, error) {
@@ -82,6 +95,8 @@ func InitConfig(filePath string) (*General, error) {
 	if conf.Ver != "v1.0.0" {
 		return nil, fmt.Errorf("resolve config file failed: only support ver:v1.0.0 current:[%s]", conf.Ver)
 	}
+
+	//General
 
 	//DNS
 	dns := make([]net.IP, len(conf.General.DNSServer))
@@ -206,6 +221,64 @@ func InitConfig(filePath string) (*General, error) {
 	if err != nil {
 		return nil, fmt.Errorf("init rule failed: %v", err)
 	}
+
+	//Http Map
+	var reqMaps, respMaps []*ModifyPolicy
+	if conf.HttpMap != nil {
+		if len(conf.HttpMap.ReqMap) > 0 {
+			reqMaps = make([]*ModifyPolicy, len(conf.HttpMap.ReqMap))
+			for i, v := range conf.HttpMap.ReqMap {
+				reqMaps[i] = &ModifyPolicy{
+					Type:   v.Type,
+					UrlRex: v.UrlRex,
+				}
+				reqMaps[i].rex, err = regexp.Compile(v.UrlRex)
+				if err != nil {
+					return nil, fmt.Errorf("resolve config file [Http-Map] [%s] failed: %v", err)
+				}
+				if len(v.Items) > 0 {
+					reqMaps[i].MVs = make([]*ModifyValue, len(v.Items))
+					for j, e := range v.Items {
+						if len(e) != 3 {
+							return nil, fmt.Errorf("resolve config file [Http-Map] failed: %v, item's count must be 3", e)
+						}
+						reqMaps[i].MVs[j] = &ModifyValue{
+							Type:  e[0],
+							Key:   e[1],
+							Value: e[2],
+						}
+					}
+				}
+			}
+		}
+		if len(conf.HttpMap.ReqMap) > 0 {
+			respMaps = make([]*ModifyPolicy, len(conf.HttpMap.RespMap))
+			for i, v := range conf.HttpMap.RespMap {
+				respMaps[i] = &ModifyPolicy{
+					Type:   v.Type,
+					UrlRex: v.UrlRex,
+				}
+				respMaps[i].rex, err = regexp.Compile(v.UrlRex)
+				if err != nil {
+					return nil, fmt.Errorf("resolve config file [Http-Map] [%s] failed: %v", err)
+				}
+				if len(v.Items) > 0 {
+					respMaps[i].MVs = make([]*ModifyValue, len(v.Items))
+					for j, e := range v.Items {
+						if len(e) != 3 {
+							return nil, fmt.Errorf("resolve config file [Http-Map] failed: %v, item's count must be 3", e)
+						}
+						respMaps[i].MVs[j] = &ModifyValue{
+							Type:  e[0],
+							Key:   e[1],
+							Value: e[2],
+						}
+					}
+				}
+			}
+		}
+	}
+	InitHttpModify(reqMaps, respMaps)
 
 	//logger level
 	SetLeve(conf.General.LogLevel)
