@@ -19,10 +19,8 @@ var (
 )
 
 func main() {
-	//var configFile = "shuttle.yaml"
-	//var geoIPDB = "GeoLite2-Country.mmdb"
-	var configFile = "/Users/sipt/Documents/GOPATH/src/github.com/sipt/shuttle/example.yaml"
-	var geoIPDB = "/Users/sipt/Documents/GOPATH/src/github.com/sipt/shuttle/GeoLite2-Country.mmdb"
+	var configFile = "shuttle.yaml"
+	var geoIPDB = "GeoLite2-Country.mmdb"
 	general, err := shuttle.InitConfig(configFile)
 	if err != nil {
 		panic(err)
