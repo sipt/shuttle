@@ -10,8 +10,23 @@ var groups []*ServerGroup
 var servers []*Server
 
 func InitServers(gs []*ServerGroup, ss []*Server) error {
-	groups = gs
-	servers = ss
+	g := &ServerGroup{
+		Name:       PolicyGlobal,
+		SelectType: "select",
+		Servers:    make([]interface{}, len(gs)+len(ss)),
+	}
+	index := 0
+	for i := range ss {
+		if ss[i].Name != PolicyDirect && ss[i].Name != PolicyReject {
+			g.Servers[index] = ss[i]
+			index ++
+		}
+	}
+	for i := range gs {
+		g.Servers[index] = gs[i]
+		index++
+	}
+	gs = append(gs, g)
 	var err error
 	for i, v := range gs {
 		v.Selector, err = seletors[gs[i].SelectType](v)
@@ -19,6 +34,8 @@ func InitServers(gs []*ServerGroup, ss []*Server) error {
 			return err
 		}
 	}
+	groups = gs
+	servers = ss
 	return nil
 }
 func DestroyServers() {

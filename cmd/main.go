@@ -19,8 +19,10 @@ var (
 )
 
 func main() {
-	var configFile = "shuttle.yaml"
-	var geoIPDB = "GeoLite2-Country.mmdb"
+	//var configFile = "shuttle.yaml"
+	//var geoIPDB = "GeoLite2-Country.mmdb"
+	var configFile = "/Users/sipt/Documents/GOPATH/src/github.com/sipt/shuttle/example.yaml"
+	var geoIPDB = "/Users/sipt/Documents/GOPATH/src/github.com/sipt/shuttle/GeoLite2-Country.mmdb"
 	general, err := shuttle.InitConfig(configFile)
 	if err != nil {
 		panic(err)
@@ -123,8 +125,8 @@ func HandleHTTP(httpPort, httpInterface string, stopHandle chan bool) {
 			defer func() {
 				conn.Close()
 				if err := recover(); err != nil {
-					shuttle.Logger.Error("[HTTP/HTTPS]panic :", err)
-					shuttle.Logger.Error("[HTTP/HTTPS]stack :", debug.Stack())
+					shuttle.Logger.Errorf("[HTTP/HTTPS]panic :%v", err)
+					shuttle.Logger.Errorf("[HTTP/HTTPS]stack :%s", debug.Stack())
 				}
 			}()
 			shuttle.Logger.Debug("[HTTP/HTTPS]Accept tcp connection")

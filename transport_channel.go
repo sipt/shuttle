@@ -82,24 +82,17 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) {
 }
 
 func (h *HttpChannel) sendToClient(from, to IConn) {
-	var (
-		buf []byte
-		n   int
-		err error
-	)
 	for {
-		buf = pool.GetBuf()
-		n, err = from.Read(buf)
-		if n == 0 {
-			return
-		}
+		buf := bufio.NewReader(from)
+		resp, err := http.ReadResponse(buf, h.req)
 		if err != nil {
 			if err != io.EOF {
 				Logger.Errorf("ConnectID [%d] HttpChannel Transport s->[b]: %v", from.GetID(), err)
 			}
 			return
 		}
-		n, err = to.Write(buf[:n])
+		ResponseModify(h.req, resp)
+		err = resp.Write(to)
 		if err != nil {
 			if err != io.EOF {
 				Logger.Error("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
@@ -107,7 +100,11 @@ func (h *HttpChannel) sendToClient(from, to IConn) {
 			return
 		}
 		if h.allowDump {
-			go dump.WriteResponse(h.id, buf[:n])
+			go func() {
+				buf := &bytes.Buffer{}
+				resp.Write(buf)
+				dump.WriteResponse(h.id, buf.Bytes())
+			}()
 		}
 	}
 }
