@@ -26,6 +26,7 @@ func InitServers(gs []*ServerGroup, ss []*Server) error {
 		g.Servers[index] = gs[i]
 		index++
 	}
+	g.Servers = g.Servers[:index]
 	gs = append(gs, g)
 	var err error
 	for i, v := range gs {
