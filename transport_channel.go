@@ -61,7 +61,7 @@ func HttpTransport(lc, sc IConn, template *Record, allowDump bool, first *http.R
 }
 
 type HttpChannel struct {
-	id, oldID int64
+	id        int64
 	req       *http.Request
 	allowDump bool
 	template  *Record
@@ -92,20 +92,28 @@ func (h *HttpChannel) sendToClient(from, to IConn) {
 			return
 		}
 		ResponseModify(h.req, resp)
-		err = resp.Write(to)
+		buffer := &bytes.Buffer{}
+		err = resp.Write(buffer)
 		if err != nil {
 			if err != io.EOF {
 				Logger.Error("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
+				return
 			}
-			return
+		}
+		_, err = to.Write(buffer.Bytes())
+		if err != nil {
+			if err != io.EOF {
+				Logger.Error("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
+				return
+			}
 		}
 		if h.allowDump {
 			go func() {
-				buf := &bytes.Buffer{}
-				resp.Write(buf)
-				dump.WriteResponse(h.id, buf.Bytes())
+				dump.WriteResponse(h.id, buffer.Bytes())
+				dump.Complete(h.id)
 			}()
 		}
+		go storage.Put(h.id, RecordStatus, RecordStatusCompleted)
 	}
 }
 
@@ -113,7 +121,10 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 	var err error
 	var b *bufio.Reader
 	var isHttps = first == nil
+	var respBuf []byte
+	var buffer *bytes.Buffer
 	for {
+		respBuf = nil
 		if first != nil {
 			h.req = first
 			first = nil
@@ -128,11 +139,24 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 				}
 				return
 			}
+			//request update
+			resp := RequestModify(h.req, isHttps)
+			if resp != nil { // response mock ?
+				buffer = &bytes.Buffer{}
+				err = resp.Write(buffer)
+				if err != nil {
+					if err != io.EOF {
+						Logger.Error("ConnectID [%d] HttpChannel Transport [req]->[b]: %v", to.GetID(), err)
+						return
+					}
+				}
+				respBuf = buffer.Bytes()
+			}
 		}
 		if h.id == 0 {
 			h.id = from.GetID()
 		} else {
-			h.oldID, h.id = h.id, util.NextID()
+			h.id = util.NextID()
 		}
 		Logger.Debugf("[connID:%d] [reqID:%d] HttpChannel Transport c->[r]: %s", from.GetID(), h.id, h.req.URL.String())
 		record := *h.template
@@ -149,21 +173,42 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 		record.Created = time.Now()
 		record.Dumped = h.allowDump
 		recordChan <- &record
-		err = h.req.Write(to)
-		if h.allowDump {
-			go func(id, oldID int64, req *http.Request) {
-				if oldID != 0 && oldID != id {
-					dump.Complete(oldID)
+		buffer = &bytes.Buffer{}
+		err = h.req.Write(buffer)
+		if err != nil {
+			if err != io.EOF {
+				Logger.Error("ConnectID [%d] HttpChannel Transport [req]->[b]: %v", to.GetID(), err)
+				return
+			}
+		}
+		reqBuf := buffer.Bytes()
+		if len(respBuf) == 0 {
+			_, err = to.Write(reqBuf)
+			if err != nil {
+				if err != io.EOF {
+					Logger.Error("ConnectID [%d] HttpChannel Transport [b]->s: %v", to.GetID(), err)
+					return
 				}
+			}
+		} else {
+			_, err = from.Write(respBuf)
+			if err != nil {
+				if err != io.EOF {
+					Logger.Error("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
+					return
+				}
+			}
+		}
+		if h.allowDump {
+			go func(id int64, reqBuf, respBuf []byte) {
 				dump.InitDump(id)
 				writer := bytes.NewBuffer(pool.GetBuf()[:0])
-				req.Write(writer)
+				writer.Write(reqBuf)
 				dump.WriteRequest(id, writer.Bytes())
-			}(h.id, h.oldID, h.req)
-		}
-		if h.oldID != 0 && h.oldID != h.id {
-			go storage.Put(h.oldID, RecordStatus, RecordStatusCompleted)
-			h.oldID = 0
+				if len(respBuf) > 0 {
+					dump.WriteResponse(id, writer.Bytes())
+				}
+			}(h.id, reqBuf, respBuf)
 		}
 	}
 	return

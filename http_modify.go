@@ -6,6 +6,12 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"net"
+	"strings"
+	"bytes"
+	"time"
+	"github.com/sipt/shuttle/util"
+	"github.com/sipt/shuttle/pool"
 )
 
 const (
@@ -33,17 +39,72 @@ func ClearHttpModify() {
 	respPolicies = nil
 }
 
-func RequestModify(req *http.Request) *http.Response {
+func RequestModifyOrMock(req *Request, hreq *http.Request, isHttps bool) (respBuf []byte, err error) {
+	//request update
+	resp := RequestModify(hreq, isHttps)
+	req.Addr = hreq.URL.Hostname()
+	req.IP = net.ParseIP(req.Addr)
+	if port := hreq.URL.Port(); len(port) > 0 {
+		req.Port, err = strToUint16(port)
+		if err != nil {
+			Logger.Error("http port error:" + port)
+			return
+		}
+	}
+	req.Target = hreq.URL.String()
+	if strings.HasPrefix(req.Target, "//") {
+		req.Target = req.Target[2:]
+	}
+	if resp != nil { // response mock ?
+		buffer := &bytes.Buffer{}
+		err = resp.Write(buffer)
+		if err != nil {
+			return
+		}
+		respBuf = buffer.Bytes()
+		//mock record to storage
+		id := util.NextID()
+		recordChan <- &Record{
+			ID:       id,
+			Protocol: req.Protocol,
+			Created:  time.Now(),
+			Proxy:    &Server{Name: "MOCK"},
+			Status:   RecordStatusCompleted,
+			URL:      req.Target,
+			Rule:     &Rule{},
+		}
+		if allowDump {
+			go func(id int64, respBuf []byte) {
+				dump.InitDump(id)
+				writer := bytes.NewBuffer(pool.GetBuf()[:0])
+				hreq.Write(writer)
+				dump.WriteRequest(id, writer.Bytes())
+				dump.WriteResponse(id, writer.Bytes())
+			}(id, respBuf)
+		}
+	}
+	return
+}
+
+func RequestModify(req *http.Request, isHttps bool) *http.Response {
 	if len(reqPolicies) == 0 {
 		return nil
 	}
+	l := req.URL.String()
+	if req.URL.Host == "" {
+		if isHttps {
+			l = "https://" + req.Host + l
+		} else {
+			l = "http://" + req.Host + l
+		}
+	}
 	for _, v := range reqPolicies {
-		if v.rex.MatchString(req.URL.String()) {
+		if v.rex.MatchString(l) {
 			switch v.Type {
 			case ModifyMock:
-				return modifyMock(v, req)
+				return modifyMock(v, req, isHttps)
 			case ModifyUpdate:
-				modifyUpdate(v, req)
+				modifyUpdate(v, req, isHttps)
 				return nil
 			}
 		}
@@ -51,7 +112,7 @@ func RequestModify(req *http.Request) *http.Response {
 	return nil
 }
 
-func modifyMock(v *ModifyPolicy, req *http.Request) *http.Response {
+func modifyMock(v *ModifyPolicy, req *http.Request, _ bool) *http.Response {
 	resp := &http.Response{
 		StatusCode:    200,
 		Proto:         req.Proto,
@@ -79,7 +140,7 @@ func modifyMock(v *ModifyPolicy, req *http.Request) *http.Response {
 			resp.ContentLength = status.Size()
 			resp.Body = file
 		case ModifyTypeStatus:
-			Logger.Debugf("[Http Modify] [Mock] response set body [Status:%d]", e.Value)
+			Logger.Debugf("[Http Modify] [Mock] response set body [Status:%s]", e.Value)
 			resp.StatusCode, err = strconv.Atoi(e.Value)
 			if err != nil {
 				resp.StatusCode = 200
@@ -89,14 +150,30 @@ func modifyMock(v *ModifyPolicy, req *http.Request) *http.Response {
 	return resp
 }
 
-func modifyUpdate(v *ModifyPolicy, req *http.Request) {
+func modifyUpdate(v *ModifyPolicy, req *http.Request, isHttps bool) {
 	for _, e := range v.MVs {
 		switch e.Type {
 		case ModifyTypeURL:
-			u, err := url.Parse(e.Value)
+			l := req.URL.String()
+			if req.URL.Host == "" {
+				if isHttps {
+					l = "https://" + req.Host + l
+				} else {
+					l = "http://" + req.Host + l
+				}
+			}
+			l = v.rex.ReplaceAllString(l, e.Value)
+			u, err := url.Parse(l)
 			if err != nil {
 				Logger.Errorf("[HTTP MODIFY] parse [%s] to url failed: %v", e.Value, err)
 				return
+			}
+			req.Host = u.Host
+			if req.URL.Scheme == "" {
+				u.Scheme = ""
+			}
+			if req.Host == "" {
+				u.Host = ""
 			}
 			if req.URL.Scheme != u.Scheme {
 				Logger.Errorf("[HTTP MODIFY] not support [%s] to [%s]", req.URL.Scheme, u.Scheme)
@@ -104,7 +181,6 @@ func modifyUpdate(v *ModifyPolicy, req *http.Request) {
 			}
 			Logger.Debugf("[Http Modify] [Update] response set URL [%s]", e.Value)
 			req.URL = u
-			req.Host = u.Host
 		case ModifyTypeHeader:
 			Logger.Debugf("[Http Modify] [Update] response set Header [%s:%s]", e.Key, e.Value)
 			req.Header.Set(e.Key, e.Value)

@@ -90,6 +90,7 @@ func (f *FileDump) InitDump(id int64) error {
 				file, err := os.OpenFile(fmt.Sprintf("./temp/%d_data.txt", id), os.O_RDWR|os.O_CREATE, 0644)
 				if err != nil {
 					Logger.Errorf("[%d] create data file failed: %v", id, err)
+					return
 				}
 				file.WriteString(`{"req":"`)
 				file.WriteString(base64.StdEncoding.EncodeToString(reqBuf.Bytes()))
@@ -99,22 +100,26 @@ func (f *FileDump) InitDump(id int64) error {
 				req, err := http.ReadRequest(b)
 				if err != nil {
 					Logger.Errorf("[%d] parse http request failed: %v", id, err)
+					return
 				}
 				b = bufio.NewReader(respBuf)
 				resp, err := http.ReadResponse(b, req)
 				if err != nil {
 					Logger.Errorf("[%d] parse http response failed: %v", id, err)
+					return
 				}
 				var r io.Reader
 				if resp.Header.Get("Content-Encoding") == "gzip" {
 					r, err = gzip.NewReader(resp.Body)
 					if err != nil {
 						Logger.Errorf("[%d] gzip init for response failed: %v", id, err)
+						return
 					}
 				} else if resp.Header.Get("Content-Encoding") == "deflate" {
 					r, err = zlib.NewReader(resp.Body)
 					if err != nil {
 						Logger.Errorf("[%d] deflate init for response failed: %v", id, err)
+						return
 					}
 				} else {
 					r = resp.Body
