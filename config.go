@@ -56,6 +56,7 @@ func ReloadConfig() (*General, error) {
 	DestroyServers()
 	ClearDNSCache()
 	ClearRecords()
+	ClearHttpModify()
 	//
 	return InitConfig(configFile)
 }
