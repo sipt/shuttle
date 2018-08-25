@@ -41,15 +41,6 @@ Shuttle 可以成为你的网络管理员：
 
 ![Introduction](static/example.jpg)
 
-[快速开始](static/get_start.md)
-
-[配置文件](static/config.md)
-
-[简陋的web-ui](static/web_ui.md)
-
-
-
-
 ## 功能
 - [ ] 代理功能
   - [x] TCP(HTTP/HTTPS)
