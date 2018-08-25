@@ -188,12 +188,20 @@ func modifyUpdate(v *ModifyPolicy, req *http.Request, isHttps bool) {
 	}
 }
 
-func ResponseModify(req *http.Request, resp *http.Response) {
+func ResponseModify(req *http.Request, resp *http.Response, isHttps bool) {
 	if len(respPolicies) == 0 {
 		return
 	}
+	l := req.URL.String()
+	if req.URL.Host == "" {
+		if isHttps {
+			l = "https://" + req.Host + l
+		} else {
+			l = "http://" + req.Host + l
+		}
+	}
 	for _, v := range respPolicies {
-		if v.rex.MatchString(req.URL.String()) {
+		if v.rex.MatchString(l) {
 			for _, e := range v.MVs {
 				switch e.Type {
 				case ModifyTypeHeader:

@@ -56,6 +56,7 @@ func HttpTransport(lc, sc IConn, template *Record, allowDump bool, first *http.R
 	h := &HttpChannel{
 		template:  template,
 		allowDump: allowDump,
+		isHttps:   first == nil,
 	}
 	h.Transport(lc, sc, first)
 }
@@ -63,8 +64,10 @@ func HttpTransport(lc, sc IConn, template *Record, allowDump bool, first *http.R
 type HttpChannel struct {
 	id        int64
 	req       *http.Request
+	urlStr    string
 	allowDump bool
 	template  *Record
+	isHttps   bool
 }
 
 func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) {
@@ -91,7 +94,7 @@ func (h *HttpChannel) sendToClient(from, to IConn) {
 			}
 			return
 		}
-		ResponseModify(h.req, resp)
+		ResponseModify(h.req, resp, h.isHttps)
 		buffer := &bytes.Buffer{}
 		err = resp.Write(buffer)
 		if err != nil {
@@ -120,7 +123,6 @@ func (h *HttpChannel) sendToClient(from, to IConn) {
 func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 	var err error
 	var b *bufio.Reader
-	var isHttps = first == nil
 	var respBuf []byte
 	var buffer *bytes.Buffer
 	for {
@@ -140,7 +142,7 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 				return
 			}
 			//request update
-			resp := RequestModify(h.req, isHttps)
+			resp := RequestModify(h.req, h.isHttps)
 			if resp != nil { // response mock ?
 				buffer = &bytes.Buffer{}
 				err = resp.Write(buffer)
@@ -163,7 +165,7 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 		record.ID = h.id
 		record.URL = h.req.URL.String()
 		if h.req.URL.Host == "" {
-			if isHttps {
+			if h.isHttps {
 				record.URL = "https://" + h.req.Host + record.URL
 			} else {
 				record.URL = "http://" + h.req.Host + record.URL
