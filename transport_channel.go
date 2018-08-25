@@ -208,7 +208,8 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 				writer.Write(reqBuf)
 				dump.WriteRequest(id, writer.Bytes())
 				if len(respBuf) > 0 {
-					dump.WriteResponse(id, writer.Bytes())
+					dump.WriteResponse(id, respBuf)
+					dump.Complete(id)
 				}
 			}(h.id, reqBuf, respBuf)
 		}

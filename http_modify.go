@@ -70,6 +70,7 @@ func RequestModifyOrMock(req *Request, hreq *http.Request, isHttps bool) (respBu
 			Created:  time.Now(),
 			Proxy:    &Server{Name: "MOCK"},
 			Status:   RecordStatusCompleted,
+			Dumped:   allowDump,
 			URL:      req.Target,
 			Rule:     &Rule{},
 		}
@@ -79,7 +80,8 @@ func RequestModifyOrMock(req *Request, hreq *http.Request, isHttps bool) (respBu
 				writer := bytes.NewBuffer(pool.GetBuf()[:0])
 				hreq.Write(writer)
 				dump.WriteRequest(id, writer.Bytes())
-				dump.WriteResponse(id, writer.Bytes())
+				dump.WriteResponse(id, respBuf)
+				dump.Complete(id)
 			}(id, respBuf)
 		}
 	}
