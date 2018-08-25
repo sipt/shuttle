@@ -37,8 +37,9 @@ type General struct {
 }
 
 type Mitm struct {
-	CA  string `yaml:"ca,2quoted"`
-	Key string `yaml:"key,2quoted"`
+	CA    string   `yaml:"ca,2quoted"`
+	Key   string   `yaml:"key,2quoted"`
+	Rules []string `yaml:"rules,flow,2quoted"`
 }
 
 type HttpMap struct {
@@ -288,6 +289,9 @@ func InitConfig(filePath string) (*General, error) {
 	err = InitCert(conf.Mitm)
 	if err != nil {
 		return nil, fmt.Errorf("mitm init failed: %v", err)
+	}
+	if conf.Mitm != nil {
+		SetMitMRules(conf.Mitm.Rules)
 	}
 	if len(controllerPort) == 0 {
 		controllerPort = conf.General.ControllerPort

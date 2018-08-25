@@ -17,6 +17,7 @@ const (
 
 var allowMitm = false
 var allowDump = false
+var MitMRules []string
 
 func SetAllowMitm(b bool) {
 	allowMitm = b
@@ -32,6 +33,13 @@ func GetAllowDump() bool {
 	return allowDump
 }
 
+func SetMitMRules(rs []string) {
+	MitMRules = rs
+}
+func GetMitMRules() []string {
+	return MitMRules
+}
+
 func HandleHTTP(co net.Conn) {
 	Logger.Debug("start shuttle.IConn wrap net.Con")
 	conn, err := NewDefaultConn(co, TCP)
@@ -41,30 +49,20 @@ func HandleHTTP(co net.Conn) {
 	}
 	Logger.Debugf("shuttle.IConn wrap net.Con success [ID:%d]", conn.GetID())
 	Logger.Debugf("[ID:%d] start read http request", conn.GetID())
+	//prepare request
 	req, hreq, err := prepareRequest(conn)
 	if err != nil {
 		Logger.Error("prepareRequest failed: ", err)
 		return
 	}
 
-	//request update or response mock
-	resp := RequestModify(hreq)
-	req.Addr = hreq.URL.Hostname()
-	req.IP = net.ParseIP(req.Addr)
-	if port := hreq.URL.Port(); len(port) > 0 {
-		req.Port, err = strToUint16(port)
-		if err != nil {
-			Logger.Error("http port error:" + port)
-			return
-		}
+	//request modify Or mock ?
+	respBuf, err := RequestModifyOrMock(req, hreq, hreq.URL.Scheme == HTTP)
+	if err != nil {
+		Logger.Errorf("[ID:%d] request modify or mock failed: %v", conn.GetID(), err)
 	}
-	req.Target = hreq.URL.String()
-	if strings.HasPrefix(req.Target, "//") {
-		req.Target = req.Target[2:]
-	}
-	if resp != nil {
-		resp.Write(co)
-		//defer close in main func
+	if len(respBuf) > 0 {
+		conn.Write(respBuf)
 		return
 	}
 
@@ -83,7 +81,7 @@ func HandleHTTP(co net.Conn) {
 		Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
 	}
 
-	//connnet to server
+	//connect to server
 	sc, err := s.Conn(req)
 	if err != nil {
 		if err == ErrorReject {
@@ -124,17 +122,38 @@ func HandleHTTP(co net.Conn) {
 		direct.Transport(lc, sc)
 		return
 	}
-	//MITM Decorate
-	if allowDump && req.Protocol == ProtocolHttps && allowMitm {
-		lct, sct, err := Mimt(conn, sc, req)
-		if err != nil {
-			Logger.Error("[HTTPS] Mitm failed: ", err)
-			conn.Close()
-			sc.Close()
-			return
+	//MitM filter
+	mitm := false
+	if allowMitm && len(MitMRules) > 0 && req.Protocol == ProtocolHttps {
+		for _, v := range MitMRules {
+			if v == "*" { // 通配
+				Logger.Debugf("[ID:%d] [HTTP/HTTPS] MitM filter [%s] use [%s]", conn.GetID(), req.Addr, v)
+				mitm = true
+				break
+			} else if v == req.Addr { // 全区配
+				Logger.Debugf("[ID:%d] [HTTP/HTTPS] MitM filter [%s] use [%s]", conn.GetID(), req.Addr, v)
+				mitm = true
+				break
+			} else if v[0] == '*' && strings.HasSuffix(req.Addr, v[1:]) { // 后缀匹配
+				Logger.Debugf("[ID:%d] [HTTP/HTTPS] MitM filter [%s] use [%s]", conn.GetID(), req.Addr, v)
+				mitm = true
+				break
+			}
 		}
-		conn, sc = lct, sct
+		//MitM Decorate
+		if mitm {
+			Logger.Debugf("[ID:%d] [HTTP/HTTPS] MitM Decorate", conn.GetID())
+			lct, sct, err := Mimt(conn, sc, req)
+			if err != nil {
+				Logger.Error("[HTTPS] MitM failed: ", err)
+				conn.Close()
+				sc.Close()
+				return
+			}
+			conn, sc = lct, sct
+		}
 	}
+
 	record := &Record{
 		ID:       sc.GetID(),
 		Protocol: req.Protocol,
@@ -150,8 +169,8 @@ func HandleHTTP(co net.Conn) {
 		lc = conn
 	}
 	//Dump Decorate
-	if allowDump && req.Protocol == ProtocolHttps && allowMitm {
-		HttpTransport(lc, sc, record, true, nil)
+	if mitm {
+		HttpTransport(lc, sc, record, allowDump, nil)
 		return
 	} else if req.Protocol == ProtocolHttp {
 		HttpTransport(lc, sc, record, allowDump, hreq)
