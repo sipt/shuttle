@@ -63,10 +63,9 @@ func HandleSocks5(socksPort, socksInterface string, stopHandle chan bool) {
 	shuttle.Logger.Info("Listen to [SOCKS]: ", net.JoinHostPort(socksInterface, socksPort))
 	var shutdown = false
 	go func() {
-		for {
-			if shutdown = <-stopHandle; shutdown {
-				listener.Close()
-			}
+		if shutdown = <-stopHandle; shutdown {
+			listener.Close()
+			shuttle.Logger.Infof("close socks listener!")
 		}
 	}()
 	for {
@@ -102,10 +101,9 @@ func HandleHTTP(httpPort, httpInterface string, stopHandle chan bool) {
 
 	var shutdown = false
 	go func() {
-		for {
-			if shutdown = <-stopHandle; shutdown {
-				listener.Close()
-			}
+		if shutdown = <-stopHandle; shutdown {
+			listener.Close()
+			shuttle.Logger.Infof("close HTTP/HTTPS listener!")
 		}
 	}()
 	for {
@@ -123,8 +121,8 @@ func HandleHTTP(httpPort, httpInterface string, stopHandle chan bool) {
 			defer func() {
 				conn.Close()
 				if err := recover(); err != nil {
-					shuttle.Logger.Error("[HTTP/HTTPS]panic :", err)
-					shuttle.Logger.Error("[HTTP/HTTPS]stack :", debug.Stack())
+					shuttle.Logger.Errorf("[HTTP/HTTPS]panic :%v", err)
+					shuttle.Logger.Errorf("[HTTP/HTTPS]stack :%s", debug.Stack())
 				}
 			}()
 			shuttle.Logger.Debug("[HTTP/HTTPS]Accept tcp connection")
