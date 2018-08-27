@@ -148,15 +148,12 @@ func InitConfig(filePath string) (*General, error) {
 	ss[index] = &Server{Name: PolicyReject} // 拒绝
 	for k, v := range conf.Proxy {
 		index ++
-		if len(v) != 4 {
+		if len(v) < 2 {
 			return nil, fmt.Errorf("resolve config file [proxy] [%s] failed", k)
 		}
-		ss[index] = &Server{
-			Name:     k,
-			Host:     v[0],
-			Port:     v[1],
-			Method:   v[2],
-			Password: v[3],
+		ss[index], err = NewServer(k, v)
+		if err != nil {
+			return nil, err
 		}
 	}
 	gs := make([]*ServerGroup, len(conf.ProxyGroup))

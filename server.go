@@ -1,7 +1,6 @@
 package shuttle
 
 import (
-	"net"
 	"fmt"
 	"time"
 )
@@ -64,9 +63,23 @@ func SelectRefresh(groupName string) error {
 	return fmt.Errorf("group[%s] is not exist", groupName)
 }
 
+var proxyProtocolCreator = make(map[string]NewProtocol)
+
+func RegisterProxyProtocolCreator(name string, p NewProtocol) {
+	proxyProtocolCreator[name] = p
+	Logger.Info("Support Proxy Protocol: [%s]", name)
+}
+
 type IServer interface {
 	GetName() string
 	GetServer() (*Server, error)
+}
+
+type NewProtocol func([]string) (IProtocol, error)
+
+type IProtocol interface {
+	//获取服务器连接
+	Conn(request *Request) (IConn, error)
 }
 
 type ServerGroup struct {
@@ -84,13 +97,29 @@ func (s *ServerGroup) GetServer() (*Server, error) {
 	return s.Selector.Get()
 }
 
+//创建Server
+func NewServer(name string, params []string) (*Server, error) {
+	if len(params) < 1 {
+		return nil, fmt.Errorf("[Config] [InitServer] Invalid format: %v", params)
+	}
+	ser := &Server{
+		Name:          name,
+		ProxyProtocol: params[0],
+	}
+	n := proxyProtocolCreator[ser.ProxyProtocol]
+	if n == nil {
+		return nil, fmt.Errorf("[Config] [InitServer] Not support protocol: %s", ser.ProxyProtocol)
+	}
+	var err error
+	ser.IProtocol, err = n(params[1:])
+	return ser, err
+}
+
 type Server struct {
-	Name     string
-	Host     string
-	Port     string `json:"-"`
-	Method   string `json:"-"`
-	Password string `json:"-"`
-	Rtt      time.Duration
+	Name          string
+	Rtt           time.Duration
+	ProxyProtocol string
+	IProtocol
 }
 
 func (s *Server) GetName() string {
@@ -107,56 +136,7 @@ func (s *Server) Conn(req *Request) (IConn, error) {
 	case PolicyReject:
 		return nil, ErrorReject
 	}
-	var network string
-	switch req.Cmd {
-	case CmdTCP:
-		network = "tcp"
-	case CmdUDP:
-		network = "udp"
-	}
-	ssReq := &Request{
-		Addr: s.Host,
-	}
-	addr := s.Host
-	err := ResolveDomain(ssReq)
-	if err != nil {
-		Logger.Errorf("Resolve domain failed [%s]: %v", s.Host, err)
-	} else {
-		addr = ssReq.IP.String()
-	}
-	conn, err := net.DialTimeout(network, net.JoinHostPort(addr, s.Port), defaultTimeOut)
-	if err != nil {
-		return nil, err
-	}
-	c, err := NewDefaultConn(conn, network)
-	if err != nil {
-		return nil, err
-	}
-	if network == UDP {
-		c, err = BufferDecorate(c)
-		if err != nil {
-			return nil, err
-		}
-	}
-	rc, err := CipherDecorate(s.Password, s.Method, c)
-	if err != nil {
-		return nil, err
-	}
-	var addrBytes []byte
-	if len(req.Addr) > 0 {
-		addrBytes = []byte(req.Addr)
-	} else {
-		addrBytes = req.IP
-	}
-	rawAddr, err := AddressEncoding(req.Atyp, addrBytes, req.Port)
-	if err != nil {
-		return nil, err
-	}
-	_, err = rc.Write(rawAddr)
-	if err != nil {
-		return nil, err
-	}
-	return rc, nil
+	return s.IProtocol.Conn(req)
 }
 
 func GetServer(name string) (*Server, error) {

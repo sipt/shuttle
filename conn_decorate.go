@@ -10,7 +10,7 @@ import (
 	"bufio"
 )
 
-var defaultTimeOut = 10 * time.Second
+var DefaultTimeOut = 10 * time.Second
 
 //
 func DefaultDecorate(c net.Conn, network string) (IConn, error) {
@@ -66,10 +66,10 @@ func (c *DefaultConn) Close() error {
 //超时装饰
 func TimerDecorate(c IConn, rto, wto time.Duration) (IConn, error) {
 	if rto == 0 {
-		rto = defaultTimeOut
+		rto = DefaultTimeOut
 	}
 	if wto == 0 {
-		wto = defaultTimeOut
+		wto = DefaultTimeOut
 	}
 	return &TimerConn{
 		IConn:        c,
