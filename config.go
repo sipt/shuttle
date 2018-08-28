@@ -10,6 +10,7 @@ import (
 )
 
 const ControllerDomain = "c.sipt.top"
+const ConfigFileVersion = "v1.0.1"
 
 var controllerDomain string
 var controllerPort string
@@ -94,8 +95,8 @@ func InitConfig(filePath string) (*General, error) {
 	if err != nil {
 		return nil, fmt.Errorf("resolve config file failed: %v", err)
 	}
-	if conf.Ver != "v1.0.0" {
-		return nil, fmt.Errorf("resolve config file failed: only support ver:v1.0.0 current:[%s]", conf.Ver)
+	if conf.Ver != ConfigFileVersion {
+		return nil, fmt.Errorf("resolve config file failed: only support ver:%s current:[%s]", ConfigFileVersion, conf.Ver)
 	}
 
 	//General

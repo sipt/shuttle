@@ -1,4 +1,4 @@
-ver: v1.0.0
+ver: v1.0.1
 General:
   loglevel: "debug"
   dns-server:
