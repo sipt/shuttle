@@ -12,7 +12,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"crypto/tls"
-	"os"
 	"reflect"
 	"unsafe"
 	"fmt"
@@ -138,7 +137,6 @@ func Mimt(lc, sc IConn, req *Request) (IConn, IConn, error) {
 	conf := &tls.Config{
 		MinVersion:         tls.VersionTLS12,
 		InsecureSkipVerify: true,
-		KeyLogWriter:       os.Stdout,
 	}
 	lcID, scID := lc.GetID(), sc.GetID()
 	scTls := tls.Client(sc, conf)
@@ -165,7 +163,6 @@ func Mimt(lc, sc IConn, req *Request) (IConn, IConn, error) {
 	conf = &tls.Config{
 		MinVersion:         tls.VersionTLS12,
 		InsecureSkipVerify: true,
-		KeyLogWriter:       os.Stdout,
 		Certificates: []tls.Certificate{
 			{
 				Certificate: [][]byte{derCert},
