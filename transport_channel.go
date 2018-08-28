@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"bufio"
 	"github.com/sipt/shuttle/util"
+	"strings"
 )
 
 type DirectChannel struct{}
@@ -89,7 +90,7 @@ func (h *HttpChannel) sendToClient(from, to IConn) {
 		buf := bufio.NewReader(from)
 		resp, err := http.ReadResponse(buf, h.req)
 		if err != nil {
-			if err != io.EOF {
+			if err != io.EOF && !strings.Contains(err.Error(), "use of closed network connection") {
 				Logger.Errorf("ConnectID [%d] HttpChannel Transport s->[b]: %v", from.GetID(), err)
 			}
 			return
