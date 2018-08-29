@@ -16,25 +16,23 @@ func NewSsProtocol(params []string) (shuttle.IProtocol, error) {
 	if len(params) != 4 {
 		shuttle.Logger.Errorf(`[SOCKS5 Server] init socks5 server failed params must be ["addr", "port", "method", "password"], but: %v`, params)
 	}
-	ser := &socksProtocol{
-		Addr: params[0],
-		Port: params[1],
-	}
-	if len(params) == 4 {
-		ser.UserName = params[2]
-		ser.Password = params[3]
+	ser := &ssProtocol{
+		Addr:     params[0],
+		Port:     params[1],
+		Method:   params[2],
+		Password: params[3],
 	}
 	return ser, nil
 }
 
-type ssServer struct {
+type ssProtocol struct {
 	Addr     string
 	Port     string
 	Method   string
 	Password string
 }
 
-func (s *ssServer) Conn(req *shuttle.Request) (shuttle.IConn, error) {
+func (s *ssProtocol) Conn(req *shuttle.Request) (shuttle.IConn, error) {
 	network := req.Network()
 	addr := s.Addr
 	ssReq := &shuttle.Request{
