@@ -4,6 +4,7 @@ import (
 	"net"
 	"github.com/sipt/shuttle"
 	"golang.org/x/net/proxy"
+	"fmt"
 )
 
 func init() {
@@ -12,8 +13,9 @@ func init() {
 
 func NewSocks5Protocol(params []string) (shuttle.IProtocol, error) {
 	//[]string{"addr", "port", "username", "password"}
-	if len(params) != 4 || len(params) != 2 {
+	if len(params) != 4 && len(params) != 2 {
 		shuttle.Logger.Errorf(`[SOCKS5 Server] init socks5 server failed params must be ["addr", "port"] or ["addr", "port", "username", "password"], but: %v`, params)
+		return nil, fmt.Errorf(`[SOCKS5 Server] init socks5 server failed params must be ["addr", "port"] or ["addr", "port", "username", "password"], but: %v`, params)
 	}
 	ser := &socksProtocol{
 		Addr: params[0],

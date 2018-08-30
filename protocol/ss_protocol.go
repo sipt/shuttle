@@ -5,6 +5,7 @@ import (
 	"github.com/sipt/shuttle"
 	"strconv"
 	"bytes"
+	"fmt"
 )
 
 func init() {
@@ -15,6 +16,7 @@ func NewSsProtocol(params []string) (shuttle.IProtocol, error) {
 	//[]string{"addr", "port", "method", "password"}
 	if len(params) != 4 {
 		shuttle.Logger.Errorf(`[SOCKS5 Server] init socks5 server failed params must be ["addr", "port", "method", "password"], but: %v`, params)
+		return nil, fmt.Errorf(`[SOCKS5 Server] init socks5 server failed params must be ["addr", "port", "method", "password"], but: %v`, params)
 	}
 	ser := &ssProtocol{
 		Addr:     params[0],

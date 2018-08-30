@@ -5,6 +5,7 @@ import (
 	"github.com/sipt/shuttle"
 	"golang.org/x/net/proxy"
 	"crypto/tls"
+	"fmt"
 )
 
 const (
@@ -17,8 +18,9 @@ func init() {
 
 func NewSocks5TLSProtocol(params []string) (shuttle.IProtocol, error) {
 	//[]string{"addr", "port", "skip-verify","username", "password"}
-	if len(params) != 5 || len(params) != 3 {
+	if len(params) != 5 && len(params) != 3 {
 		shuttle.Logger.Errorf(`[SOCKS5 over TLS Server] init socks5 server failed params count must be 5 or 3, but: %v`, params)
+		return nil, fmt.Errorf(`[SOCKS5 over TLS Server] init socks5 server failed params count must be 5 or 3, but: %v`, params)
 	}
 	ser := &socksTLSProtocol{
 		Addr:               params[0],
