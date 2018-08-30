@@ -67,7 +67,7 @@ var proxyProtocolCreator = make(map[string]NewProtocol)
 
 func RegisterProxyProtocolCreator(name string, p NewProtocol) {
 	proxyProtocolCreator[name] = p
-	Logger.Info("Support Proxy Protocol: [%s]", name)
+	Logger.Infof("Support Proxy Protocol: [%s]", name)
 }
 
 type IServer interface {

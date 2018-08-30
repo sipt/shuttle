@@ -10,6 +10,7 @@ import (
 )
 
 func StartController(inter, port string, shutdownSignal chan bool, reloadConfigSignal chan bool) {
+	gin.SetMode(gin.ReleaseMode)
 	e := gin.Default()
 	e.Use(Cors())
 	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal)

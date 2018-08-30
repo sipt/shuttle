@@ -1,6 +1,6 @@
 ver: v1.0.1
 General:
-  loglevel: "debug"
+  loglevel: "info"
   dns-server:
   - "114.114.114.114"
   - "223.5.5.5"
@@ -20,8 +20,10 @@ Proxy:
   "🇺🇸US_a": ["ss", "us.a.example.com", "12345", "rc4-md5", "123456"]
   "🇺🇸US_b": ["ss", "us.b.example.com", "12345", "rc4-md5", "123456"]
   "🇺🇸US_c": ["ss", "hk.c.example.com", "12345", "rc4-md5", "123456"]
-  "Surge":    ["socks", "localhost", "8889"]
-  "SocksTLS": ["socks-tls", "localhost", "10001", "skip-verify"]
+  "socks": ["socks", "localhost", "12345"]
+  "socks-tls": ["socks-tls", "localhost", "12345", "skip-verify"]
+  "socks-auth": ["socks", "localhost", "12345", "user", "password"]
+  "socks-tls-auth": ["socks-tls", "localhost", "12345", "skip-verify", "user", "password"]
 Proxy-Group:
   "Auto": ["rtt", "🇭🇰HK_a", "🇭🇰HK_b", "🇭🇰HK_c", "🇯🇵JP_a", "🇯🇵JP_b", "🇯🇵JP_c", "🇺🇸US_a", "🇺🇸US_b", "🇺🇸US_c"]
   "HK": ["select", "🇭🇰HK_a", "🇭🇰HK_b", "🇭🇰HK_c"]

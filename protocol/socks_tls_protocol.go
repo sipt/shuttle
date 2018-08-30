@@ -27,7 +27,7 @@ func NewSocks5TLSProtocol(params []string) (shuttle.IProtocol, error) {
 		Port:               params[1],
 		InsecureSkipVerify: params[2] == ConfigSocksTLSSkipVerify,
 	}
-	if len(params) == 4 {
+	if len(params) == 5 {
 		ser.UserName = params[3]
 		ser.Password = params[4]
 	}
