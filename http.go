@@ -112,7 +112,7 @@ func HandleHTTP(co net.Conn) {
 	}
 	//todo 白名单判断
 	if req.Addr == ControllerDomain {
-		lc, err := TimerDecorate(conn, defaultTimeOut, -1)
+		lc, err := TimerDecorate(conn, DefaultTimeOut, -1)
 		if err != nil {
 			Logger.Error("Timer Decorate net.Conn failed: ", err)
 			lc = conn
@@ -163,7 +163,7 @@ func HandleHTTP(co net.Conn) {
 		URL:      req.Target,
 		Rule:     rule,
 	}
-	lc, err := TimerDecorate(conn, defaultTimeOut, -1)
+	lc, err := TimerDecorate(conn, DefaultTimeOut, -1)
 	if err != nil {
 		Logger.Error("Timer Decorate net.Conn failed: ", err)
 		lc = conn
