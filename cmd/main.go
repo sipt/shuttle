@@ -5,6 +5,7 @@ import (
 	"github.com/sipt/shuttle"
 	_ "github.com/sipt/shuttle/ciphers"
 	_ "github.com/sipt/shuttle/selector"
+	_ "github.com/sipt/shuttle/protocol"
 	"github.com/sipt/shuttle/controller"
 	"time"
 	"strings"
