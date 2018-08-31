@@ -1,4 +1,4 @@
-package ciphers
+package ssstream
 
 import (
 	"github.com/sipt/shuttle"
@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	shuttle.RegisterCipher("salsa20", &salsa20{32, 8})
+	registerStreamCiphers("salsa20", &salsa20{32, 8})
 }
 
 type salsa20 struct {

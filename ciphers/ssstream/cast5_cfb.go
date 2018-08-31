@@ -1,4 +1,4 @@
-package ciphers
+package ssstream
 
 import (
 	"github.com/sipt/shuttle"
@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	shuttle.RegisterCipher("cast5-cfb", &cast5_cfb{16, 8})
+	registerStreamCiphers("cast5-cfb", &cast5_cfb{16, 8})
 }
 
 type cast5_cfb struct {
