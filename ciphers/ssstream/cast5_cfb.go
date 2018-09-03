@@ -1,7 +1,6 @@
 package ssstream
 
 import (
-	"github.com/sipt/shuttle"
 	"crypto/cipher"
 	"golang.org/x/crypto/cast5"
 )

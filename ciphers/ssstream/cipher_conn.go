@@ -16,7 +16,7 @@ func registerStreamCiphers(method string, c IStreamCipher) {
 	shuttle.Logger.Infof("[SS Ciphers] register cipher [%s]", method)
 }
 
-func GetStreamChiphers(method string) func(string, shuttle.IConn) (shuttle.IConn, error) {
+func GetStreamCiphers(method string) func(string, shuttle.IConn) (shuttle.IConn, error) {
 	c, ok := streamCiphers[method]
 	if !ok {
 		return nil
@@ -26,7 +26,6 @@ func GetStreamChiphers(method string) func(string, shuttle.IConn) (shuttle.IConn
 		if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 			return nil, err
 		}
-
 		sc := &streamConn{
 			IConn:         conn,
 			IStreamCipher: c,
@@ -34,6 +33,7 @@ func GetStreamChiphers(method string) func(string, shuttle.IConn) (shuttle.IConn
 		}
 		var err error
 		sc.Encrypter, err = sc.NewEncrypter(sc.key, iv)
+		_, err = conn.Write(iv)
 		return sc, err
 	}
 }
@@ -59,7 +59,7 @@ func (s *streamConn) Read(b []byte) (n int, err error) {
 		if _, err = s.IConn.Read(iv); err != nil {
 			return
 		}
-		s.Decrypter, err = s.NewDecrypter(iv)
+		s.Decrypter, err = s.NewDecrypter(s.key, iv)
 		if err != nil {
 			shuttle.Logger.Errorf("[Stream Conn] init decrypter failed: %v", err)
 			return 0, err

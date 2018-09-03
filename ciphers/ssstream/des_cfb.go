@@ -1,7 +1,6 @@
 package ssstream
 
 import (
-	"github.com/sipt/shuttle"
 	"crypto/cipher"
 	"crypto/des"
 )
