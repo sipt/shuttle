@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"bytes"
 	"fmt"
+	"github.com/sipt/shuttle/ciphers"
 )
 
 func init() {
@@ -60,7 +61,7 @@ func (s *ssProtocol) Conn(req *shuttle.Request) (shuttle.IConn, error) {
 			return nil, err
 		}
 	}
-	rc, err := shuttle.CipherDecorate(s.Password, s.Method, c)
+	rc, err := ciphers.CipherDecorate(s.Password, s.Method, c)
 	if err != nil {
 		return nil, err
 	}

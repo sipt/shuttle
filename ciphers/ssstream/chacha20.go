@@ -1,14 +1,13 @@
-package ciphers
+package ssstream
 
 import (
-	"github.com/sipt/shuttle"
 	"crypto/cipher"
 	"github.com/Yawning/chacha20"
 )
 
 func init() {
-	shuttle.RegisterCipher("chacha20", &_chacha20{32, 8})
-	shuttle.RegisterCipher("chacha20-ietf", &_chacha20{32, 12})
+	registerStreamCiphers("chacha20", &_chacha20{32, 8})
+	registerStreamCiphers("chacha20-ietf", &_chacha20{32, 12})
 }
 
 type _chacha20 struct {

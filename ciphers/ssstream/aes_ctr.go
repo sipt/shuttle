@@ -1,15 +1,14 @@
-package ciphers
+package ssstream
 
 import (
-	"github.com/sipt/shuttle"
 	"crypto/cipher"
 	"crypto/aes"
 )
 
 func init() {
-	shuttle.RegisterCipher("aes-128-ctr", &aes_ctr{16, 16})
-	shuttle.RegisterCipher("aes-192-ctr", &aes_ctr{24, 16})
-	shuttle.RegisterCipher("aes-256-ctr", &aes_ctr{32, 16})
+	registerStreamCiphers("aes-128-ctr", &aes_ctr{16, 16})
+	registerStreamCiphers("aes-192-ctr", &aes_ctr{24, 16})
+	registerStreamCiphers("aes-256-ctr", &aes_ctr{32, 16})
 }
 
 type aes_ctr struct {

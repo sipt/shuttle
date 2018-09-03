@@ -1,13 +1,12 @@
-package ciphers
+package ssstream
 
 import (
-	"github.com/sipt/shuttle"
 	"crypto/cipher"
 	"crypto/des"
 )
 
 func init() {
-	shuttle.RegisterCipher("des-cfb", &des_cfb{8, 8})
+	registerStreamCiphers("des-cfb", &des_cfb{8, 8})
 }
 
 type des_cfb struct {

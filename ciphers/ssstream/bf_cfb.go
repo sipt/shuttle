@@ -1,13 +1,12 @@
-package ciphers
+package ssstream
 
 import (
-	"github.com/sipt/shuttle"
 	"crypto/cipher"
 	"golang.org/x/crypto/blowfish"
 )
 
 func init() {
-	shuttle.RegisterCipher("bf-cfb", &bf_cfb{16, 8})
+	registerStreamCiphers("bf-cfb", &bf_cfb{16, 8})
 }
 
 type bf_cfb struct {
