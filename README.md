@@ -60,9 +60,13 @@ Shuttle 可以成为你的网络管理员：
   - [x] 请求mapping
 - [x] 远端多服务器管理
   - [x] 服务器分组包含
+  - [x] 服务器协议支持
+    - [x] shadowsocks
+    - [x] SOCKS5
+    - [x] SOCKS5 over TLS
   - [x] 服务器选择
-  	- [x] RTT(往返时间)选择
-  	- [x] Select(手动)选择
+    - [x] RTT(往返时间)选择
+    - [x] Select(手动)选择
 - [x] 代理模式
   - [x] 全局代理
   - [x] 全局直连
