@@ -3,12 +3,14 @@ package shuttle
 import (
 	"time"
 	"sync"
+	"sync/atomic"
 )
 
 const (
 	RecordStatus = 1
 	RecordUp     = 2
 	RecordDown   = 3
+	RecordAppend = 4
 
 	RecordStatusActive    = "Active"
 	RecordStatusCompleted = "Completed"
@@ -16,15 +18,28 @@ const (
 )
 
 var maxCount = 1000
-var recordChan chan *Record
+var boxChan chan *Box
 var storage *LinkedList
+var speed *Speed
 
 func init() {
-	recordChan = make(chan *Record, 16)
+	boxChan = make(chan *Box, 64)
 	storage = &LinkedList{}
+	speed = &Speed{
+		Cancel: make(chan bool, 1),
+	}
+	speed.Start()
 	go func() {
+		var box *Box
 		for {
-			storage.Append(<-recordChan)
+			box = <-boxChan
+			switch box.Op {
+			case RecordAppend:
+				storage.Append(box.Value.(*Record))
+			default:
+				storage.Put(box.ID, box.Op, box.Value)
+			}
+
 		}
 	}()
 }
@@ -37,6 +52,41 @@ func ClearRecords() {
 }
 func GetRecord(id int64) *Record {
 	return storage.Get(id)
+}
+func CurrentSpeed() (int, int) {
+	return speed.UpSpeed, speed.DownSpeed
+}
+
+type Speed struct {
+	UpSpeed   int
+	DownSpeed int
+	UpBytes   int
+	DownBytes int
+	Cancel    chan bool
+	status    int32
+}
+
+func (s *Speed) Start() {
+	if atomic.CompareAndSwapInt32(&s.status, 0, 1) {
+		go func() {
+			t := time.NewTicker(time.Second)
+			for {
+				select {
+				case <-t.C:
+					s.UpSpeed, s.UpBytes = s.UpBytes, 0
+					s.DownSpeed, s.DownBytes = s.DownBytes, 0
+				case <-s.Cancel:
+					return
+				}
+			}
+		}()
+	}
+}
+
+type Box struct {
+	ID    int64
+	Op    int
+	Value interface{}
 }
 
 type Record struct {
@@ -92,7 +142,7 @@ func (l *LinkedList) List() []Record {
 }
 func (l *LinkedList) Append(r *Record) {
 	l.Lock()
-	Logger.Debugf("[Storage] Policy:[%s(%s,%s)] URL:[%s]", r.Proxy.Name, r.Rule.Type, r.Rule.Value, r.URL)
+	Logger.Debugf("[Storage] ID:[%d] Policy:[%s(%s,%s)] URL:[%s]", r.ID, r.Proxy.Name, r.Rule.Type, r.Rule.Value, r.URL)
 	if l.head == nil {
 		l.head = &node{record: r}
 		l.tail = l.head
@@ -110,13 +160,16 @@ func (l *LinkedList) Append(r *Record) {
 	l.Unlock()
 }
 func (l *LinkedList) Put(id int64, op int, v interface{}) {
+	l.RLock()
 	index := l.head
 	for index != nil {
 		if index.record.ID == id {
 			index.Put(op, v)
+			break
 		}
 		index = index.next
 	}
+	l.RUnlock()
 }
 func (l *LinkedList) Clear() {
 	l.Lock()
@@ -130,9 +183,17 @@ func (n *node) Put(op int, v interface{}) {
 	case RecordStatus:
 		n.record.Status = v.(string)
 	case RecordUp:
-		n.record.Up += v.(int)
+		s := v.(int)
+		n.record.Up += s
+		if speed != nil {
+			speed.UpBytes += s
+		}
 	case RecordDown:
-		n.record.Down += v.(int)
+		s := v.(int)
+		n.record.Down += s
+		if speed != nil {
+			speed.DownBytes += s
+		}
 	}
 	n.Unlock()
 }

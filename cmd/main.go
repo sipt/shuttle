@@ -31,6 +31,7 @@ func main() {
 	go controller.StartController(general.ControllerInterface, general.ControllerPort,
 		ShutdownSignal,     // shutdown program
 		ReloadConfigSignal, // reload config
+		general.LogLevel,
 	)
 	//go HandleUDP()
 	go HandleHTTP(general.HttpPort, general.HttpInterface, StopSocksSignal)

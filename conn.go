@@ -13,12 +13,15 @@ const (
 type IConn interface {
 	net.Conn
 	GetID() int64
+	GetRecordID() int64
+	SetRecordID(id int64)
 	GetNetwork() string
 	Flush() (int, error)
 }
 
 func NewDefaultConn(conn net.Conn, network string) (IConn, error) {
-	return DefaultDecorate(conn, network)
+	c, err := DefaultDecorate(conn, network)
+	return c, err
 }
 
 func FilterByReq(req *Request) (rule *Rule, s *Server, err error) {
@@ -58,9 +61,13 @@ func FilterByReq(req *Request) (rule *Rule, s *Server, err error) {
 }
 
 func DirectConn(req *Request) (IConn, error) {
-	c, err := net.DialTimeout(req.Network(), req.Host(), DefaultTimeOut)
+	conn, err := net.DialTimeout(req.Network(), req.Host(), DefaultTimeOut)
 	if err != nil {
 		return nil, err
 	}
-	return NewDefaultConn(c, req.Network())
+	c, err := NewDefaultConn(conn, req.Network())
+	if err == nil {
+		c, err = TrafficDecorate(c)
+	}
+	return c, err
 }

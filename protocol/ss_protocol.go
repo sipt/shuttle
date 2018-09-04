@@ -51,7 +51,11 @@ func (s *ssProtocol) Conn(req *shuttle.Request) (shuttle.IConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	c, err := shuttle.NewDefaultConn(conn, network)
+	c, err := shuttle.DefaultDecorate(conn, network)
+	if err != nil {
+		return nil, err
+	}
+	c, err = shuttle.TrafficDecorate(c)
 	if err != nil {
 		return nil, err
 	}

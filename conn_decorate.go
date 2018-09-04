@@ -6,37 +6,47 @@ import (
 	"bytes"
 	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/util"
-	"net/http"
-	"bufio"
 )
 
 var DefaultTimeOut = 10 * time.Second
 
 //
 func DefaultDecorate(c net.Conn, network string) (IConn, error) {
+	id := util.NextID()
 	return &DefaultConn{
-		Conn:    c,
-		ID:      util.NextID(),
-		Network: network,
+		Conn:     c,
+		ID:       id,
+		RecordID: id,
+		Network:  network,
 	}, nil
 }
 
 func DefaultDecorateForTls(c net.Conn, network string, id int64) (IConn, error) {
 	return &DefaultConn{
-		Conn:    c,
-		ID:      id,
-		Network: network,
+		Conn:     c,
+		ID:       util.NextID(),
+		RecordID: id,
+		Network:  network,
 	}, nil
 }
 
 type DefaultConn struct {
 	net.Conn
-	ID      int64
-	Network string
+	ID       int64
+	RecordID int64
+	Network  string
 }
 
 func (c *DefaultConn) GetID() int64 {
 	return c.ID
+}
+
+func (c *DefaultConn) GetRecordID() int64 {
+	return c.RecordID
+}
+
+func (c *DefaultConn) SetRecordID(id int64) {
+	c.RecordID = id
 }
 
 func (c *DefaultConn) Flush() (int, error) {
@@ -59,7 +69,7 @@ func (c *DefaultConn) Write(b []byte) (n int, err error) {
 }
 func (c *DefaultConn) Close() error {
 	Logger.Tracef("[ID:%d] close connection", c.GetID())
-	go storage.Put(c.GetID(), RecordStatus, RecordStatusCompleted)
+	boxChan <- &Box{c.GetID(), RecordStatus, RecordStatusCompleted}
 	return c.Conn.Close()
 }
 
@@ -158,77 +168,24 @@ func (r *RealTimeFlush) Write(b []byte) (n int, err error) {
 }
 
 //导出装饰器
-func DumperDecorate(c IConn, allowDump bool, template *Record) (IConn, error) {
-	buffer := bytes.NewBuffer(make([]byte, 0, 4096))
-	dumper := &HttpDumper{
-		IConn:      c,
-		allowDump:  allowDump,
-		template:   template,
-		readWriter: bufio.NewReadWriter(bufio.NewReader(buffer), bufio.NewWriter(buffer)),
-	}
-	return dumper, nil
+func TrafficDecorate(c IConn) (IConn, error) {
+	return &Traffic{
+		IConn: c,
+	}, nil
 }
 
-type HttpDumper struct {
-	id, oldID  int64
-	req        *http.Request
-	allowDump  bool
-	template   *Record
-	readWriter *bufio.ReadWriter
+type Traffic struct {
 	IConn
 }
 
-func (d *HttpDumper) Read(b []byte) (n int, err error) {
-	n, err = d.IConn.Read(b)
-	if d.allowDump {
-		go func(id, oldID int64) {
-			dump.WriteResponse(id, b[:n])
-			if oldID != 0 && oldID != id {
-				dump.Complete(oldID)
-			}
-		}(d.id, d.oldID)
-	}
-	d.oldID = d.id
+func (t *Traffic) Read(b []byte) (n int, err error) {
+	n, err = t.IConn.Read(b)
+	boxChan <- &Box{t.GetRecordID(), RecordDown, n}
 	return
 }
 
-func (d *HttpDumper) Write(b []byte) (n int, err error) {
-	return d.readWriter.Write(b)
-}
-
-func (d *HttpDumper) BufferWrite() (n int, err error) {
-	d.req, err = http.ReadRequest(d.readWriter.Reader)
-	if err != nil {
-		return 0, err
-	}
-	d.id = util.NextID()
-	err = d.req.Write(d.IConn)
-	if d.id == 0 {
-		d.id = d.GetID()
-	} else {
-		d.id = util.NextID()
-	}
-	if d.allowDump {
-		go func(id int64, req *http.Request) {
-			record := *d.template
-			record.ID = d.id
-			record.URL = d.req.URL.String()
-			record.Status = RecordStatusActive
-			record.Created = time.Now()
-			recordChan <- &record
-			dump.InitDump(d.id)
-			writer := bytes.NewBuffer(pool.GetBuf()[:0])
-			req.Write(writer)
-			dump.WriteRequest(d.id, writer.Bytes())
-		}(d.id, d.req)
-	}
-	return
-}
-
-func (d *HttpDumper) Close() (err error) {
-	err = d.IConn.Close()
-	if d.allowDump {
-		go dump.Complete(d.id)
-	}
+func (t *Traffic) Write(b []byte) (n int, err error) {
+	n, err = t.IConn.Write(b)
+	boxChan <- &Box{t.GetRecordID(), RecordUp, n}
 	return
 }

@@ -7,10 +7,14 @@ import (
 	"fmt"
 	"net/http"
 	"github.com/sipt/shuttle/controller/web"
+	"io/ioutil"
 )
 
-func StartController(inter, port string, shutdownSignal chan bool, reloadConfigSignal chan bool) {
-	gin.SetMode(gin.ReleaseMode)
+func StartController(inter, port string, shutdownSignal chan bool, reloadConfigSignal chan bool, level string) {
+	if level == "info" {
+		gin.SetMode(gin.ReleaseMode)
+		gin.DefaultWriter = ioutil.Discard
+	}
 	e := gin.Default()
 	e.Use(Cors())
 	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal)

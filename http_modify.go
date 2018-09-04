@@ -64,15 +64,18 @@ func RequestModifyOrMock(req *Request, hreq *http.Request, isHttps bool) (respBu
 		respBuf = buffer.Bytes()
 		//mock record to storage
 		id := util.NextID()
-		recordChan <- &Record{
-			ID:       id,
-			Protocol: req.Protocol,
-			Created:  time.Now(),
-			Proxy:    &Server{Name: "MOCK"},
-			Status:   RecordStatusCompleted,
-			Dumped:   allowDump,
-			URL:      req.Target,
-			Rule:     &Rule{},
+		boxChan <- &Box{
+			Op: RecordAppend,
+			Value: &Record{
+				ID:       id,
+				Protocol: req.Protocol,
+				Created:  time.Now(),
+				Proxy:    &Server{Name: "MOCK"},
+				Status:   RecordStatusCompleted,
+				Dumped:   allowDump,
+				URL:      req.Target,
+				Rule:     &Rule{},
+			},
 		}
 		if allowDump {
 			go func(id int64, respBuf []byte) {

@@ -86,14 +86,17 @@ func HandleHTTP(co net.Conn) {
 	if err != nil {
 		if err == ErrorReject {
 			Logger.Debugf("Reject [%s]", req.Target)
-			recordChan <- &Record{
-				ID:       util.NextID(),
-				Protocol: req.Protocol,
-				Created:  time.Now(),
-				Proxy:    s,
-				Status:   RecordStatusReject,
-				URL:      req.Target,
-				Rule:     rule,
+			boxChan <- &Box{
+				Op: RecordAppend,
+				Value: &Record{
+					ID:       util.NextID(),
+					Protocol: req.Protocol,
+					Created:  time.Now(),
+					Proxy:    s,
+					Status:   RecordStatusReject,
+					URL:      req.Target,
+					Rule:     rule,
+				},
 			}
 		} else {
 			Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
@@ -176,7 +179,7 @@ func HandleHTTP(co net.Conn) {
 		HttpTransport(lc, sc, record, allowDump, hreq)
 		return
 	} else {
-		recordChan <- record
+		boxChan <- &Box{Op: RecordAppend, Value: record}
 	}
 
 	direct := &DirectChannel{}

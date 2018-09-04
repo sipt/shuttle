@@ -63,5 +63,9 @@ func (s *socksProtocol) Conn(request *shuttle.Request) (shuttle.IConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return shuttle.DefaultDecorate(conn, request.Network())
+	c, err := shuttle.DefaultDecorate(conn, request.Network())
+	if err != nil {
+		return nil, err
+	}
+	return shuttle.TrafficDecorate(c)
 }

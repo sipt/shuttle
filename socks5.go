@@ -67,7 +67,8 @@ func SocksHandle(co net.Conn) {
 		}
 		return
 	}
-	recordChan <- &Record{
+
+	boxChan <- &Box{Op: RecordAppend, Value: &Record{
 		ID:       sc.GetID(),
 		Protocol: req.Protocol,
 		Created:  time.Now(),
@@ -75,7 +76,7 @@ func SocksHandle(co net.Conn) {
 		Status:   RecordStatusActive,
 		URL:      req.Target,
 		Rule:     rule,
-	}
+	}}
 	direct := &DirectChannel{}
 	direct.Transport(conn, sc)
 }

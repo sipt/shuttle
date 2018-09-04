@@ -81,7 +81,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) {
 	lc.Close()
 	sc.Close()
 	if h.id != 0 {
-		go storage.Put(h.id, RecordStatus, RecordStatusCompleted)
+		boxChan <- &Box{h.id, RecordStatus, RecordStatusCompleted}
 	}
 }
 
@@ -139,7 +139,7 @@ func (h *HttpChannel) sendToClient(from, to IConn) {
 				}()
 			}
 		}
-		go storage.Put(h.id, RecordStatus, RecordStatusCompleted)
+		boxChan <- &Box{h.id, RecordStatus, RecordStatusCompleted}
 	}
 }
 
@@ -197,7 +197,8 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 		record.Status = RecordStatusActive
 		record.Created = time.Now()
 		record.Dumped = h.allowDump
-		recordChan <- &record
+		boxChan <- &Box{Op: RecordAppend, Value: &record}
+		to.SetRecordID(record.ID)
 
 		if content := h.req.Header.Get("Content-Type"); len(content) > 0 && strings.HasPrefix(content, "multipart/form-data") {
 			//上传文件，不Dump
