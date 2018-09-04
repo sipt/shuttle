@@ -84,19 +84,29 @@ type TimerConn struct {
 	WriteTimeOut time.Duration
 }
 
-func (c *TimerConn) Read(b []byte) (n int, err error) {
+func (c *TimerConn) resetReadDeadline() {
 	if c.ReadTimeOut > -1 {
 		c.SetReadDeadline(time.Now().Add(c.ReadTimeOut))
 	}
+}
+
+func (c *TimerConn) resetWriteDeadline() {
+	if c.WriteTimeOut > -1 {
+		c.SetWriteDeadline(time.Now().Add(c.WriteTimeOut))
+	}
+}
+
+func (c *TimerConn) Read(b []byte) (n int, err error) {
+	c.resetReadDeadline()
 	n, err = c.IConn.Read(b)
+	c.resetWriteDeadline()
 	return
 }
 
 func (c *TimerConn) Write(b []byte) (n int, err error) {
-	if c.WriteTimeOut > -1 {
-		c.SetWriteDeadline(time.Now().Add(c.WriteTimeOut))
-	}
+	c.resetWriteDeadline()
 	n, err = c.IConn.Write(b)
+	c.resetReadDeadline()
 	return
 }
 
