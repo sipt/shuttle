@@ -5,6 +5,7 @@ import (
 	"github.com/sipt/shuttle"
 	_ "github.com/sipt/shuttle/ciphers"
 	_ "github.com/sipt/shuttle/selector"
+	_ "github.com/sipt/shuttle/protocol"
 	"github.com/sipt/shuttle/controller"
 	"time"
 	"strings"
@@ -30,6 +31,7 @@ func main() {
 	go controller.StartController(general.ControllerInterface, general.ControllerPort,
 		ShutdownSignal,     // shutdown program
 		ReloadConfigSignal, // reload config
+		general.LogLevel,
 	)
 	//go HandleUDP()
 	go HandleHTTP(general.HttpPort, general.HttpInterface, StopSocksSignal)

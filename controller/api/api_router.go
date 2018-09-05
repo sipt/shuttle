@@ -33,6 +33,7 @@ func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSi
 	router.POST("/reload", ReloadConfig(reloadConfigSignal))
 	router.GET("/mode", GetConnMode)
 	router.POST("/mode/:mode", SetConnMode)
+	router.GET("/speed", Speed) // 时速
 }
 
 type Response struct {

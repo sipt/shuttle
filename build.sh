@@ -18,6 +18,7 @@ cp GeoLite2-Country.mmdb _output/shuttle/
 #else
 cp example.yaml _output/shuttle/shuttle.yaml
 #fi
+mkdir _output/shuttle/RespFiles
 
 if [ "$1" == "mac" ];then
 # mac os
