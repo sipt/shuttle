@@ -1,6 +1,7 @@
 # Shuttle
 
-**Shuttle**是一个基于Go开发的**全平台**网络代理工具。（logo**@不二**）
+**Shuttle**是一个基于Go开发的**全平台**网络代理工具。欢迎加入讨论 [Slack](https://join.slack.com/t/shuttle-talk/shared_invite/enQtNDMxNTQyNTIwODcwLTcyNTc0NmU4MzJhOTEzNTMwYWJlMGM1NDE2OTA2OWNmZDRlM2M0MjYxNjgzMTc1YWRhOTA4MTAzNTRkZDM0NDc) or [Telegram](https://t.me/joinchat/GrRxoBJXAKTdZBrTIJfIbQ)。
+（logo**@不二**）
 
 
 
