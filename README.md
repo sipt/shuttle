@@ -1,6 +1,6 @@
 # Shuttle
 
-**Shuttle**是一个基于Go开发的**全平台**ss-local工具，具有代理、多服务器选择、HTTP/HTTPS抓包、独立DNS解析机制，目标为开发者提供便利。 (参照软件**Surge for Mac**)。（感谢logo提供者：**@不二**）
+**Shuttle**是一个基于Go开发的**全平台**网络代理工具。（logo**@不二**）
 
 
 
@@ -30,13 +30,14 @@
 
 ## 介绍
 
-Shuttle 可以成为你的网络管理员：
+Shuttle 是基于Go实现的全平台网络代理：
 
-* 它实现了ss-local可以与远端的ss-server通信，能根据设置选择**直连**、**拒绝**或**代理**
-* 有更强大的规则配置：域名规则设置、IP段规则设置、GEO-IP规则设置
-* 多个ss-server时，可以进行分组管理。组中服务器选择方式支持：往返时间选择(rtt)，手动选择(select)
-* 可以实现HTTP/HTTPS 抓包，反向代理，请求头修改，返回头修改，返回体伪造等
-* 支持DNS服务器设置以及多种域名解析方式：静态解析(static)、直连解析(direct)、代理服务器解析(remote)
+* 支持`SOCKS5`、`SOCKS5 over TLS`、`shadowsocks`协议
+* 支持规则代理：域名、IP段、GEO-IP
+* 支持代理方式：直连、拒绝、代理
+* 多代理服务器选择，支持分组管理。组中服务器选择方式：往返时间选择(rtt)和手动选择(select)
+* 支持HTTP/HTTPS 抓包，反向代理、请求头修改、返回头修改、返回值伪造等
+* 支持DNS解析方式：静态解析(static)、直连解析(direct)、代理服务器解析(remote)
 
 结构模块：
 
@@ -102,7 +103,7 @@ Shuttle 可以成为你的网络管理员：
   	- [x]  全局代理开关
   	- [ ]  支持Websocket，完成内容增量更新
   - [x] Web UI
-  	- [x] 很简陋的Web UI (angular6 + ant design)
+  	- [x] Web UI (angular6 + ant design)
 - [ ] 优化
   - [ ] 内存优化
   - [ ] log日志
