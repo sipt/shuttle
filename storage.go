@@ -17,10 +17,13 @@ const (
 	RecordStatusReject    = "Reject"
 )
 
-var maxCount = 1000
+type Pusher func(interface{})
+
+var maxCount = 500
 var boxChan chan *Box
 var storage *LinkedList
 var speed *Speed
+var pusher Pusher = func(v interface{}) {} // init empty  pusher
 
 func init() {
 	boxChan = make(chan *Box, 64)
@@ -39,9 +42,19 @@ func init() {
 			default:
 				storage.Put(box.ID, box.Op, box.Value)
 			}
-
+			func() {
+				defer func() {
+					recover()
+				}()
+				pusher(box)
+			}()
 		}
 	}()
+}
+
+//注册推送
+func RegisterPusher(p Pusher) {
+	pusher = p
 }
 
 func GetRecords() []Record {

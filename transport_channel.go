@@ -5,10 +5,9 @@ import (
 	"io"
 	"net/http"
 	"time"
-	"bytes"
 	"bufio"
-	"github.com/sipt/shuttle/util"
 	"strings"
+	"github.com/sipt/shuttle/util"
 )
 
 type DirectChannel struct{}
@@ -31,12 +30,13 @@ func (d *DirectChannel) send(from, to IConn, errChan chan error) {
 	for {
 		buf = pool.GetBuf()
 		n, err = from.Read(buf)
-		if n == 0 {
-			errChan <- nil
-			return
-		}
+		// @fix 空数据返回引发断连
+		//if n == 0 {
+		//errChan <- nil
+		//return
+		//}
 		if err != nil {
-			if err != io.EOF {
+			if err != io.EOF && !strings.Contains(err.Error(), "use of closed network connection") {
 				Logger.Errorf("ConnectID [%d] DirectChannel Transport: %v", from.GetID(), err)
 			}
 			errChan <- err
@@ -44,7 +44,7 @@ func (d *DirectChannel) send(from, to IConn, errChan chan error) {
 		}
 		n, err = to.Write(buf[:n])
 		if err != nil {
-			if err != io.EOF {
+			if err != io.EOF && !strings.Contains(err.Error(), "use of closed network connection") {
 				Logger.Error("ConnectID [%d] DirectChannel Transport: %v", to.GetID(), err)
 			}
 			errChan <- err
@@ -97,59 +97,18 @@ func (h *HttpChannel) sendToClient(from, to IConn) {
 		}
 		Logger.Debugf("ConnectID [%d] HttpChannel Transport return s->[b]", to.GetID())
 		ResponseModify(h.req, resp, h.isHttps)
-		if disposition := resp.Header.Get("Content-Disposition"); len(disposition) > 0 && strings.HasPrefix(disposition, "attachment") {
-			//文件下载，不Dump
-			err = resp.Write(to)
-			if err != nil {
-				if err != io.EOF {
-					Logger.Errorf("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
-					return
-				}
-			}
-			if h.allowDump {
-				go func() {
-					buffer := &bytes.Buffer{}
-					err := resp.Write(buffer)
-					if err == nil {
-						dump.WriteResponse(h.id, buffer.Bytes())
-						dump.Complete(h.id)
-					}
-				}()
-			}
-		} else {
-			buffer := &bytes.Buffer{}
-			err = resp.Write(buffer)
-			if err != nil {
-				if err != io.EOF {
-					Logger.Errorf("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
-					return
-				}
-			}
-			_, err = to.Write(buffer.Bytes())
-			if err != nil {
-				if err != io.EOF {
-					Logger.Errorf("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
-					return
-				}
-			}
-			if h.allowDump {
-				go func() {
-					dump.WriteResponse(h.id, buffer.Bytes())
-					dump.Complete(h.id)
-				}()
-			}
+		err = h.writeResponse(resp, to)
+		if err != nil {
+			return
 		}
-		boxChan <- &Box{h.id, RecordStatus, RecordStatusCompleted}
 	}
 }
 
 func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 	var err error
 	var b *bufio.Reader
-	var respBuf []byte
-	var buffer *bytes.Buffer
+	var resp *http.Response
 	for {
-		respBuf = nil
 		if first != nil {
 			h.req = first
 			first = nil
@@ -165,25 +124,10 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 				return
 			}
 			//request update
-			resp := RequestModify(h.req, h.isHttps)
-			if resp != nil { // response mock ?
-				buffer = &bytes.Buffer{}
-				err = resp.Write(buffer)
-				if err != nil {
-					if err != io.EOF {
-						Logger.Errorf("ConnectID [%d] HttpChannel Transport [req]->[b]: %v", to.GetID(), err)
-						return
-					}
-				}
-				respBuf = buffer.Bytes()
-			}
+			resp = RequestModify(h.req, h.isHttps)
 		}
-		if h.id == 0 {
-			h.id = from.GetID()
-		} else {
-			h.id = util.NextID()
-		}
-		Logger.Debugf("[connID:%d] [reqID:%d] HttpChannel Transport c->[r]: %s", from.GetID(), h.id, h.req.URL.String())
+		h.id = util.NextID()
+		Logger.Debugf("[connID:%d] [reqID:%d] HttpChannel Transport c->[req]: %s", from.GetID(), h.id, h.req.URL.String())
 		record := *h.template
 		record.ID = h.id
 		record.URL = h.req.URL.String()
@@ -197,69 +141,66 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 		record.Status = RecordStatusActive
 		record.Created = time.Now()
 		record.Dumped = h.allowDump
-		boxChan <- &Box{Op: RecordAppend, Value: &record}
+		boxChan <- &Box{Op: RecordAppend, Value: &record, ID: record.ID}
 		to.SetRecordID(record.ID)
-
-		if content := h.req.Header.Get("Content-Type"); len(content) > 0 && strings.HasPrefix(content, "multipart/form-data") {
-			//上传文件，不Dump
-			if len(respBuf) == 0 {
-				err = h.req.Write(to)
-				if err != nil {
-					if err != io.EOF {
-						Logger.Errorf("ConnectID [%d] HttpChannel Transport [r]->s: %v", to.GetID(), err)
-						return
-					}
-				}
-			} else {
-				_, err = from.Write(respBuf)
-				if err != nil {
-					if err != io.EOF {
-						Logger.Errorf("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
-						return
-					}
-				}
-			}
-			buffer = &bytes.Buffer{}
-			h.req.Write(buffer)
+		var dumpWriter io.Writer
+		if h.allowDump {
+			dump.InitDump(h.id)
+			dumpWriter = ToWriter(func(b []byte) (int, error) {
+				return dump.WriteRequest(h.id, b)
+			})
+		}
+		// 分流器
+		var shunt *Shunt
+		if resp != nil {
+			// response mock, set nil to server conn
+			shunt = NewShunt(nil, dumpWriter)
 		} else {
-			buffer = &bytes.Buffer{}
-			err = h.req.Write(buffer)
-			if err != nil {
-				if err != io.EOF {
-					Logger.Errorf("ConnectID [%d] HttpChannel Transport [req]->[b]: %v", to.GetID(), err)
-					return
-				}
-			}
-			if len(respBuf) == 0 {
-				_, err = to.Write(buffer.Bytes())
-				if err != nil {
-					if err != io.EOF {
-						Logger.Errorf("ConnectID [%d] HttpChannel Transport [b]->s: %v", to.GetID(), err)
-						return
-					}
-				}
-			} else {
-				_, err = from.Write(respBuf)
-				if err != nil {
-					if err != io.EOF {
-						Logger.Errorf("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
-						return
-					}
-				}
+			shunt = NewShunt(to, dumpWriter)
+		}
+
+		err = h.req.Write(shunt)
+		if err != nil {
+			if err != io.EOF {
+				Logger.Errorf("ConnectID [%d] HttpChannel Transport [req]->c: %v", to.GetID(), err)
+				return
 			}
 		}
-		if h.allowDump {
-			go func(id int64, reqBuf, respBuf []byte) {
-				dump.InitDump(id)
-				writer := bytes.NewBuffer(pool.GetBuf()[:0])
-				writer.Write(reqBuf)
-				dump.WriteRequest(id, writer.Bytes())
-				if len(respBuf) > 0 {
-					dump.WriteResponse(id, respBuf)
-					dump.Complete(id)
-				}
-			}(h.id, buffer.Bytes(), respBuf)
+		//response mock ?
+		if resp != nil {
+			// write response to client
+			err = h.writeResponse(resp, from)
+			if err != nil {
+				return
+			}
 		}
 	}
+	return
+}
+
+// write response in connection
+func (h *HttpChannel) writeResponse(resp *http.Response, to IConn) (err error) {
+	var dumpWriter io.Writer
+	if h.allowDump {
+		dumpWriter = ToWriter(func(b []byte) (int, error) {
+			return dump.WriteResponse(h.id, b)
+		})
+	}
+	// 分流器
+	shunt := NewShunt(to, dumpWriter)
+	err = resp.Write(shunt)
+	if err != nil {
+		if err != io.EOF {
+			Logger.Errorf("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
+			return
+		}
+	}
+	if h.allowDump {
+		go func() {
+			dump.Complete(h.id)
+		}()
+	}
+	boxChan <- &Box{h.id, RecordStatus, RecordStatusCompleted}
+	h.id = 0
 	return
 }

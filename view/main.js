@@ -407,7 +407,7 @@ module.exports = ".st-sider-menus{\n    height: 100vh;\n}\n.st-switch {\n    pad
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<ul nz-menu class=\"st-sider-menus\">\n  <div (click)=\"githubHome()\" style=\"cursor: pointer;\">\n    <img src=\"/assets/menus_logo.png\" width=\"40px\" height=\"40px\" \n    style=\"float: left;margin: 5px;margin-left: 20px\"/>\n    <h3 style=\"height: 50px;line-height: 50px;margin: 5px;margin-left: 80px;margin-bottom: 0px\">Shuttle</h3>\n  </div>\n  <nz-divider style=\"margin-top: 10px;margin-bottom: 5px\"></nz-divider>\n  <li nz-menu-group>\n    <span title>Speed</span>\n    <div nz-row style=\"text-align: center;margin-bottom: 5px\">\n      <nz-tag [nzColor]=\"'blue'\">\n        <i class=\"anticon anticon-arrow-up\"></i>\n        {{speed.up_speed}}\n      </nz-tag>\n      <nz-tag [nzColor]=\"'blue'\">\n        {{speed.down_speed}}\n        <i class=\"anticon anticon-arrow-down\"></i>\n      </nz-tag>\n    </div>\n  </li>\n  <li nz-menu-group>\n    <span title>General</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/servers\" \n      routerLinkActive #rla1_1=\"routerLinkActive\" \n      [nzSelected]=\"rla1_1.isActive\">Servers</li>\n      <li nz-menu-item routerLink=\"/mitm\" \n      routerLinkActive #rla1_2=\"routerLinkActive\" \n      [nzSelected]=\"rla1_2.isActive\">MITM</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>HTTP Records</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/records\" \n      routerLinkActive #rla2=\"routerLinkActive\" \n      [nzSelected]=\"rla2.isActive\">Records</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>DNS</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/dns-cache\"\n      routerLinkActive #rla3=\"routerLinkActive\" \n      [nzSelected]=\"rla3.isActive\">Cache</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>Options</span>\n    <div style=\"padding-left: 10px; padding-right: 10px;\">\n      <nz-select style=\"width: 100%;\" [(ngModel)]=\"currentMode\"\n      (ngModelChange)=\"setMode($event)\">\n        <nz-option *ngFor=\"let mode of modeList\" \n        [nzLabel]=\"mode.label\" \n        [nzValue]=\"mode.value\"\n        ></nz-option>\n      </nz-select>\n    </div>\n    <div nz-row class=\"st-switch\">\n      <div nz-col nzOffset=\"4\">\n          <nz-switch [(ngModel)]=\"allow_dump\" (click)=\"dumpChange()\" ></nz-switch>\n          <span>Dump</span>\n      </div>\n    </div>\n    <div nz-row class=\"st-switch\">\n        <div nz-col nzOffset=\"4\">\n            <nz-switch [(ngModel)]=\"allow_mitm\" (click)=\"mitmChange()\" ></nz-switch>\n            <span>MITM</span>\n        </div>\n    </div>\n  </li>\n  <div style=\"width: 100%;position: absolute; bottom: 0; text-align: center;margin-bottom: 20px\">\n    <div style=\"width: 100%;text-align: center;padding: 5px;\">\n      <button nz-button nzType=\"default\" [nzSize]=\"size\" style=\"width: 130px;\" (click)=\"reload()\">\n          <i class=\"anticon anticon-reload\"></i>Reload\n      </button>\n    </div>\n    <div style=\"width: 100%;text-align: center;padding: 5px;\">\n      <button nz-button nzType=\"danger\" [nzSize]=\"size\" style=\"width: 130px\" (click)=\"shutdown()\">\n          <i class=\"anticon anticon-poweroff\"></i>Shutdown\n      </button>\n    </div>\n  </div>\n</ul>\n\n"
+module.exports = "<ul nz-menu class=\"st-sider-menus\" style=\"overflow: scroll;\">\n  <div (click)=\"githubHome()\" style=\"cursor: pointer;\">\n    <img src=\"/assets/menus_logo.png\" width=\"40px\" height=\"40px\" \n    style=\"float: left;margin: 5px;margin-left: 20px\"/>\n    <h3 style=\"height: 50px;line-height: 50px;margin: 5px;margin-left: 80px;margin-bottom: 0px\">Shuttle</h3>\n  </div>\n  <nz-divider style=\"margin-top: 10px;margin-bottom: 5px\"></nz-divider>\n  <li nz-menu-group>\n    <span title>Speed</span>\n    <div nz-row style=\"text-align: center;margin-bottom: 5px\">\n      <nz-tag [nzColor]=\"'blue'\">\n        <i class=\"anticon anticon-arrow-up\"></i>\n        {{speed.up_speed}}\n      </nz-tag>\n      <nz-tag [nzColor]=\"'blue'\">\n        {{speed.down_speed}}\n        <i class=\"anticon anticon-arrow-down\"></i>\n      </nz-tag>\n    </div>\n  </li>\n  <li nz-menu-group>\n    <span title>General</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/servers\" \n      routerLinkActive #rla1_1=\"routerLinkActive\" \n      [nzSelected]=\"rla1_1.isActive\">Servers</li>\n      <li nz-menu-item routerLink=\"/mitm\" \n      routerLinkActive #rla1_2=\"routerLinkActive\" \n      [nzSelected]=\"rla1_2.isActive\">MITM</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>HTTP Records</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/records\" \n      routerLinkActive #rla2=\"routerLinkActive\" \n      [nzSelected]=\"rla2.isActive\">Records</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>DNS</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/dns-cache\"\n      routerLinkActive #rla3=\"routerLinkActive\" \n      [nzSelected]=\"rla3.isActive\">Cache</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>Options</span>\n    <div style=\"padding-left: 10px; padding-right: 10px;\">\n      <nz-select style=\"width: 100%;\" [(ngModel)]=\"currentMode\"\n      (ngModelChange)=\"setMode($event)\">\n        <nz-option *ngFor=\"let mode of modeList\" \n        [nzLabel]=\"mode.label\" \n        [nzValue]=\"mode.value\"\n        ></nz-option>\n      </nz-select>\n    </div>\n    <div nz-row class=\"st-switch\">\n      <div nz-col nzOffset=\"4\">\n          <nz-switch [(ngModel)]=\"allow_dump\" (click)=\"dumpChange()\" ></nz-switch>\n          <span>Dump</span>\n      </div>\n    </div>\n    <div nz-row class=\"st-switch\">\n        <div nz-col nzOffset=\"4\">\n            <nz-switch [(ngModel)]=\"allow_mitm\" (click)=\"mitmChange()\" ></nz-switch>\n            <span>MITM</span>\n        </div>\n    </div>\n  </li>\n  <li nz-menu-group>\n    <div style=\"width: 100%; text-align: center;margin-bottom: 20px\">\n      <div style=\"width: 100%;text-align: center;padding: 5px;\">\n        <button nz-button nzType=\"default\" [nzSize]=\"size\" style=\"width: 130px;\" (click)=\"reload()\">\n            <i class=\"anticon anticon-reload\"></i>Reload\n        </button>\n      </div>\n      <div style=\"width: 100%;text-align: center;padding: 5px;\">\n        <button nz-button nzType=\"danger\" [nzSize]=\"size\" style=\"width: 130px\" (click)=\"shutdown()\">\n            <i class=\"anticon anticon-poweroff\"></i>Shutdown\n        </button>\n      </div>\n    </div>\n  </li>\n</ul>\n\n"
 
 /***/ }),
 
@@ -424,7 +424,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm5/core.js");
 /* harmony import */ var _service_dump_service__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../service/dump.service */ "./src/app/service/dump.service.ts");
 /* harmony import */ var _service_general_service__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../service/general.service */ "./src/app/service/general.service.ts");
-/* harmony import */ var rxjs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! rxjs */ "./node_modules/rxjs/_esm5/index.js");
+/* harmony import */ var _modules_common_module__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../modules/common.module */ "./src/app/modules/common.module.ts");
+/* harmony import */ var _service_websocket_service__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../service/websocket.service */ "./src/app/service/websocket.service.ts");
 var __decorate = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -438,10 +439,13 @@ var __metadata = (undefined && undefined.__metadata) || function (k, v) {
 
 
 
+
+var wsUpdateSpeed = _modules_common_module__WEBPACK_IMPORTED_MODULE_3__["WSHost"] + '/api/ws/speed';
 var MenusComponent = /** @class */ (function () {
-    function MenusComponent(dumpService, generalService) {
+    function MenusComponent(dumpService, generalService, ws) {
         this.dumpService = dumpService;
         this.generalService = generalService;
+        this.ws = ws;
         this.modeList = [
             { label: 'Rule Mode', value: 'RULE' },
             { label: 'Direct Mode', value: 'DIRECT' },
@@ -458,8 +462,11 @@ var MenusComponent = /** @class */ (function () {
         this.generalService.getMode().subscribe(function (mode) { return _this.currentMode = mode; });
         this.speed = { up_speed: '0B/s', down_speed: '0B/s' };
         this.generalService.speed();
-        this.secondsCounter = Object(rxjs__WEBPACK_IMPORTED_MODULE_3__["interval"])(1000);
-        this.secondsCounter.subscribe(function (_) { return _this.getSpeed(); });
+        // this.secondsCounter = interval(1000);
+        // this.secondsCounter.subscribe(_ => this.getSpeed());
+        this.ws.InitWebSocket(wsUpdateSpeed).subscribe(function (dataStr) {
+            _this.speed = JSON.parse(dataStr);
+        }, function (error) { return console.error(error); }, function () { return console.log('ws close!'); });
     };
     MenusComponent.prototype.dumpChange = function () {
         var _this = this;
@@ -498,7 +505,8 @@ var MenusComponent = /** @class */ (function () {
             template: __webpack_require__(/*! ./menus.component.html */ "./src/app/components/menus/menus.component.html"),
             styles: [__webpack_require__(/*! ./menus.component.css */ "./src/app/components/menus/menus.component.css")]
         }),
-        __metadata("design:paramtypes", [_service_dump_service__WEBPACK_IMPORTED_MODULE_1__["DumpService"], _service_general_service__WEBPACK_IMPORTED_MODULE_2__["GeneralService"]])
+        __metadata("design:paramtypes", [_service_dump_service__WEBPACK_IMPORTED_MODULE_1__["DumpService"], _service_general_service__WEBPACK_IMPORTED_MODULE_2__["GeneralService"],
+            _service_websocket_service__WEBPACK_IMPORTED_MODULE_4__["WebsocketService"]])
     ], MenusComponent);
     return MenusComponent;
 }());
@@ -597,7 +605,7 @@ module.exports = ".st-ext {\n    width: 100%;\n    background: #ffffff;\n}\n.st-
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<div [ngStyle]=\"tableStyle\">\n  <nz-table #list [nzData]=\"records\"\n  nzSize=\"small\"\n  [nzShowPagination]=\"false\"\n  [nzFrontPagination]=\"false\"\n  [nzScroll]=\"tbodyScroll\">\n    <thead id=\"st-thead\">\n      <tr>\n        <th nzWidth=\"100px\">ID</th>\n        <th nzWidth=\"150px\">Time</th>\n        <th nzWidth=\"100px\">Up/Down</th>\n        <th nzWidth=\"350px\">Policy</th>\n        <th nzWidth=\"100px\">Protocol</th>\n        <th>URL</th>\n      </tr>\n    </thead>\n    <tbody>\n      <tr *ngFor=\"let record of list.data\" (click)=\"getDump(record.ID, record.Dumped)\">\n        <td>{{record.ID}}</td>\n        <td>{{record.Created | date:'MM-dd HH:mm:ss'}}</td>\n        <td>{{record.Up | capacity}}/{{record.Down | capacity}}</td>\n        <td>{{record.Proxy.Name}}({{record.Rule.Type}},{{record.Rule.Value}})</td>\n        <td>{{record.Protocol}}</td>\n        <td>\n          <i class=\"anticon anticon-spin anticon-loading\" *ngIf=\"record.Status=='Active'\" style=\"color: #2db7f5\"></i>\n          <i class=\"anticon anticon-check-circle\" *ngIf=\"record.Status=='Completed' && !record.Dumped\" style=\"color: #87d068\"></i>\n          <i class=\"anticon anticon-close-circle\" *ngIf=\"record.Status=='Reject'\" style=\"color: #f50\"></i>\n          <strong *ngIf=\"record.Status=='Completed' && record.Dumped\">\n            <i class=\"anticon anticon-download\" style=\"color: #2db7f5\"></i>\n          </strong>\n          {{record.URL}}\n        </td>\n      </tr>\n    </tbody>\n  </nz-table>\n</div>\n<!-- <nz-affix nzOffsetBottom=\"0\" >\n</nz-affix> -->\n<div class=\"st-ext\">\n  <div class=\"st-ext-title\" (click)=\"closeExt()\">\n    <div>\n      <button style=\"margin: 4px;\" nz-button (click)=\"reflesh()\">\n        <i class=\"anticon anticon-reload\" style=\"color: #2db7f5\"></i>\n      </button>\n      <button style=\"margin: 4px;\" nz-button (click)=\"clear()\">\n          <i class=\"anticon anticon-delete\" style=\"color: #f50\"></i>\n      </button>\n      <div style=\"float: right;\">\n          <button *ngIf=\"!extClosed\" style=\"margin: 4px;border: 0px; background: #fafafa;\" nz-button>\n              <i class=\"anticon anticon-down\" style=\"color: #2db7f5\"></i>\n          </button>\n      </div>\n    </div>\n  </div>\n  <div class=\"st-ext-content\" *ngIf=\"!extClosed\">\n    <nz-tabset [nzSize]=\"small\" style=\"width: 100%;\">\n      <nz-tab nzTitle=\"Request\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.req| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Header\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.resp_header| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Body\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.resp_body| html2text | nl2br\">\n        </div>\n      </nz-tab>\n    </nz-tabset>\n  </div>\n</div>\n"
+module.exports = "<div [ngStyle]=\"tableStyle\">\n  <nz-table #list [nzData]=\"records\"\n  nzSize=\"small\"\n  [nzShowPagination]=\"false\"\n  [nzFrontPagination]=\"false\"\n  [nzScroll]=\"tbodyScroll\">\n    <thead id=\"st-thead\">\n      <tr>\n        <th nzWidth=\"100px\">ID</th>\n        <th nzWidth=\"150px\">Time</th>\n        <th nzWidth=\"100px\">Up/Down</th>\n        <th nzWidth=\"350px\">Policy</th>\n        <th nzWidth=\"100px\">Protocol</th>\n        <th>URL</th>\n      </tr>\n    </thead>\n    <tbody>\n      <tr *ngFor=\"let record of list.data\" (click)=\"getDump(record.ID, record.Dumped)\">\n        <td>{{record.ID}}</td>\n        <td>{{record.Created | date:'MM-dd HH:mm:ss'}}</td>\n        <td>{{record.Up | capacity}}/{{record.Down | capacity}}</td>\n        <td>{{record.Proxy.Name}}({{record.Rule.Type}},{{record.Rule.Value}})</td>\n        <td>{{record.Protocol}}</td>\n        <td>\n          <strong>\n            <i class=\"anticon anticon-swap\" *ngIf=\"record.Status=='Active'\" style=\"color: orange\"></i>\n          </strong>\n          <i class=\"anticon anticon-check-circle\" *ngIf=\"record.Status=='Completed' && !record.Dumped\" style=\"color: #87d068\"></i>\n          <i class=\"anticon anticon-close-circle\" *ngIf=\"record.Status=='Reject'\" style=\"color: #f50\"></i>\n          <strong *ngIf=\"record.Status=='Completed' && record.Dumped\">\n            <i class=\"anticon anticon-download\" style=\"color: #2db7f5\"></i>\n          </strong>\n          {{record.URL}}\n        </td>\n      </tr>\n    </tbody>\n  </nz-table>\n</div>\n<!-- <nz-affix nzOffsetBottom=\"0\" >\n</nz-affix> -->\n<div class=\"st-ext\">\n  <div class=\"st-ext-title\" (click)=\"closeExt()\">\n    <div>\n      <button style=\"margin: 4px;\" nz-button (click)=\"reflesh()\">\n        <i class=\"anticon anticon-reload\" style=\"color: #2db7f5\"></i>\n      </button>\n      <button style=\"margin: 4px;\" nz-button (click)=\"clear()\">\n          <i class=\"anticon anticon-delete\" style=\"color: #f50\"></i>\n      </button>\n      <div style=\"float: right;\">\n          <button *ngIf=\"!extClosed\" style=\"margin: 4px;border: 0px; background: #fafafa;\" nz-button>\n              <i class=\"anticon anticon-down\" style=\"color: #2db7f5\"></i>\n          </button>\n      </div>\n    </div>\n  </div>\n  <div class=\"st-ext-content\" *ngIf=\"!extClosed\">\n    <nz-tabset [nzSize]=\"small\" style=\"width: 100%;\">\n      <nz-tab nzTitle=\"Request\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.req| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Header\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.resp_header| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Body\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.resp_body| html2text | nl2br\">\n        </div>\n      </nz-tab>\n    </nz-tabset>\n  </div>\n</div>\n"
 
 /***/ }),
 
@@ -613,7 +621,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "RecordsComponent", function() { return RecordsComponent; });
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm5/core.js");
 /* harmony import */ var _service_records_service__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../service/records.service */ "./src/app/service/records.service.ts");
-/* harmony import */ var _modules_records_records_module__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../modules/records/records.module */ "./src/app/modules/records/records.module.ts");
+/* harmony import */ var _service_websocket_service__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../service/websocket.service */ "./src/app/service/websocket.service.ts");
+/* harmony import */ var _modules_records_records_module__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../modules/records/records.module */ "./src/app/modules/records/records.module.ts");
+/* harmony import */ var _modules_common_module__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../modules/common.module */ "./src/app/modules/common.module.ts");
 var __decorate = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -626,16 +636,57 @@ var __metadata = (undefined && undefined.__metadata) || function (k, v) {
 
 
 
+
+
+var wsUpdateRecords = _modules_common_module__WEBPACK_IMPORTED_MODULE_4__["WSHost"] + '/api/ws/records';
 var RecordsComponent = /** @class */ (function () {
-    function RecordsComponent(service) {
+    function RecordsComponent(service, ws) {
         this.service = service;
+        this.ws = ws;
     }
     RecordsComponent.prototype.ngOnInit = function () {
+        var _this = this;
         this.reflesh();
-        this.dump = new _modules_records_records_module__WEBPACK_IMPORTED_MODULE_2__["DumpModule"];
+        this.dump = new _modules_records_records_module__WEBPACK_IMPORTED_MODULE_3__["DumpModule"];
         this.extClosed = true;
         this.tbodyScroll = { y: 'calc(100vh - 80px)' };
         this.tableStyle = { height: 'calc(100vh - 40px)' };
+        this.ws.InitWebSocket(wsUpdateRecords).subscribe(function (dataStr) {
+            var data = JSON.parse(dataStr);
+            if (data.Op === 4) {
+                _this.records = _this.records.concat([{
+                        ID: data.Value.ID,
+                        Protocol: data.Value.Protocol,
+                        Created: data.Value.Created,
+                        Proxy: data.Value.Proxy,
+                        Rule: data.Value.Rule,
+                        Status: data.Value.Status,
+                        Up: data.Value.Up,
+                        Down: data.Value.Down,
+                        URL: data.Value.URL,
+                        Dumped: data.Value.Dumped,
+                    }]);
+            }
+            else {
+                _this.records.forEach(function (v, i) {
+                    if (v.ID === data.ID) {
+                        switch (data.Op) {
+                            case 2:// 上传流量
+                                _this.records[i].Up += data.Value;
+                                break;
+                            case 3:// 下载流量
+                                _this.records[i].Down += data.Value;
+                                break;
+                            case 1:// 修改状态
+                                _this.records[i].Status = data.Value;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                });
+            }
+        }, function (error) { return console.error(error); }, function () { return console.log('ws close!'); });
         // this.secondsCounter = interval(1000);
         // this.secondsCounter.subscribe(_ => this.reflesh());
     };
@@ -657,7 +708,7 @@ var RecordsComponent = /** @class */ (function () {
             this.openExt();
         }
         else {
-            this.dump = new _modules_records_records_module__WEBPACK_IMPORTED_MODULE_2__["DumpModule"];
+            this.dump = new _modules_records_records_module__WEBPACK_IMPORTED_MODULE_3__["DumpModule"];
         }
     };
     RecordsComponent.prototype.openExt = function () {
@@ -680,7 +731,8 @@ var RecordsComponent = /** @class */ (function () {
             template: __webpack_require__(/*! ./records.component.html */ "./src/app/components/records/records.component.html"),
             styles: [__webpack_require__(/*! ./records.component.css */ "./src/app/components/records/records.component.css")]
         }),
-        __metadata("design:paramtypes", [_service_records_service__WEBPACK_IMPORTED_MODULE_1__["RecordsService"]])
+        __metadata("design:paramtypes", [_service_records_service__WEBPACK_IMPORTED_MODULE_1__["RecordsService"],
+            _service_websocket_service__WEBPACK_IMPORTED_MODULE_2__["WebsocketService"]])
     ], RecordsComponent);
     return RecordsComponent;
 }());
@@ -787,13 +839,14 @@ var ServerComponent = /** @class */ (function () {
 /*!******************************************!*\
   !*** ./src/app/modules/common.module.ts ***!
   \******************************************/
-/*! exports provided: Response, Speed, Host */
+/*! exports provided: Response, Speed, WSHost, Host */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Response", function() { return Response; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Speed", function() { return Speed; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "WSHost", function() { return WSHost; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Host", function() { return Host; });
 var Response = /** @class */ (function () {
     function Response() {
@@ -808,6 +861,8 @@ var Speed = /** @class */ (function () {
 }());
 
 // export const Host = 'http://localhost:8082';
+// export const WSHost = 'ws://localhost:8082';
+var WSHost = 'ws://' + document.location.host;
 var Host = '';
 
 
@@ -1560,6 +1615,57 @@ var ServerService = /** @class */ (function () {
         __metadata("design:paramtypes", [_angular_common_http__WEBPACK_IMPORTED_MODULE_1__["HttpClient"]])
     ], ServerService);
     return ServerService;
+}());
+
+
+
+/***/ }),
+
+/***/ "./src/app/service/websocket.service.ts":
+/*!**********************************************!*\
+  !*** ./src/app/service/websocket.service.ts ***!
+  \**********************************************/
+/*! exports provided: WebsocketService */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "WebsocketService", function() { return WebsocketService; });
+/* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm5/core.js");
+/* harmony import */ var _node_modules_rxjs__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../node_modules/rxjs */ "./node_modules/rxjs/_esm5/index.js");
+var __decorate = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (undefined && undefined.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+
+
+var WebsocketService = /** @class */ (function () {
+    function WebsocketService() {
+    }
+    WebsocketService.prototype.InitWebSocket = function (url) {
+        var _this = this;
+        this.ws = new WebSocket(url);
+        return new _node_modules_rxjs__WEBPACK_IMPORTED_MODULE_1__["Observable"](function (observer) {
+            _this.ws.onmessage = function (event) { return observer.next(event.data); };
+            _this.ws.onerror = function (event) { return observer.next(event); };
+            _this.ws.onclose = function (event) { return observer.complete(); };
+        });
+    };
+    WebsocketService.prototype.sendMessage = function (data) {
+        this.ws.send(data);
+    };
+    WebsocketService = __decorate([
+        Object(_angular_core__WEBPACK_IMPORTED_MODULE_0__["Injectable"])({
+            providedIn: 'root'
+        }),
+        __metadata("design:paramtypes", [])
+    ], WebsocketService);
+    return WebsocketService;
 }());
 
 

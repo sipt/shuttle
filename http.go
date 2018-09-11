@@ -158,7 +158,6 @@ func HandleHTTP(co net.Conn) {
 	}
 
 	record := &Record{
-		ID:       sc.GetID(),
 		Protocol: req.Protocol,
 		Created:  time.Now(),
 		Proxy:    s,
@@ -166,7 +165,7 @@ func HandleHTTP(co net.Conn) {
 		URL:      req.Target,
 		Rule:     rule,
 	}
-	lc, err := TimerDecorate(conn, DefaultTimeOut, -1)
+	lc, err := TimerDecorate(conn, -1, -1)
 	if err != nil {
 		Logger.Error("Timer Decorate net.Conn failed: ", err)
 		lc = conn
@@ -178,12 +177,12 @@ func HandleHTTP(co net.Conn) {
 	} else if req.Protocol == ProtocolHttp {
 		HttpTransport(lc, sc, record, allowDump, hreq)
 		return
-	} else {
-		boxChan <- &Box{Op: RecordAppend, Value: record}
 	}
-
+	record.ID = util.NextID()
+	boxChan <- &Box{Op: RecordAppend, Value: record}
 	direct := &DirectChannel{}
 	direct.Transport(lc, sc)
+	boxChan <- &Box{record.ID, RecordStatus, RecordStatusCompleted}
 }
 
 func prepareRequest(conn IConn) (*Request, *http.Request, error) {

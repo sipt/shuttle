@@ -1,6 +1,8 @@
 package api
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSignal chan bool) {
 	//dns
@@ -33,7 +35,14 @@ func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSi
 	router.POST("/reload", ReloadConfig(reloadConfigSignal))
 	router.GET("/mode", GetConnMode)
 	router.POST("/mode/:mode", SetConnMode)
-	router.GET("/speed", Speed) // 时速
+
+	//ws
+	router.GET("/ws/records", func(ctx *gin.Context) {
+		WsHandler(ctx.Writer, ctx.Request)
+	})
+	router.GET("/ws/speed", func(ctx *gin.Context) {
+		WsSpeedHandler(ctx.Writer, ctx.Request)
+	}) // 时速
 }
 
 type Response struct {
