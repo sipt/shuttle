@@ -605,7 +605,7 @@ module.exports = ".st-ext {\n    width: 100%;\n    background: #ffffff;\n}\n.st-
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<div [ngStyle]=\"tableStyle\">\n  <nz-table #list [nzData]=\"records\"\n  nzSize=\"small\"\n  [nzShowPagination]=\"false\"\n  [nzFrontPagination]=\"false\"\n  [nzScroll]=\"tbodyScroll\">\n    <thead id=\"st-thead\">\n      <tr>\n        <th nzWidth=\"100px\">ID</th>\n        <th nzWidth=\"150px\">Time</th>\n        <th nzWidth=\"100px\">Up/Down</th>\n        <th nzWidth=\"350px\">Policy</th>\n        <th nzWidth=\"100px\">Protocol</th>\n        <th>URL</th>\n      </tr>\n    </thead>\n    <tbody>\n      <tr *ngFor=\"let record of list.data\" (click)=\"getDump(record.ID, record.Dumped)\">\n        <td>{{record.ID}}</td>\n        <td>{{record.Created | date:'MM-dd HH:mm:ss'}}</td>\n        <td>{{record.Up | capacity}}/{{record.Down | capacity}}</td>\n        <td>{{record.Proxy.Name}}({{record.Rule.Type}},{{record.Rule.Value}})</td>\n        <td>{{record.Protocol}}</td>\n        <td>\n          <strong>\n            <i class=\"anticon anticon-swap\" *ngIf=\"record.Status=='Active'\" style=\"color: orange\"></i>\n          </strong>\n          <i class=\"anticon anticon-check-circle\" *ngIf=\"record.Status=='Completed' && !record.Dumped\" style=\"color: #87d068\"></i>\n          <i class=\"anticon anticon-close-circle\" *ngIf=\"record.Status=='Reject'\" style=\"color: #f50\"></i>\n          <strong *ngIf=\"record.Status=='Completed' && record.Dumped\">\n            <i class=\"anticon anticon-download\" style=\"color: #2db7f5\"></i>\n          </strong>\n          {{record.URL}}\n        </td>\n      </tr>\n    </tbody>\n  </nz-table>\n</div>\n<!-- <nz-affix nzOffsetBottom=\"0\" >\n</nz-affix> -->\n<div class=\"st-ext\">\n  <div class=\"st-ext-title\" (click)=\"closeExt()\">\n    <div>\n      <button style=\"margin: 4px;\" nz-button (click)=\"reflesh()\">\n        <i class=\"anticon anticon-reload\" style=\"color: #2db7f5\"></i>\n      </button>\n      <button style=\"margin: 4px;\" nz-button (click)=\"clear()\">\n          <i class=\"anticon anticon-delete\" style=\"color: #f50\"></i>\n      </button>\n      <div style=\"float: right;\">\n          <button *ngIf=\"!extClosed\" style=\"margin: 4px;border: 0px; background: #fafafa;\" nz-button>\n              <i class=\"anticon anticon-down\" style=\"color: #2db7f5\"></i>\n          </button>\n      </div>\n    </div>\n  </div>\n  <div class=\"st-ext-content\" *ngIf=\"!extClosed\">\n    <nz-tabset [nzSize]=\"small\" style=\"width: 100%;\">\n      <nz-tab nzTitle=\"Request\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.req| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Header\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.resp_header| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Body\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.resp_body| html2text | nl2br\">\n        </div>\n      </nz-tab>\n    </nz-tabset>\n  </div>\n</div>\n"
+module.exports = "<div [ngStyle]=\"tableStyle\">\n  <nz-table #list [nzData]=\"records\"\n  nzSize=\"small\"\n  [nzShowPagination]=\"false\"\n  [nzFrontPagination]=\"false\"\n  [nzScroll]=\"tbodyScroll\">\n    <thead id=\"st-thead\">\n      <tr>\n        <th nzWidth=\"100px\">ID</th>\n        <th nzWidth=\"150px\">Time</th>\n        <th nzWidth=\"100px\">Up/Down</th>\n        <th nzWidth=\"350px\">Policy</th>\n        <th nzWidth=\"100px\">Protocol</th>\n        <th>\n          <nz-input-group nzSuffixIcon=\"anticon anticon-search\">\n            <input type=\"text\" nz-input placeholder=\"URL\" [(ngModel)]=\"keyword\" (ngModelChange)=\"filter($event)\">\n          </nz-input-group>\n        </th>\n      </tr>\n    </thead>\n    <tbody>\n      <tr *ngFor=\"let record of list.data\" (click)=\"getDump(record.ID, record.Dumped)\">\n        <td>{{record.ID}}</td>\n        <td>{{record.Created | date:'MM-dd HH:mm:ss'}}</td>\n        <td>{{record.Up | capacity}}/{{record.Down | capacity}}</td>\n        <td>{{record.Proxy.Name}}({{record.Rule.Type}},{{record.Rule.Value}})</td>\n        <td>{{record.Protocol}}</td>\n        <td>\n          <strong>\n            <i class=\"anticon anticon-swap\" *ngIf=\"record.Status=='Active'\" style=\"color: orange\"></i>\n          </strong>\n          <i class=\"anticon anticon-check-circle\" *ngIf=\"record.Status=='Completed' && !record.Dumped\" style=\"color: #87d068\"></i>\n          <i class=\"anticon anticon-close-circle\" *ngIf=\"record.Status=='Reject'\" style=\"color: #f50\"></i>\n          <strong *ngIf=\"record.Status=='Completed' && record.Dumped\">\n            <i class=\"anticon anticon-download\" style=\"color: #2db7f5\"></i>\n          </strong>\n          {{record.URL}}\n        </td>\n      </tr>\n    </tbody>\n  </nz-table>\n</div>\n<!-- <nz-affix nzOffsetBottom=\"0\" >\n</nz-affix> -->\n<div class=\"st-ext\">\n  <div class=\"st-ext-title\" (click)=\"closeExt()\">\n    <div>\n      <button style=\"margin: 4px;\" nz-button (click)=\"reflesh()\">\n        <i class=\"anticon anticon-reload\" style=\"color: #2db7f5\"></i>\n      </button>\n      <button style=\"margin: 4px;\" nz-button (click)=\"clear()\">\n          <i class=\"anticon anticon-delete\" style=\"color: #f50\"></i>\n      </button>\n      <div style=\"float: right;\">\n          <button *ngIf=\"!extClosed\" style=\"margin: 4px;border: 0px; background: #fafafa;\" nz-button>\n              <i class=\"anticon anticon-down\" style=\"color: #2db7f5\"></i>\n          </button>\n      </div>\n    </div>\n  </div>\n  <div class=\"st-ext-content\" *ngIf=\"!extClosed\">\n    <nz-tabset [nzSize]=\"small\" style=\"width: 100%;\">\n      <nz-tab nzTitle=\"Request\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.req| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Header\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.resp_header| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Body\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.resp_body| html2text | nl2br\">\n        </div>\n      </nz-tab>\n    </nz-tabset>\n  </div>\n</div>\n"
 
 /***/ }),
 
@@ -649,12 +649,13 @@ var RecordsComponent = /** @class */ (function () {
         this.reflesh();
         this.dump = new _modules_records_records_module__WEBPACK_IMPORTED_MODULE_3__["DumpModule"];
         this.extClosed = true;
+        this.keyword = '';
         this.tbodyScroll = { y: 'calc(100vh - 80px)' };
         this.tableStyle = { height: 'calc(100vh - 40px)' };
         this.ws.InitWebSocket(wsUpdateRecords).subscribe(function (dataStr) {
             var data = JSON.parse(dataStr);
             if (data.Op === 4) {
-                _this.records = _this.records.concat([{
+                _this.allRecords = _this.allRecords.concat([{
                         ID: data.Value.ID,
                         Protocol: data.Value.Protocol,
                         Created: data.Value.Created,
@@ -666,6 +667,7 @@ var RecordsComponent = /** @class */ (function () {
                         URL: data.Value.URL,
                         Dumped: data.Value.Dumped,
                     }]);
+                _this.filter();
             }
             else {
                 _this.records.forEach(function (v, i) {
@@ -692,11 +694,15 @@ var RecordsComponent = /** @class */ (function () {
     };
     RecordsComponent.prototype.reflesh = function () {
         var _this = this;
-        this.service.getCache().subscribe(function (list) { return _this.records = list; });
+        this.service.getCache().subscribe(function (list) {
+            _this.allRecords = list;
+            _this.filter();
+        });
     };
     RecordsComponent.prototype.clear = function () {
         var _this = this;
         this.records = [];
+        this.allRecords = [];
         this.service.clearCache().subscribe(function (_) { return _this.reflesh(); });
     };
     RecordsComponent.prototype.getDump = function (id, dumped) {
@@ -723,6 +729,16 @@ var RecordsComponent = /** @class */ (function () {
             this.extClosed = true;
             this.tbodyScroll = { y: 'calc(100vh - 80px)' };
             this.tableStyle = { height: 'calc(100vh - 40px)' };
+        }
+    };
+    RecordsComponent.prototype.filter = function () {
+        var _this = this;
+        console.log('filter...');
+        if (this.keyword !== '') {
+            this.records = this.allRecords.filter(function (v) { return v.URL.indexOf(_this.keyword) >= 0; });
+        }
+        else {
+            this.records = this.allRecords;
         }
     };
     RecordsComponent = __decorate([
