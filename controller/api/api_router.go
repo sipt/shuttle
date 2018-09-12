@@ -19,6 +19,7 @@ func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSi
 		dump.POST("/allow", SetAllowDump)
 		dump.GET("/allow", GetAllowDump)
 		dump.GET("/data/:conn_id", DumpRequest)
+		dump.GET("/large/:conn_id", DumpLarge)
 	}
 
 	//cert

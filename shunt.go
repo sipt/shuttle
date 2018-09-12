@@ -19,20 +19,19 @@ type Shunt struct {
 
 func (s *Shunt) Write(p []byte) (n int, err error) {
 	var buf []byte
-	if pool.BufferSize >= len(p) {
+	var l = len(p)
+	if pool.BufferSize >= l {
 		buf = pool.GetBuf()
 	} else {
-		buf = make([]byte, len(p))
+		buf = make([]byte, l)
 	}
-	copy(buf[0:], p)
-	go func() {
-		if s.w2 != nil {
-			_, err := s.w2.Write(buf[:n])
-			if err != nil {
-				Logger.Errorf("[Shunt] [Sub2] Write data failed: %s", err.Error())
-			}
+	copy(buf, p)
+	if s.w2 != nil {
+		_, err := s.w2.Write(buf[:l])
+		if err != nil {
+			Logger.Errorf("[Shunt] [Sub2] Write data failed: %s", err.Error())
 		}
-	}()
+	}
 	if s.w1 != nil {
 		n, err = s.w1.Write(p)
 	}

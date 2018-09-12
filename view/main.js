@@ -605,7 +605,7 @@ module.exports = ".st-ext {\n    width: 100%;\n    background: #ffffff;\n}\n.st-
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<div [ngStyle]=\"tableStyle\">\n  <nz-table #list [nzData]=\"records\"\n  nzSize=\"small\"\n  [nzShowPagination]=\"false\"\n  [nzFrontPagination]=\"false\"\n  [nzScroll]=\"tbodyScroll\">\n    <thead id=\"st-thead\">\n      <tr>\n        <th nzWidth=\"100px\">ID</th>\n        <th nzWidth=\"150px\">Time</th>\n        <th nzWidth=\"100px\">Up/Down</th>\n        <th nzWidth=\"350px\">Policy</th>\n        <th nzWidth=\"100px\">Protocol</th>\n        <th>\n          <nz-input-group nzSuffixIcon=\"anticon anticon-search\">\n            <input type=\"text\" nz-input placeholder=\"URL\" [(ngModel)]=\"keyword\" (ngModelChange)=\"filter($event)\">\n          </nz-input-group>\n        </th>\n      </tr>\n    </thead>\n    <tbody>\n      <tr *ngFor=\"let record of list.data\" (click)=\"getDump(record.ID, record.Dumped)\">\n        <td>{{record.ID}}</td>\n        <td>{{record.Created | date:'MM-dd HH:mm:ss'}}</td>\n        <td>{{record.Up | capacity}}/{{record.Down | capacity}}</td>\n        <td>{{record.Proxy.Name}}({{record.Rule.Type}},{{record.Rule.Value}})</td>\n        <td>{{record.Protocol}}</td>\n        <td>\n          <strong>\n            <i class=\"anticon anticon-swap\" *ngIf=\"record.Status=='Active'\" style=\"color: orange\"></i>\n          </strong>\n          <i class=\"anticon anticon-check-circle\" *ngIf=\"record.Status=='Completed' && !record.Dumped\" style=\"color: #87d068\"></i>\n          <i class=\"anticon anticon-close-circle\" *ngIf=\"record.Status=='Reject'\" style=\"color: #f50\"></i>\n          <strong *ngIf=\"record.Status=='Completed' && record.Dumped\">\n            <i class=\"anticon anticon-download\" style=\"color: #2db7f5\"></i>\n          </strong>\n          {{record.URL}}\n        </td>\n      </tr>\n    </tbody>\n  </nz-table>\n</div>\n<!-- <nz-affix nzOffsetBottom=\"0\" >\n</nz-affix> -->\n<div class=\"st-ext\">\n  <div class=\"st-ext-title\" (click)=\"closeExt()\">\n    <div>\n      <button style=\"margin: 4px;\" nz-button (click)=\"reflesh()\">\n        <i class=\"anticon anticon-reload\" style=\"color: #2db7f5\"></i>\n      </button>\n      <button style=\"margin: 4px;\" nz-button (click)=\"clear()\">\n          <i class=\"anticon anticon-delete\" style=\"color: #f50\"></i>\n      </button>\n      <div style=\"float: right;\">\n          <button *ngIf=\"!extClosed\" style=\"margin: 4px;border: 0px; background: #fafafa;\" nz-button>\n              <i class=\"anticon anticon-down\" style=\"color: #2db7f5\"></i>\n          </button>\n      </div>\n    </div>\n  </div>\n  <div class=\"st-ext-content\" *ngIf=\"!extClosed\">\n    <nz-tabset [nzSize]=\"small\" style=\"width: 100%;\">\n      <nz-tab nzTitle=\"Request\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.req| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Header\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.resp_header| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Body\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.resp_body| html2text | nl2br\">\n        </div>\n      </nz-tab>\n    </nz-tabset>\n  </div>\n</div>\n"
+module.exports = "<div [ngStyle]=\"tableStyle\">\n  <nz-table #list [nzData]=\"records\"\n  nzSize=\"small\"\n  [nzShowPagination]=\"false\"\n  [nzFrontPagination]=\"false\"\n  [nzScroll]=\"tbodyScroll\">\n    <thead id=\"st-thead\">\n      <tr>\n        <th nzWidth=\"100px\">ID</th>\n        <th nzWidth=\"150px\">Time</th>\n        <th nzWidth=\"100px\">Up/Down</th>\n        <th nzWidth=\"350px\">Policy</th>\n        <th nzWidth=\"100px\">Protocol</th>\n        <th style=\"padding: 0px\">\n          <nz-input-group nzSuffixIcon=\"anticon anticon-search\">\n            <input type=\"text\" nz-input placeholder=\"URL\" [(ngModel)]=\"keyword\" (ngModelChange)=\"filter($event)\">\n          </nz-input-group>\n        </th>\n      </tr>\n    </thead>\n    <tbody>\n      <tr *ngFor=\"let record of list.data\" (click)=\"getDump(record.ID, record.Dumped)\">\n        <td>{{record.ID}}</td>\n        <td>{{record.Created | date:'MM-dd HH:mm:ss'}}</td>\n        <td>{{record.Up | capacity}}/{{record.Down | capacity}}</td>\n        <td>{{record.Proxy.Name}}({{record.Rule.Type}},{{record.Rule.Value}})</td>\n        <td>{{record.Protocol}}</td>\n        <td>\n          <strong>\n            <i class=\"anticon anticon-swap\" *ngIf=\"record.Status=='Active'\" style=\"color: orange\"></i>\n          </strong>\n          <i class=\"anticon anticon-check-circle\" *ngIf=\"record.Status=='Completed' && !record.Dumped\" style=\"color: #87d068\"></i>\n          <i class=\"anticon anticon-close-circle\" *ngIf=\"record.Status=='Reject'\" style=\"color: #f50\"></i>\n          <strong *ngIf=\"record.Status=='Completed' && record.Dumped\">\n            <i class=\"anticon anticon-download\" style=\"color: #2db7f5\"></i>\n          </strong>\n          {{record.URL}}\n        </td>\n      </tr>\n    </tbody>\n  </nz-table>\n</div>\n<!-- <nz-affix nzOffsetBottom=\"0\" >\n</nz-affix> -->\n<div class=\"st-ext\">\n  <div class=\"st-ext-title\" (click)=\"closeExt()\">\n    <div>\n      <button style=\"margin: 4px;\" nz-button (click)=\"reflesh()\">\n        <i class=\"anticon anticon-reload\" style=\"color: #2db7f5\"></i>\n      </button>\n      <button style=\"margin: 4px;\" nz-button (click)=\"clear()\">\n          <i class=\"anticon anticon-delete\" style=\"color: #f50\"></i>\n      </button>\n      <div style=\"float: right;\">\n          <button *ngIf=\"!extClosed\" style=\"margin: 4px;border: 0px; background: #fafafa;\" nz-button>\n              <i class=\"anticon anticon-down\" style=\"color: #2db7f5\"></i>\n          </button>\n      </div>\n    </div>\n  </div>\n  <div class=\"st-ext-content\" *ngIf=\"!extClosed\">\n    <nz-tabset [nzSize]=\"small\" style=\"width: 100%;\">\n      <nz-tab nzTitle=\"Request-Header\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.ReqHeader| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Request-Body\">\n        <div style=\"padding-left: 16px;width: 300px\">\n          <div *ngIf=\"dump.ReqBody\">\n            <nz-input-group nzSearch [nzSuffix]=\"suffixIconButton\">\n              <input type=\"text\" nz-input placeholder=\"input filename\" [(ngModel)]=\"reqFile\" >\n            </nz-input-group>\n            <ng-template #suffixIconButton>\n              <button nz-button nzType=\"primary\" nzSearch (click)=\"download('request')\">\n                <strong><i class=\"anticon anticon-download\"></i></strong>\n              </button>\n            </ng-template>\n          </div>\n        </div>\n        <div class=\"st-dump-content\" style=\"height: 367px;\" [innerHTML]=\"dump.ReqBody| nl2br\" *ngIf=\"dump.ReqBody\">\n        </div>\n        <div *ngIf=\"!dump.ReqBody\" style=\"text-align: center;height: 367px;\">\n          <div style=\"font-size: 5em;\">\n            <i class=\"anticon anticon-file\"></i>\n          </div>\n          Body is empty.\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Header\">\n        <div class=\"st-dump-content\" style=\"height: 399px;\" [innerHTML]=\"dump.RespHeader| nl2br\">\n        </div>\n      </nz-tab>\n      <nz-tab nzTitle=\"Response-Body\">\n        <div style=\"padding-left: 16px;width: 300px\">\n          <div *ngIf=\"dump.RespBody\">\n            <nz-input-group nzSearch [nzSuffix]=\"suffixIconButton\">\n              <input type=\"text\" nz-input placeholder=\"input filename\" [(ngModel)]=\"respFile\" >\n            </nz-input-group>\n            <ng-template #suffixIconButton>\n              <button nz-button nzType=\"primary\" nzSearch (click)=\"download('response')\">\n                <strong><i class=\"anticon anticon-download\"></i></strong>\n              </button>\n            </ng-template>\n          </div>\n        </div>\n        <div *ngIf=\"dump.RespBody!=='large body'\" class=\"st-dump-content\" style=\"height: 367px;\" [innerHTML]=\"dump.RespBody| html2text | nl2br\">\n        </div>\n        <div *ngIf=\"dump.RespBody==='large body'\" style=\"text-align: center;height: 367px;\">\n          <div style=\"font-size: 5em;\">\n            <i class=\"anticon anticon-file-unknown\"></i>\n          </div>\n          Large body, you can download it!\n        </div>\n      </nz-tab>\n    </nz-tabset>\n  </div>\n</div>\n"
 
 /***/ }),
 
@@ -639,6 +639,7 @@ var __metadata = (undefined && undefined.__metadata) || function (k, v) {
 
 
 var wsUpdateRecords = _modules_common_module__WEBPACK_IMPORTED_MODULE_4__["WSHost"] + '/api/ws/records';
+var largeFileURL = _modules_common_module__WEBPACK_IMPORTED_MODULE_4__["Host"] + '/api/dump/large';
 var RecordsComponent = /** @class */ (function () {
     function RecordsComponent(service, ws) {
         this.service = service;
@@ -712,6 +713,9 @@ var RecordsComponent = /** @class */ (function () {
                 _this.dump = d;
             });
             this.openExt();
+            this.id = id;
+            this.reqFile = '';
+            this.respFile = '';
         }
         else {
             this.dump = new _modules_records_records_module__WEBPACK_IMPORTED_MODULE_3__["DumpModule"];
@@ -733,13 +737,23 @@ var RecordsComponent = /** @class */ (function () {
     };
     RecordsComponent.prototype.filter = function () {
         var _this = this;
-        console.log('filter...');
         if (this.keyword !== '') {
             this.records = this.allRecords.filter(function (v) { return v.URL.indexOf(_this.keyword) >= 0; });
         }
         else {
             this.records = this.allRecords;
         }
+    };
+    RecordsComponent.prototype.download = function (dumpType) {
+        var url = largeFileURL + '/' + this.id + '?file_name=';
+        if (dumpType === 'request') {
+            url += this.reqFile;
+        }
+        else {
+            url += this.respFile;
+        }
+        url += '&dump_type=' + dumpType;
+        window.open(url);
     };
     RecordsComponent = __decorate([
         Object(_angular_core__WEBPACK_IMPORTED_MODULE_0__["Component"])({
@@ -855,15 +869,15 @@ var ServerComponent = /** @class */ (function () {
 /*!******************************************!*\
   !*** ./src/app/modules/common.module.ts ***!
   \******************************************/
-/*! exports provided: Response, Speed, WSHost, Host */
+/*! exports provided: Response, Speed, Host, WSHost */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Response", function() { return Response; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Speed", function() { return Speed; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "WSHost", function() { return WSHost; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Host", function() { return Host; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "WSHost", function() { return WSHost; });
 var Response = /** @class */ (function () {
     function Response() {
     }
@@ -876,10 +890,10 @@ var Speed = /** @class */ (function () {
     return Speed;
 }());
 
-// export const Host = 'http://localhost:8082';
-// export const WSHost = 'ws://localhost:8082';
-var WSHost = 'ws://' + document.location.host;
-var Host = '';
+var Host = 'http://localhost:8082';
+var WSHost = 'ws://localhost:8082';
+// export const WSHost = 'ws://' + document.location.host;
+// export const Host = '';
 
 
 /***/ }),
@@ -1509,9 +1523,18 @@ var RecordsService = /** @class */ (function () {
                 console.error(r.message);
             }
             var dump = new _modules_records_records_module__WEBPACK_IMPORTED_MODULE_3__["DumpModule"]();
-            dump.req = utf8.decode(atob(r.data.req));
-            dump.resp_header = utf8.decode(atob(r.data.resp_header));
-            dump.resp_body = utf8.decode(atob(r.data.resp_body));
+            if (r.data.ReqHeader !== '') {
+                dump.ReqHeader = utf8.decode(atob(r.data.ReqHeader));
+            }
+            if (r.data.ReqBody !== '') {
+                dump.ReqBody = utf8.decode(atob(r.data.ReqBody));
+            }
+            if (r.data.RespHeader !== '') {
+                dump.RespHeader = utf8.decode(atob(r.data.RespHeader));
+            }
+            if (r.data.RespBody !== '') {
+                dump.RespBody = utf8.decode(atob(r.data.RespBody));
+            }
             return dump;
         }));
     };

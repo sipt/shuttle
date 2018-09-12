@@ -142,6 +142,7 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 		record.Created = time.Now()
 		record.Dumped = h.allowDump
 		boxChan <- &Box{Op: RecordAppend, Value: &record, ID: record.ID}
+		Logger.Debugf("[reqID:%d] HttpChannel Transport send record to boxChan", h.id)
 		to.SetRecordID(record.ID)
 		var dumpWriter io.Writer
 		if h.allowDump {
