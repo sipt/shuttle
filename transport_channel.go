@@ -72,39 +72,43 @@ type HttpChannel struct {
 }
 
 func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) {
-	go h.sendToClient(sc, lc)
-	h.sendToServer(lc, sc, first)
+	errChan := make(chan error, 2)
+	go h.sendToClient(sc, lc, errChan)
+	go h.sendToServer(lc, sc, first, errChan)
+	<-errChan
 
-	if h.allowDump {
-		go dump.Complete(h.id)
-	}
 	lc.Close()
 	sc.Close()
 	if h.id != 0 {
+		if h.allowDump {
+			go dump.Complete(h.id)
+		}
 		boxChan <- &Box{h.id, RecordStatus, RecordStatusCompleted}
 	}
 }
 
-func (h *HttpChannel) sendToClient(from, to IConn) {
+func (h *HttpChannel) sendToClient(from, to IConn, errChan chan error) {
+	buf := bufio.NewReader(from)
 	for {
-		buf := bufio.NewReader(from)
-		resp, err := http.ReadResponse(buf, h.req)
+		resp, err := http.ReadResponse(buf, nil)
 		if err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "use of closed network connection") {
 				Logger.Errorf("ConnectID [%d] HttpChannel Transport s->[b]: %v", from.GetID(), err)
 			}
+			errChan <- err
 			return
 		}
 		Logger.Debugf("ConnectID [%d] HttpChannel Transport return s->[b]", to.GetID())
 		ResponseModify(h.req, resp, h.isHttps)
 		err = h.writeResponse(resp, to)
 		if err != nil {
+			errChan <- err
 			return
 		}
 	}
 }
 
-func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
+func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request, errChan chan error) {
 	var err error
 	var b *bufio.Reader
 	var resp *http.Response
@@ -121,6 +125,7 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 				if err != io.EOF {
 					Logger.Errorf("ConnectID [%d] HttpChannel Transport c->[r]: %v", from.GetID(), err)
 				}
+				errChan <- err
 				return
 			}
 			//request update
@@ -164,6 +169,7 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 		if err != nil {
 			if err != io.EOF {
 				Logger.Errorf("ConnectID [%d] HttpChannel Transport [req]->c: %v", to.GetID(), err)
+				errChan <- err
 				return
 			}
 		}
@@ -172,11 +178,11 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request) {
 			// write response to client
 			err = h.writeResponse(resp, from)
 			if err != nil {
+				errChan <- err
 				return
 			}
 		}
 	}
-	return
 }
 
 // write response in connection

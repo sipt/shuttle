@@ -257,7 +257,7 @@ module.exports = ".st-ext-title {\n    background: #fafafa;\n    width: 100%;\n 
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<div style=\"height: calc(100vh - 40px);\">\n  <nz-table #list [nzData]=\"cacheList\"\n  [nzShowPagination]=\"false\"\n  [nzFrontPagination]=\"false\"\n  nzSize=\"small\"\n  [nzScroll]=\"{y: 'calc(100vh - 80px)'}\">\n    <thead>\n      <tr>\n        <th nzWidth=\"100px\">Type</th>\n        <th nzWidth=\"300px\">DNSs</th>\n        <th nzWidth=\"200px\">Domain</th>\n        <th nzWidth=\"100px\">Country</th>\n        <th >IPs</th>\n      </tr>\n    </thead>\n    <tbody class=\"st-tbody\">\n      <tr *ngFor=\"let cache of list.data\">\n        <td>{{cache.Type}}</td>\n        <td>{{cache.DNSs}}</td>\n        <td>{{cache.Domain}}</td>\n        <td>{{cache.Country}}</td>\n        <td>\n          <nz-tag *ngFor=\"let ip of cache.IPs\">{{ip}}</nz-tag>\n        </td>\n      </tr>\n    </tbody>\n  </nz-table>\n</div>\n<div class=\"st-ext-title\">\n  <div>\n    <button style=\"margin: 4px;\" nz-button (click)=\"reflesh()\">\n      <i class=\"anticon anticon-reload\" style=\"color: #2db7f5\"></i>\n    </button>\n    <button style=\"margin: 4px;\" nz-button (click)=\"clear()\">\n        <i class=\"anticon anticon-delete\" style=\"color: #f50\"></i>\n    </button>\n  </div>\n</div>"
+module.exports = "<div style=\"height: calc(100vh - 40px);\">\n  <nz-table #list [nzData]=\"cacheList\"\n  [nzShowPagination]=\"false\"\n  [nzFrontPagination]=\"false\"\n  nzSize=\"small\"\n  [nzScroll]=\"{y: 'calc(100vh - 80px)'}\">\n    <thead>\n      <tr>\n        <th nzWidth=\"100px\">Type</th>\n        <th nzWidth=\"200px\">DNSs</th>\n        <th nzWidth=\"300px\">Domain</th>\n        <th nzWidth=\"100px\">Country</th>\n        <th >IPs</th>\n      </tr>\n    </thead>\n    <tbody class=\"st-tbody\">\n      <tr *ngFor=\"let cache of list.data\">\n        <td>{{cache.Type}}</td>\n        <td>{{cache.DNSs}}</td>\n        <td>{{cache.Domain}}</td>\n        <td>{{cache.Country}}</td>\n        <td>\n          <nz-tag *ngFor=\"let ip of cache.IPs\">{{ip}}</nz-tag>\n        </td>\n      </tr>\n    </tbody>\n  </nz-table>\n</div>\n<div class=\"st-ext-title\">\n  <div>\n    <button style=\"margin: 4px;\" nz-button (click)=\"reflesh()\">\n      <i class=\"anticon anticon-reload\" style=\"color: #2db7f5\"></i>\n    </button>\n    <button style=\"margin: 4px;\" nz-button (click)=\"clear()\">\n        <i class=\"anticon anticon-delete\" style=\"color: #f50\"></i>\n    </button>\n  </div>\n</div>"
 
 /***/ }),
 
@@ -407,7 +407,7 @@ module.exports = ".st-sider-menus{\n    height: 100vh;\n}\n.st-switch {\n    pad
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<ul nz-menu class=\"st-sider-menus\" style=\"overflow: scroll;\">\n  <div (click)=\"githubHome()\" style=\"cursor: pointer;\">\n    <img src=\"/assets/menus_logo.png\" width=\"40px\" height=\"40px\" \n    style=\"float: left;margin: 5px;margin-left: 20px\"/>\n    <h3 style=\"height: 50px;line-height: 50px;margin: 5px;margin-left: 80px;margin-bottom: 0px\">Shuttle</h3>\n  </div>\n  <nz-divider style=\"margin-top: 10px;margin-bottom: 5px\"></nz-divider>\n  <li nz-menu-group>\n    <span title>Speed</span>\n    <div nz-row style=\"text-align: center;margin-bottom: 5px\">\n      <nz-tag [nzColor]=\"'blue'\">\n        <i class=\"anticon anticon-arrow-up\"></i>\n        {{speed.up_speed}}\n      </nz-tag>\n      <nz-tag [nzColor]=\"'blue'\">\n        {{speed.down_speed}}\n        <i class=\"anticon anticon-arrow-down\"></i>\n      </nz-tag>\n    </div>\n  </li>\n  <li nz-menu-group>\n    <span title>General</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/servers\" \n      routerLinkActive #rla1_1=\"routerLinkActive\" \n      [nzSelected]=\"rla1_1.isActive\">Servers</li>\n      <li nz-menu-item routerLink=\"/mitm\" \n      routerLinkActive #rla1_2=\"routerLinkActive\" \n      [nzSelected]=\"rla1_2.isActive\">MITM</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>HTTP Records</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/records\" \n      routerLinkActive #rla2=\"routerLinkActive\" \n      [nzSelected]=\"rla2.isActive\">Records</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>DNS</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/dns-cache\"\n      routerLinkActive #rla3=\"routerLinkActive\" \n      [nzSelected]=\"rla3.isActive\">Cache</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>Options</span>\n    <div style=\"padding-left: 10px; padding-right: 10px;\">\n      <nz-select style=\"width: 100%;\" [(ngModel)]=\"currentMode\"\n      (ngModelChange)=\"setMode($event)\">\n        <nz-option *ngFor=\"let mode of modeList\" \n        [nzLabel]=\"mode.label\" \n        [nzValue]=\"mode.value\"\n        ></nz-option>\n      </nz-select>\n    </div>\n    <div nz-row class=\"st-switch\">\n      <div nz-col nzOffset=\"4\">\n          <nz-switch [(ngModel)]=\"allow_dump\" (click)=\"dumpChange()\" ></nz-switch>\n          <span>Dump</span>\n      </div>\n    </div>\n    <div nz-row class=\"st-switch\">\n        <div nz-col nzOffset=\"4\">\n            <nz-switch [(ngModel)]=\"allow_mitm\" (click)=\"mitmChange()\" ></nz-switch>\n            <span>MITM</span>\n        </div>\n    </div>\n  </li>\n  <li nz-menu-group>\n    <div style=\"width: 100%; text-align: center;margin-bottom: 20px\">\n      <div style=\"width: 100%;text-align: center;padding: 5px;\">\n        <button nz-button nzType=\"default\" [nzSize]=\"size\" style=\"width: 130px;\" (click)=\"reload()\">\n            <i class=\"anticon anticon-reload\"></i>Reload\n        </button>\n      </div>\n      <div style=\"width: 100%;text-align: center;padding: 5px;\">\n        <button nz-button nzType=\"danger\" [nzSize]=\"size\" style=\"width: 130px\" (click)=\"shutdown()\">\n            <i class=\"anticon anticon-poweroff\"></i>Shutdown\n        </button>\n      </div>\n    </div>\n  </li>\n</ul>\n\n"
+module.exports = "<ul nz-menu class=\"st-sider-menus\" style=\"overflow-y: scroll;\">\n  <div (click)=\"githubHome()\" style=\"cursor: pointer;\">\n    <img src=\"/assets/menus_logo.png\" width=\"40px\" height=\"40px\" \n    style=\"float: left;margin: 5px;margin-left: 20px\"/>\n    <h3 style=\"height: 50px;line-height: 50px;margin: 5px;margin-left: 80px;margin-bottom: 0px\">Shuttle</h3>\n  </div>\n  <nz-divider style=\"margin-top: 10px;margin-bottom: 5px\"></nz-divider>\n  <li nz-menu-group>\n    <span title>Speed</span>\n    <div nz-row style=\"text-align: center;margin-bottom: 5px\">\n      <nz-tag [nzColor]=\"'blue'\">\n        <i class=\"anticon anticon-arrow-up\"></i>\n        {{speed.up_speed}}\n      </nz-tag>\n      <nz-tag [nzColor]=\"'blue'\">\n        {{speed.down_speed}}\n        <i class=\"anticon anticon-arrow-down\"></i>\n      </nz-tag>\n    </div>\n  </li>\n  <li nz-menu-group>\n    <span title>General</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/servers\" \n      routerLinkActive #rla1_1=\"routerLinkActive\" \n      [nzSelected]=\"rla1_1.isActive\">Servers</li>\n      <li nz-menu-item routerLink=\"/mitm\" \n      routerLinkActive #rla1_2=\"routerLinkActive\" \n      [nzSelected]=\"rla1_2.isActive\">MITM</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>HTTP Records</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/records\" \n      routerLinkActive #rla2=\"routerLinkActive\" \n      [nzSelected]=\"rla2.isActive\">Records</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>DNS</span>\n    <ul>\n      <li nz-menu-item routerLink=\"/dns-cache\"\n      routerLinkActive #rla3=\"routerLinkActive\" \n      [nzSelected]=\"rla3.isActive\">Cache</li>\n    </ul>\n  </li>\n  <li nz-menu-group>\n    <span title>Options</span>\n    <div style=\"padding-left: 10px; padding-right: 10px;\">\n      <nz-select style=\"width: 100%;\" [(ngModel)]=\"currentMode\"\n      (ngModelChange)=\"setMode($event)\">\n        <nz-option *ngFor=\"let mode of modeList\" \n        [nzLabel]=\"mode.label\" \n        [nzValue]=\"mode.value\"\n        ></nz-option>\n      </nz-select>\n    </div>\n    <div nz-row class=\"st-switch\">\n      <div nz-col nzOffset=\"4\">\n          <nz-switch [(ngModel)]=\"allow_dump\" (click)=\"dumpChange()\" ></nz-switch>\n          <span>Dump</span>\n      </div>\n    </div>\n    <div nz-row class=\"st-switch\">\n        <div nz-col nzOffset=\"4\">\n            <nz-switch [(ngModel)]=\"allow_mitm\" (click)=\"mitmChange()\" ></nz-switch>\n            <span>MITM</span>\n        </div>\n    </div>\n  </li>\n  <li nz-menu-group>\n    <div style=\"width: 100%; text-align: center;margin-bottom: 20px\">\n      <div style=\"width: 100%;text-align: center;padding: 5px;\">\n        <button nz-button nzType=\"default\" [nzSize]=\"size\" style=\"width: 130px;\" (click)=\"reload()\">\n            <i class=\"anticon anticon-reload\"></i>Reload\n        </button>\n      </div>\n      <div style=\"width: 100%;text-align: center;padding: 5px;\">\n        <button nz-button nzType=\"danger\" [nzSize]=\"size\" style=\"width: 130px\" (click)=\"shutdown()\">\n            <i class=\"anticon anticon-poweroff\"></i>Shutdown\n        </button>\n      </div>\n    </div>\n  </li>\n</ul>\n\n"
 
 /***/ }),
 
@@ -644,6 +644,8 @@ var RecordsComponent = /** @class */ (function () {
     function RecordsComponent(service, ws) {
         this.service = service;
         this.ws = ws;
+        this.records = [];
+        this.allRecords = [];
     }
     RecordsComponent.prototype.ngOnInit = function () {
         var _this = this;
@@ -655,43 +657,16 @@ var RecordsComponent = /** @class */ (function () {
         this.tableStyle = { height: 'calc(100vh - 40px)' };
         this.ws.InitWebSocket(wsUpdateRecords).subscribe(function (dataStr) {
             var data = JSON.parse(dataStr);
-            if (data.Op === 4) {
-                _this.allRecords = _this.allRecords.concat([{
-                        ID: data.Value.ID,
-                        Protocol: data.Value.Protocol,
-                        Created: data.Value.Created,
-                        Proxy: data.Value.Proxy,
-                        Rule: data.Value.Rule,
-                        Status: data.Value.Status,
-                        Up: data.Value.Up,
-                        Down: data.Value.Down,
-                        URL: data.Value.URL,
-                        Dumped: data.Value.Dumped,
-                    }]);
-                _this.filter();
+            for (var i = 0; i < data.length; i++) {
+                _this.opRecord(data[i]);
             }
-            else {
-                _this.records.forEach(function (v, i) {
-                    if (v.ID === data.ID) {
-                        switch (data.Op) {
-                            case 2:// 上传流量
-                                _this.records[i].Up += data.Value;
-                                break;
-                            case 3:// 下载流量
-                                _this.records[i].Down += data.Value;
-                                break;
-                            case 1:// 修改状态
-                                _this.records[i].Status = data.Value;
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                });
-            }
+            _this.filter();
         }, function (error) { return console.error(error); }, function () { return console.log('ws close!'); });
         // this.secondsCounter = interval(1000);
         // this.secondsCounter.subscribe(_ => this.reflesh());
+    };
+    RecordsComponent.prototype.ngOnDestroy = function () {
+        this.ws.close();
     };
     RecordsComponent.prototype.reflesh = function () {
         var _this = this;
@@ -737,12 +712,17 @@ var RecordsComponent = /** @class */ (function () {
     };
     RecordsComponent.prototype.filter = function () {
         var _this = this;
-        if (this.keyword !== '') {
-            this.records = this.allRecords.filter(function (v) { return v.URL.indexOf(_this.keyword) >= 0; });
+        if (this.filterTimeout) {
+            clearTimeout(this.filterTimeout);
         }
-        else {
-            this.records = this.allRecords;
-        }
+        this.filterTimeout = setTimeout(function () {
+            if (_this.keyword !== '') {
+                _this.records = _this.allRecords.filter(function (v) { return v.URL.indexOf(_this.keyword) >= 0; });
+            }
+            else {
+                _this.records = _this.allRecords;
+            }
+        }, 500);
     };
     RecordsComponent.prototype.download = function (dumpType) {
         var url = largeFileURL + '/' + this.id + '?file_name=';
@@ -754,6 +734,49 @@ var RecordsComponent = /** @class */ (function () {
         }
         url += '&dump_type=' + dumpType;
         window.open(url);
+    };
+    RecordsComponent.prototype.opRecord = function (data) {
+        if (data.Op === 4) {
+            this.allRecords.push({
+                ID: data.Value.ID,
+                Protocol: data.Value.Protocol,
+                Created: data.Value.Created,
+                Proxy: data.Value.Proxy,
+                Rule: data.Value.Rule,
+                Status: data.Value.Status,
+                Up: data.Value.Up,
+                Down: data.Value.Down,
+                URL: data.Value.URL,
+                Dumped: data.Value.Dumped,
+            });
+        }
+        if (data.Op === 5) {
+            for (var i = 0; i < this.allRecords.length; i++) {
+                if (this.allRecords[i].ID === data.Value) {
+                    this.allRecords.splice(i, 1);
+                }
+            }
+        }
+        else {
+            for (var i = 0; i < this.allRecords.length; i++) {
+                var element = this.allRecords[i];
+                if (element.ID === data.ID) {
+                    switch (data.Op) {
+                        case 2:// 上传流量
+                            this.allRecords[i].Up += data.Value;
+                            return;
+                        case 3:// 下载流量
+                            this.allRecords[i].Down += data.Value;
+                            return;
+                        case 1:// 修改状态
+                            this.allRecords[i].Status = data.Value;
+                            return;
+                        default:
+                            return;
+                    }
+                }
+            }
+        }
     };
     RecordsComponent = __decorate([
         Object(_angular_core__WEBPACK_IMPORTED_MODULE_0__["Component"])({
@@ -869,15 +892,15 @@ var ServerComponent = /** @class */ (function () {
 /*!******************************************!*\
   !*** ./src/app/modules/common.module.ts ***!
   \******************************************/
-/*! exports provided: Response, Speed, Host, WSHost */
+/*! exports provided: Response, Speed, WSHost, Host */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Response", function() { return Response; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Speed", function() { return Speed; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Host", function() { return Host; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "WSHost", function() { return WSHost; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Host", function() { return Host; });
 var Response = /** @class */ (function () {
     function Response() {
     }
@@ -890,10 +913,10 @@ var Speed = /** @class */ (function () {
     return Speed;
 }());
 
-var Host = 'http://localhost:8082';
-var WSHost = 'ws://localhost:8082';
-// export const WSHost = 'ws://' + document.location.host;
-// export const Host = '';
+// export const Host = 'http://localhost:8082';
+// export const WSHost = 'ws://localhost:8082';
+var WSHost = 'ws://' + document.location.host;
+var Host = '';
 
 
 /***/ }),
@@ -1697,6 +1720,9 @@ var WebsocketService = /** @class */ (function () {
     };
     WebsocketService.prototype.sendMessage = function (data) {
         this.ws.send(data);
+    };
+    WebsocketService.prototype.close = function () {
+        this.ws.close();
     };
     WebsocketService = __decorate([
         Object(_angular_core__WEBPACK_IMPORTED_MODULE_0__["Injectable"])({

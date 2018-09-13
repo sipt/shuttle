@@ -11,6 +11,7 @@ const (
 	RecordUp     = 2
 	RecordDown   = 3
 	RecordAppend = 4
+	RecordRemove = 5
 
 	RecordStatusActive    = "Active"
 	RecordStatusCompleted = "Completed"
@@ -42,12 +43,9 @@ func init() {
 			default:
 				storage.Put(box.ID, box.Op, box.Value)
 			}
-			func() {
-				defer func() {
-					recover()
-				}()
+			go func(box *Box) {
 				pusher(box)
-			}()
+			}(box)
 		}
 	}()
 }
@@ -166,6 +164,12 @@ func (l *LinkedList) Append(r *Record) {
 	l.count ++
 
 	for l.count > maxCount {
+		go func(id int64) {
+			pusher(&Box{
+				Op:    RecordRemove,
+				Value: id,
+			})
+		}(l.head.record.ID)
 		// 收缩
 		l.head.next, l.head = nil, l.head.next
 		l.count --

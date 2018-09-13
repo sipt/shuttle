@@ -53,7 +53,7 @@ func SocksHandle(co net.Conn) {
 		return
 	}
 
-	if req.Atyp == AddrTypeDomain && req.Addr == ControllerDomain {
+	if IsPass(req) {
 		port, err := strconv.ParseUint(controllerPort, 10, 16)
 		if err == nil {
 			req.IP = []byte{127, 0, 0, 1}
@@ -79,7 +79,7 @@ func SocksHandle(co net.Conn) {
 	}
 
 	//todo 白名单判断
-	if req.Addr == ControllerDomain {
+	if IsPass(req) {
 		direct := &DirectChannel{}
 		direct.Transport(conn, sc)
 		return

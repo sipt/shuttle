@@ -10,9 +10,46 @@ import (
 )
 
 func init() {
+	pushTimeBuffer = &PushTimeBuffer{
+		ticker: time.NewTicker(time.Second),
+		buffer: make([]interface{}, 0, 8),
+	}
+	go pushTimeBuffer.Run()
 	shuttle.RegisterPusher(func(v interface{}) {
-		wsCenter.RangeSend(v)
+		pushTimeBuffer.Push(v)
 	})
+}
+
+var pushTimeBuffer *PushTimeBuffer
+
+type PushTimeBuffer struct {
+	ticker *time.Ticker
+	buffer []interface{}
+	sync.RWMutex
+}
+
+func (p *PushTimeBuffer) Push(v interface{}) {
+	p.RLock()
+	p.buffer = append(p.buffer, v)
+	p.RUnlock()
+}
+
+func (p *PushTimeBuffer) Run() {
+	for {
+		<-p.ticker.C
+		if len(p.buffer) > 0 {
+			var buf []interface{}
+			p.Lock()
+			if len(p.buffer) > 0 {
+				buf = p.buffer
+				p.buffer = make([]interface{}, 0, 8)
+			}
+			p.Unlock()
+			if len(buf) > 0 {
+				wsCenter.RangeSend(buf)
+			}
+		}
+	}
 }
 
 var wsCenter = &ConnCenter{
@@ -50,9 +87,9 @@ func (c *ConnCenter) Remove(i int64) {
 				c.conns = c.conns[:0]
 				break
 			}
-			c.index[k] = c.index[len(c.index)]
+			c.index[k] = c.index[len(c.index)-1]
 			c.index = c.index[:len(c.index)-1]
-			c.conns[k] = c.conns[len(c.conns)]
+			c.conns[k] = c.conns[len(c.conns)-1]
 			c.conns = c.conns[:len(c.conns)-1]
 			break
 		}
@@ -78,9 +115,10 @@ func WsHandler(w http.ResponseWriter, r *http.Request) {
 	index, _ := util.IW.NextId()
 	wsCenter.Add(index, conn)
 	for {
-		_, _, err = conn.ReadMessage()
-		if err != nil {
+		t, _, err := conn.ReadMessage()
+		if t == -1 || err != nil {
 			wsCenter.Remove(index)
+			conn.Close()
 			break
 		}
 	}
