@@ -33,11 +33,26 @@ func GetAllowDump() bool {
 	return allowDump
 }
 
+// init MitMRules
 func SetMitMRules(rs []string) {
 	MitMRules = rs
 }
-func GetMitMRules() []string {
+func GetMitMRules() []string { // For controller API
 	return MitMRules
+}
+func AppendMitMRules(r string) { // For controller API
+	MitMRules = append(MitMRules, r)
+	SetMimt(&Mitm{Rules: MitMRules})
+}
+func RemoveMitMRules(r string) { // For controller API
+	for i, v := range MitMRules {
+		if v == r {
+			MitMRules[i] = MitMRules[len(MitMRules)-1]
+			MitMRules = MitMRules[:len(MitMRules)-1]
+			SetMimt(&Mitm{Rules: MitMRules})
+			return
+		}
+	}
 }
 
 func HandleHTTP(co net.Conn) {

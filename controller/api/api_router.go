@@ -26,6 +26,11 @@ func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSi
 	router.POST("/cert", GenerateCert)
 	router.GET("/cert", DownloadCert)
 
+	//MitM rules
+	router.GET("/mitm/rules", GetMitMRules)
+	router.POST("/mitm/rules", AppendMitMRules)
+	router.DELETE("/mitm/rules", DelMitMRules)
+
 	//server
 	router.GET("/servers", ServerList)
 	router.POST("/server/select", SelectServer)

@@ -257,7 +257,7 @@ module.exports = ".st-ext-title {\n    background: #fafafa;\n    width: 100%;\n 
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<div style=\"height: calc(100vh - 40px);\">\n  <nz-table #list [nzData]=\"cacheList\"\n  [nzShowPagination]=\"false\"\n  [nzFrontPagination]=\"false\"\n  nzSize=\"small\"\n  [nzScroll]=\"{y: 'calc(100vh - 80px)'}\">\n    <thead>\n      <tr>\n        <th nzWidth=\"100px\">Type</th>\n        <th nzWidth=\"200px\">DNSs</th>\n        <th nzWidth=\"300px\">Domain</th>\n        <th nzWidth=\"100px\">Country</th>\n        <th >IPs</th>\n      </tr>\n    </thead>\n    <tbody class=\"st-tbody\">\n      <tr *ngFor=\"let cache of list.data\">\n        <td>{{cache.Type}}</td>\n        <td>{{cache.DNSs}}</td>\n        <td>{{cache.Domain}}</td>\n        <td>{{cache.Country}}</td>\n        <td>\n          <nz-tag *ngFor=\"let ip of cache.IPs\">{{ip}}</nz-tag>\n        </td>\n      </tr>\n    </tbody>\n  </nz-table>\n</div>\n<div class=\"st-ext-title\">\n  <div>\n    <button style=\"margin: 4px;\" nz-button (click)=\"reflesh()\">\n      <i class=\"anticon anticon-reload\" style=\"color: #2db7f5\"></i>\n    </button>\n    <button style=\"margin: 4px;\" nz-button (click)=\"clear()\">\n        <i class=\"anticon anticon-delete\" style=\"color: #f50\"></i>\n    </button>\n  </div>\n</div>"
+module.exports = "<div style=\"height: calc(100vh - 40px);\">\n  <nz-table #list [nzData]=\"cacheList\"\n  [nzShowPagination]=\"false\"\n  [nzFrontPagination]=\"false\"\n  nzSize=\"small\"\n  [nzScroll]=\"{y: 'calc(100vh - 80px)'}\">\n    <thead>\n      <tr>\n        <th nzWidth=\"100px\">Type</th>\n        <th nzWidth=\"200px\">DNSs</th>\n        <th nzWidth=\"300px\">Domain</th>\n        <th nzWidth=\"100px\">Country</th>\n        <th >IPs</th>\n      </tr>\n    </thead>\n    <tbody class=\"st-tbody\">\n      <tr *ngFor=\"let cache of list.data\">\n        <td>{{cache.Type}}</td>\n        <td>{{cache.DNSs}}</td>\n        <td>{{cache.Domain}}</td>\n        <td>{{cache.Country}}</td>\n        <td>\n          <nz-select style=\"width: 200px;\" [ngModel]=\"cache.IPs[0]\" nzSize=\"small\">\n            <nz-option *ngFor=\"let option of cache.IPs\" [nzLabel]=\"option\" [nzValue]=\"option\"></nz-option>\n          </nz-select>\n        </td>\n      </tr>\n    </tbody>\n  </nz-table>\n</div>\n<div class=\"st-ext-title\">\n  <div>\n    <button style=\"margin: 4px;\" nz-button (click)=\"reflesh()\">\n      <i class=\"anticon anticon-reload\" style=\"color: #2db7f5\"></i>\n    </button>\n    <button style=\"margin: 4px;\" nz-button (click)=\"clear()\">\n        <i class=\"anticon anticon-delete\" style=\"color: #f50\"></i>\n    </button>\n  </div>\n</div>"
 
 /***/ }),
 
@@ -486,7 +486,9 @@ var MenusComponent = /** @class */ (function () {
         this.generalService.shutdown().subscribe();
     };
     MenusComponent.prototype.reload = function () {
-        this.generalService.reload().subscribe();
+        this.generalService.reload().subscribe(function () {
+            window.location.reload();
+        });
     };
     MenusComponent.prototype.githubHome = function () {
         window.open('https://github.com/sipt/shuttle');
@@ -533,7 +535,7 @@ module.exports = ""
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<nz-card style=\"width:300px;\" nzTitle=\"Certificate\">\n  <div style=\"width: 100%;text-align: center;padding: 5px;\">\n    <button nz-button nzType=\"default\" style=\"width: 130px;\" (click)=\"generate()\">\n      <i class=\"anticon anticon-file-text\"></i>\n      Generate\n    </button>\n  </div>\n  <div style=\"width: 100%;text-align: center;padding: 5px;\">\n    <button nz-button nzType=\"default\" style=\"width: 130px;\" (click)=\"download()\">\n      <i class=\"anticon anticon-download\"></i>\n      Download\n    </button>\n  </div>\n</nz-card>"
+module.exports = "<div style=\"width: 500px; margin: 10px;\">\n  <h3>MitM Rules</h3>\n  <div>\n    <button nz-button nzType=\"default\" style=\"width: 130px;margin-bottom: 10px; margin-right: 10px\" (click)=\"generate()\">\n      <i class=\"anticon anticon-file-text\"></i>\n      Generate\n    </button>\n    <button nz-button nzType=\"default\" style=\"width: 130px;\" (click)=\"download()\">\n      <i class=\"anticon anticon-download\"></i>\n      Download\n    </button>\n  </div>\n  <nz-table\n  #smallTable\n  [nzFrontPagination]=\"false\"\n  [nzShowPagination]=\"false\"\n  nzSize=\"small\"\n  [nzData]=\"data\">\n    <thead>\n      <tr>\n        <th>Domain</th>\n        <th>Action</th>\n      </tr>\n    </thead>\n    <tbody>\n      <tr *ngFor=\"let data of smallTable.data\">\n        <td>{{data}}</td>\n        <td><a (click)=\"delMitMRules(data)\">Del</a></td>\n      </tr>\n    </tbody>\n  </nz-table>\n  <div style=\"margin-top: 10px\">\n    <nz-input-group nzSearch [nzSuffix]=\"suffixButton\">\n      <input type=\"text\" nz-input placeholder=\"Input domain (support '*.example.com')\" [(ngModel)]=\"input\" >\n    </nz-input-group>\n    <ng-template #suffixButton>\n      <button nz-button nzType=\"primary\" nzSearch (click)=\"appendMitMRules()\">Append</button>\n    </ng-template>\n  </div>\n</div>\n"
 
 /***/ }),
 
@@ -563,14 +565,31 @@ var __metadata = (undefined && undefined.__metadata) || function (k, v) {
 var MitmComponent = /** @class */ (function () {
     function MitmComponent(generalService) {
         this.generalService = generalService;
+        this.data = [];
     }
     MitmComponent.prototype.ngOnInit = function () {
+        this.getMitMRules();
     };
     MitmComponent.prototype.generate = function () {
         this.generalService.generateCert().subscribe();
     };
     MitmComponent.prototype.download = function () {
         this.generalService.downloadCert();
+    };
+    MitmComponent.prototype.getMitMRules = function () {
+        var _this = this;
+        this.generalService.getMitMRules().subscribe(function (list) { return _this.data = list; });
+    };
+    MitmComponent.prototype.appendMitMRules = function () {
+        var _this = this;
+        this.generalService.appendMitMRules(this.input).subscribe(function (list) {
+            _this.input = '';
+            _this.data = list;
+        });
+    };
+    MitmComponent.prototype.delMitMRules = function (domain) {
+        var _this = this;
+        this.generalService.delMitMRules(domain).subscribe(function (list) { return _this.data = list; });
     };
     MitmComponent = __decorate([
         Object(_angular_core__WEBPACK_IMPORTED_MODULE_0__["Component"])({
@@ -1388,6 +1407,7 @@ var reloadUrl = _modules_common_module__WEBPACK_IMPORTED_MODULE_2__["Host"] + '/
 var certUrl = _modules_common_module__WEBPACK_IMPORTED_MODULE_2__["Host"] + '/api/cert';
 var modeUrl = _modules_common_module__WEBPACK_IMPORTED_MODULE_2__["Host"] + '/api/mode';
 var speedUrl = _modules_common_module__WEBPACK_IMPORTED_MODULE_2__["Host"] + '/api/speed';
+var mitmRulesUrl = _modules_common_module__WEBPACK_IMPORTED_MODULE_2__["Host"] + '/api/mitm/rules';
 var GeneralService = /** @class */ (function () {
     function GeneralService(http) {
         this.http = http;
@@ -1441,6 +1461,30 @@ var GeneralService = /** @class */ (function () {
             code: 1,
             message: '',
             data: {}
+        }))).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["map"])(function (resp) { return resp.data; }));
+    };
+    GeneralService.prototype.getMitMRules = function () {
+        return this.http.get(mitmRulesUrl)
+            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(this.handleError('getMitMRules', {
+            code: 1,
+            message: '',
+            data: []
+        }))).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["map"])(function (resp) { return resp.data; }));
+    };
+    GeneralService.prototype.appendMitMRules = function (domain) {
+        return this.http.post(mitmRulesUrl + '?domain=' + domain, {})
+            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(this.handleError('getMitMRules', {
+            code: 1,
+            message: '',
+            data: []
+        }))).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["map"])(function (resp) { return resp.data; }));
+    };
+    GeneralService.prototype.delMitMRules = function (domain) {
+        return this.http.delete(mitmRulesUrl + '?domain=' + domain)
+            .pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["catchError"])(this.handleError('getMitMRules', {
+            code: 1,
+            message: '',
+            data: []
         }))).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_4__["map"])(function (resp) { return resp.data; }));
     };
     /**

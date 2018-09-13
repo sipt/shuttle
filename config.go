@@ -64,7 +64,13 @@ func ReloadConfig() (*General, error) {
 }
 
 func SetMimt(mitm *Mitm) {
-	conf.Mitm = mitm
+	if len(mitm.CA) > 0 {
+		conf.Mitm.CA = mitm.CA
+	}
+	if len(mitm.Key) > 0 {
+		conf.Mitm.Key = mitm.Key
+	}
+	conf.Mitm.Rules = mitm.Rules
 	SaveToFile()
 }
 
