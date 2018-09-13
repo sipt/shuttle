@@ -16,6 +16,11 @@ func init() {
 	}
 }
 
+func GetLongID() (i int64) {
+	i, _ = IW.NextId()
+	return
+}
+
 const (
 	CEpoch         = 1474802888000
 	CWorkerIdBits  = 10 // Num of WorkerId Bits

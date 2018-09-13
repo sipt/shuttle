@@ -114,7 +114,7 @@ func HandleHTTP(co net.Conn) {
 		}
 	}
 	//todo 白名单判断
-	if req.Addr == ControllerDomain {
+	if IsPass(req) {
 		lc, err := TimerDecorate(conn, DefaultTimeOut, -1)
 		if err != nil {
 			Logger.Error("Timer Decorate net.Conn failed: ", err)
@@ -158,7 +158,6 @@ func HandleHTTP(co net.Conn) {
 	}
 
 	record := &Record{
-		ID:       sc.GetID(),
 		Protocol: req.Protocol,
 		Created:  time.Now(),
 		Proxy:    s,
@@ -166,7 +165,7 @@ func HandleHTTP(co net.Conn) {
 		URL:      req.Target,
 		Rule:     rule,
 	}
-	lc, err := TimerDecorate(conn, DefaultTimeOut, -1)
+	lc, err := TimerDecorate(conn, -1, -1)
 	if err != nil {
 		Logger.Error("Timer Decorate net.Conn failed: ", err)
 		lc = conn
@@ -178,12 +177,12 @@ func HandleHTTP(co net.Conn) {
 	} else if req.Protocol == ProtocolHttp {
 		HttpTransport(lc, sc, record, allowDump, hreq)
 		return
-	} else {
-		boxChan <- &Box{Op: RecordAppend, Value: record}
 	}
-
+	record.ID = util.NextID()
+	boxChan <- &Box{Op: RecordAppend, Value: record}
 	direct := &DirectChannel{}
 	direct.Transport(lc, sc)
+	boxChan <- &Box{record.ID, RecordStatus, RecordStatusCompleted}
 }
 
 func prepareRequest(conn IConn) (*Request, *http.Request, error) {
@@ -219,4 +218,15 @@ func strToUint16(v string) (i uint16, err error) {
 		i = uint16(r)
 	}
 	return
+}
+
+func IsPass(req *Request) bool {
+	if req.Addr == ControllerDomain {
+		return true
+	}
+	port, _ := strToUint16(controllerPort)
+	if (req.Addr == "localhost" || req.Addr == "127.0.0.1" || req.IP.String() == "127.0.0.1") && req.Port == port {
+		return true
+	}
+	return false
 }

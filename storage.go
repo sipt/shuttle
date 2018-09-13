@@ -11,16 +11,20 @@ const (
 	RecordUp     = 2
 	RecordDown   = 3
 	RecordAppend = 4
+	RecordRemove = 5
 
 	RecordStatusActive    = "Active"
 	RecordStatusCompleted = "Completed"
 	RecordStatusReject    = "Reject"
 )
 
-var maxCount = 1000
+type Pusher func(interface{})
+
+var maxCount = 500
 var boxChan chan *Box
 var storage *LinkedList
 var speed *Speed
+var pusher Pusher = func(v interface{}) {} // init empty  pusher
 
 func init() {
 	boxChan = make(chan *Box, 64)
@@ -39,9 +43,16 @@ func init() {
 			default:
 				storage.Put(box.ID, box.Op, box.Value)
 			}
-
+			go func(box *Box) {
+				pusher(box)
+			}(box)
 		}
 	}()
+}
+
+//注册推送
+func RegisterPusher(p Pusher) {
+	pusher = p
 }
 
 func GetRecords() []Record {
@@ -153,6 +164,12 @@ func (l *LinkedList) Append(r *Record) {
 	l.count ++
 
 	for l.count > maxCount {
+		go func(id int64) {
+			pusher(&Box{
+				Op:    RecordRemove,
+				Value: id,
+			})
+		}(l.head.record.ID)
 		// 收缩
 		l.head.next, l.head = nil, l.head.next
 		l.count --
