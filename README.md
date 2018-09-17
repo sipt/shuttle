@@ -23,6 +23,7 @@
   - [请求/返回修改及反向代理](#请求/返回修改及反向代理)
   - [MitM](#mitm)
   - [规则配置](#规则配置)
+- [API](static/API.md)
 - [Web控制台](#Web控制台)
   - [Servers](#servers)
   - [DNS Cache](#dns-cache)
@@ -52,13 +53,10 @@ Shuttle 是基于Go实现的全平台网络代理：
 - [ ] 代理功能
   - [x] TCP(HTTP/HTTPS)
   - [ ] UDP
-- [x] 扩展功能
-  - [x] HTTP抓包
-  - [x] HTTPS抓包(MITM)
-  - [x] 反向代理
-  - [x] 复用连接内请求切分
-  - [x] 请求头修改
-  - [x] 返回头修改
+- [x] HTTP/HTTPS请求扩展功能
+  - [x] 抓包(支持MITM)
+  - [x] URL重写
+  - [x] 请求/返回修改
   - [x] 请求mapping
 - [x] 远端多服务器管理
   - [x] 服务器分组包含
@@ -66,45 +64,25 @@ Shuttle 是基于Go实现的全平台网络代理：
     - [x] shadowsocks
     - [x] SOCKS5
     - [x] SOCKS5 over TLS
-  - [x] 服务器选择
+  - [x] 服务器分组类型
     - [x] RTT(往返时间)选择
     - [x] Select(手动)选择
 - [x] 代理模式
-  - [x] 全局代理
-  - [x] 全局直连
-  - [x] 全局拒绝
+  - [x] 全局代理、直连、拒绝
   - [x] 规则代理
     - [x] DOMAIN：域名全匹配
     - [x] DOMAIN-SUFFIX：域名后缀匹配
     - [x] DOMAIN-KEYWORD：域名关键字匹配
     - [x] IP-CIDR：ip段匹配
     - [x] GEO-IP: 支持GEO-IP路由
-    - [ ] ~~USER-AGENT：HTTP头字匹配~~
 - [x] DNS
   - [x] static：静态地址映射
   - [x] direct：直连DNS解析
   - [x] remote：远程服务器DNS解析(防止DNS污染)
-  - [x] GEO-IP判断
 - [x] 外部窗口
-  - [x] API
-  	- [x]  获取服务器列表
-  	- [x]  RTT分组刷新
-  	- [x]  Select分组手动选择
-  	- [x]  DNS缓存获取
-  	- [x]  DNS缓存刷新
-  	- [x]  请求记录列表获取
-  	- [x]  请求记录清空
-  	- [x]  CA证书生成
-  	- [x]  CA证书下载
-  	- [x]  HTTP Dump开关
-  	- [x]  MITM 开关
-  	- [x]  HTTP/HTTPS抓包内容获取 
-  	- [x]  关闭Shuttle
-  	- [x]  重载配置
-  	- [x]  全局代理开关
-  	- [ ]  支持Websocket，完成内容增量更新
+  - [x] API (详见API文档)
   - [x] Web UI
-  	- [x] Web UI (angular6 + ant design)
+    - [x] Web UI (angular6 + ant design)
 - [ ] 优化
   - [ ] 内存优化
   - [ ] log日志
@@ -117,7 +95,7 @@ Shuttle 是基于Go实现的全平台网络代理：
 
 #### 准备
 
-下载release文件并解压，完成后目录结构：
+下载release文件并解压，目录结构：
 
 ```
 shuttle
@@ -586,7 +564,7 @@ http://c.sipt.top
 
 ![Records](static/records.jpg)
 查看当前系统的入网所有请求，匹配了哪条规则等
-当前只会保留1000条数据，
+当前只会保留500条数据，并支持关键字过滤
 
 ### 抓包教程
 
@@ -596,8 +574,16 @@ HTTPS抓包需要几个步骤：
 
 ![Cert](static/cert.jpg)
 
-1. 生成证书：Generate生成证书，每次点击都会生成新的CA证书，生成完成后并保存到配置文件。
-2. 点击Download按钮下载下来
-3. 加入到系统证书里，并信任它
-4. HTTPS抓包要Dump和MITM同时打开（具体哪些可以HTTPS抓包要配合配置文件中`MitM 中的 rules`）
+1. 生成证书：Generate生成证书，每次点击都会生成新的CA证书，生成完成后自动保存到配置文件中。
+2. 点击Download按钮下载下来。
+3. 加入到系统证书里，并信任它。
+4. 在上图表中列出的是会截取的HTTPS的域名规则，可以自行添加，不匹配表中规则不会拦截抓取。
+5. HTTPS抓包要Dump和MITM同时打开。
 
+大文件数据下载：
+
+![large_dump](static/large_dump.jpg)
+
+在输入框内输入文件名，点击下载。
+
+当Dump数据超过2MB时就不会显示数据，只显示文件过大，考虑到网页性能此时最好下载查看。
