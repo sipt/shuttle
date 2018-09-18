@@ -37,6 +37,8 @@ func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSi
 	router.POST("/server/select/refresh", SelectRefresh)
 
 	//general
+	router.GET("/system/proxy/enable", EnableSystemProxy)
+	router.GET("/system/proxy/disable", DisableSystemProxy)
 	router.POST("/shutdown", NewShutdown(shutdownSingnal))
 	router.POST("/reload", ReloadConfig(reloadConfigSignal))
 	router.GET("/mode", GetConnMode)

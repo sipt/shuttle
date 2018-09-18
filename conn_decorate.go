@@ -22,10 +22,9 @@ func DefaultDecorate(c net.Conn, network string) (IConn, error) {
 
 func DefaultDecorateForTls(c net.Conn, network string, id int64) (IConn, error) {
 	return &DefaultConn{
-		Conn:     c,
-		ID:       util.NextID(),
-		RecordID: id,
-		Network:  network,
+		Conn:    c,
+		ID:      id,
+		Network: network,
 	}, nil
 }
 

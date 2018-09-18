@@ -195,6 +195,7 @@ func HandleHTTP(co net.Conn) {
 	}
 	record.ID = util.NextID()
 	boxChan <- &Box{Op: RecordAppend, Value: record}
+	sc.SetRecordID(record.ID)
 	direct := &DirectChannel{}
 	direct.Transport(lc, sc)
 	boxChan <- &Box{record.ID, RecordStatus, RecordStatusCompleted}

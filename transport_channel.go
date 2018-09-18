@@ -14,8 +14,26 @@ type DirectChannel struct{}
 
 func (d *DirectChannel) Transport(lc, sc IConn) {
 	errChan := make(chan error, 2)
-	go d.send(sc, lc, errChan)
-	go d.send(lc, sc, errChan)
+	go func() {
+		defer Recover(func() {
+			select {
+			case errChan <- nil:
+			default:
+			}
+		})
+		d.send(sc, lc, errChan)
+		<-errChan
+	}()
+	go func() {
+		defer Recover(func() {
+			select {
+			case errChan <- nil:
+			default:
+			}
+		})
+		d.send(lc, sc, errChan)
+
+	}()
 	<-errChan
 	lc.Close()
 	sc.Close()
@@ -73,8 +91,24 @@ type HttpChannel struct {
 
 func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) {
 	errChan := make(chan error, 2)
-	go h.sendToClient(sc, lc, errChan)
-	go h.sendToServer(lc, sc, first, errChan)
+	go func() {
+		defer Recover(func() {
+			select {
+			case errChan <- nil:
+			default:
+			}
+		})
+		h.sendToClient(sc, lc, errChan)
+	}()
+	go func() {
+		defer Recover(func() {
+			select {
+			case errChan <- nil:
+			default:
+			}
+		})
+		h.sendToServer(lc, sc, first, errChan)
+	}()
 	<-errChan
 
 	lc.Close()
@@ -202,6 +236,7 @@ func (h *HttpChannel) writeResponse(resp *http.Response, to IConn) (err error) {
 			return
 		}
 	}
+	Logger.Debugf("ConnectID [%d] HttpChannel Transport return [b]->c", to.GetID())
 	if h.allowDump {
 		go func() {
 			dump.Complete(h.id)

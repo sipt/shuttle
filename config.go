@@ -90,6 +90,11 @@ func SaveToFile() {
 var configFile string
 var conf *Config
 
+func GetGeneralConfig() (general General) {
+	general = *conf.General
+	return
+}
+
 func InitConfig(filePath string) (*General, error) {
 	configFile = filePath
 	data, err := ioutil.ReadFile(filePath)

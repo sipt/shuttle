@@ -34,5 +34,5 @@ func WebRoute(e *gin.Engine) {
 func index(ctx *gin.Context) {
 	ctx.Header("Content-Type", "text/html; charset=utf-8")
 	ctx.Status(200)
-	ctx.Writer.WriteString(indexHtml)
+	ctx.File("./view/index.html")
 }

@@ -55,7 +55,7 @@ func FilterByReq(req *Request) (rule *Rule, s *Server, err error) {
 			err = errors.New(err.Error() + ":" + rule.Policy)
 			return
 		}
-		Logger.Debugf("get server by policy [%s] => %v", rule.Policy, s)
+		Logger.Debugf("get server by policy [%s] => %v", rule.Policy, s.Name)
 	}
 	return
 }

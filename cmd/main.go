@@ -10,6 +10,10 @@ import (
 	"time"
 	"strings"
 	"runtime/debug"
+	"github.com/sipt/shuttle/extension/network"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 var (
@@ -36,11 +40,25 @@ func main() {
 	//go HandleUDP()
 	go HandleHTTP(general.HttpPort, general.HttpInterface, StopSocksSignal)
 	go HandleSocks5(general.SocksPort, general.SocksInterface, StopHTTPSignal)
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	//enable system proxy
+	EnableSystemProxy(general)
 	for {
 		select {
 		case <-ShutdownSignal:
 			StopSocksSignal <- true
 			StopHTTPSignal <- true
+			//disable system proxy
+			DisableSystemProxy()
+			time.Sleep(time.Second)
+			shuttle.Logger.Info("[Shuttle] is shutdown, see you later!")
+			return
+		case <-signalChan:
+			StopSocksSignal <- true
+			StopHTTPSignal <- true
+			//disable system proxy
+			DisableSystemProxy()
 			time.Sleep(time.Second)
 			shuttle.Logger.Info("[Shuttle] is shutdown, see you later!")
 			return
@@ -51,10 +69,24 @@ func main() {
 			if err != nil {
 				shuttle.Logger.Error("Reload Config failed: ", err)
 			}
+			//enable system proxy
+			EnableSystemProxy(general)
 			go HandleHTTP(general.HttpPort, general.HttpInterface, StopSocksSignal)
 			go HandleSocks5(general.SocksPort, general.SocksInterface, StopHTTPSignal)
 		}
 	}
+}
+
+func EnableSystemProxy(g *shuttle.General) {
+	network.WebProxySwitch(true, "127.0.0.1", g.HttpPort)
+	network.SecureWebProxySwitch(true, "127.0.0.1", g.HttpPort)
+	network.SocksProxySwitch(true, "127.0.0.1", g.SocksPort)
+}
+
+func DisableSystemProxy() {
+	network.WebProxySwitch(false)
+	network.SecureWebProxySwitch(false)
+	network.SocksProxySwitch(false)
 }
 
 func HandleSocks5(socksPort, socksInterface string, stopHandle chan bool) {
@@ -83,10 +115,10 @@ func HandleSocks5(socksPort, socksInterface string, stopHandle chan bool) {
 		}
 		go func() {
 			defer func() {
-				conn.Close()
 				if err := recover(); err != nil {
 					shuttle.Logger.Error("[HTTP/HTTPS]panic :", err)
 					shuttle.Logger.Error("[HTTP/HTTPS]stack :", debug.Stack())
+					conn.Close()
 				}
 			}()
 			shuttle.Logger.Debug("[SOCKS]Accept tcp connection")
