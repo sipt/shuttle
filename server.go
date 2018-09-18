@@ -119,7 +119,7 @@ type Server struct {
 	Name          string
 	Rtt           time.Duration
 	ProxyProtocol string
-	IProtocol
+	IProtocol `json:"-"`
 }
 
 func (s *Server) GetName() string {

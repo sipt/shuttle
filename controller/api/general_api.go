@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle"
 	"github.com/sipt/shuttle/extension/network"
+	"strings"
 )
 
 func EnableSystemProxy(ctx *gin.Context) {
@@ -43,6 +44,7 @@ func GetConnMode(ctx *gin.Context) {
 
 func SetConnMode(ctx *gin.Context) {
 	value := ctx.Param("mode")
+	value = strings.ToUpper(value)
 	err := shuttle.SetConnMode(value)
 	if err != nil {
 		ctx.JSON(500, Response{
