@@ -12,21 +12,19 @@ var DefaultTimeOut = 10 * time.Second
 
 //
 func DefaultDecorate(c net.Conn, network string) (IConn, error) {
-	id := util.NextID()
+	id := util.GetLongID()
 	return &DefaultConn{
-		Conn:     c,
-		ID:       id,
-		RecordID: id,
-		Network:  network,
+		Conn:    c,
+		ID:      id,
+		Network: network,
 	}, nil
 }
 
 func DefaultDecorateForTls(c net.Conn, network string, id int64) (IConn, error) {
 	return &DefaultConn{
-		Conn:     c,
-		ID:       util.NextID(),
-		RecordID: id,
-		Network:  network,
+		Conn:    c,
+		ID:      id,
+		Network: network,
 	}, nil
 }
 
@@ -69,7 +67,6 @@ func (c *DefaultConn) Write(b []byte) (n int, err error) {
 }
 func (c *DefaultConn) Close() error {
 	Logger.Tracef("[ID:%d] close connection", c.GetID())
-	boxChan <- &Box{c.GetID(), RecordStatus, RecordStatusCompleted}
 	return c.Conn.Close()
 }
 
@@ -180,12 +177,16 @@ type Traffic struct {
 
 func (t *Traffic) Read(b []byte) (n int, err error) {
 	n, err = t.IConn.Read(b)
-	boxChan <- &Box{t.GetRecordID(), RecordDown, n}
+	if t.GetRecordID() > 0 && n > 0 {
+		boxChan <- &Box{t.GetRecordID(), RecordDown, n}
+	}
 	return
 }
 
 func (t *Traffic) Write(b []byte) (n int, err error) {
 	n, err = t.IConn.Write(b)
-	boxChan <- &Box{t.GetRecordID(), RecordUp, n}
+	if t.GetRecordID() > 0 && n > 0 {
+		boxChan <- &Box{t.GetRecordID(), RecordUp, n}
+	}
 	return
 }

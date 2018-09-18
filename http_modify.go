@@ -197,6 +197,9 @@ func ResponseModify(req *http.Request, resp *http.Response, isHttps bool) {
 	if len(respPolicies) == 0 {
 		return
 	}
+	if req.URL == nil {
+		return
+	}
 	l := req.URL.String()
 	if req.URL.Host == "" {
 		if isHttps {

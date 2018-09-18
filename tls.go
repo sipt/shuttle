@@ -67,13 +67,16 @@ func GenerateCA() error {
 		},
 	}
 	template := &x509.Certificate{
-		Version:      1,
-		SerialNumber: big.NewInt(1),
-		Subject:      names,
-		Issuer:       names,
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(5, 0, 0),
-		KeyUsage:     0,
+		Version:               1,
+		SerialNumber:          big.NewInt(1),
+		Subject:               names,
+		Issuer:                names,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(5, 0, 0),
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 	}
 
 	caBytes, err = x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
@@ -98,8 +101,9 @@ func GenerateCA() error {
 	}
 	//Save privateKey and CA to config file
 	SetMimt(&Mitm{
-		CA:  base64.RawStdEncoding.EncodeToString(certBuffer.Bytes()),
-		Key: base64.RawStdEncoding.EncodeToString(keyBuffer.Bytes()),
+		CA:    base64.RawStdEncoding.EncodeToString(certBuffer.Bytes()),
+		Key:   base64.RawStdEncoding.EncodeToString(keyBuffer.Bytes()),
+		Rules: MitMRules,
 	})
 	return nil
 }

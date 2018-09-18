@@ -64,7 +64,13 @@ func ReloadConfig() (*General, error) {
 }
 
 func SetMimt(mitm *Mitm) {
-	conf.Mitm = mitm
+	if len(mitm.CA) > 0 {
+		conf.Mitm.CA = mitm.CA
+	}
+	if len(mitm.Key) > 0 {
+		conf.Mitm.Key = mitm.Key
+	}
+	conf.Mitm.Rules = mitm.Rules
 	SaveToFile()
 }
 
@@ -83,6 +89,11 @@ func SaveToFile() {
 
 var configFile string
 var conf *Config
+
+func GetGeneralConfig() (general General) {
+	general = *conf.General
+	return
+}
 
 func InitConfig(filePath string) (*General, error) {
 	configFile = filePath

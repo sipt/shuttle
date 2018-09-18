@@ -6,6 +6,8 @@ import (
 	"github.com/sipt/shuttle/pool"
 	"encoding/binary"
 	"time"
+	"github.com/sipt/shuttle/util"
+	"strconv"
 )
 
 const (
@@ -51,6 +53,14 @@ func SocksHandle(co net.Conn) {
 		return
 	}
 
+	if IsPass(req) {
+		port, err := strconv.ParseUint(controllerPort, 10, 16)
+		if err == nil {
+			req.IP = []byte{127, 0, 0, 1}
+			req.Port = uint16(port)
+		}
+	}
+
 	//filter by Rules and DNS
 	rule, s, err := FilterByReq(req)
 	if err != nil {
@@ -68,17 +78,27 @@ func SocksHandle(co net.Conn) {
 		return
 	}
 
+	//todo 白名单判断
+	if IsPass(req) {
+		direct := &DirectChannel{}
+		direct.Transport(conn, sc)
+		return
+	}
+
+	id := util.NextID()
+	sc.SetRecordID(id)
 	boxChan <- &Box{Op: RecordAppend, Value: &Record{
-		ID:       sc.GetID(),
+		ID:       id,
 		Protocol: req.Protocol,
 		Created:  time.Now(),
 		Proxy:    s,
 		Status:   RecordStatusActive,
 		URL:      req.Target,
 		Rule:     rule,
-	}}
+	}, ID: id}
 	direct := &DirectChannel{}
 	direct.Transport(conn, sc)
+	boxChan <- &Box{id, RecordStatus, RecordStatusCompleted}
 }
 
 //socks 握手
