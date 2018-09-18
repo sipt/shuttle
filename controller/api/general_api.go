@@ -3,7 +3,23 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle"
+	"github.com/sipt/shuttle/extension/network"
 )
+
+func EnableSystemProxy(ctx *gin.Context) {
+	g := shuttle.GetGeneralConfig()
+	network.WebProxySwitch(true, "127.0.0.1", g.HttpPort)
+	network.SecureWebProxySwitch(true, "127.0.0.1", g.HttpPort)
+	network.SocksProxySwitch(true, "127.0.0.1", g.SocksPort)
+	ctx.JSON(200, Response{})
+}
+
+func DisableSystemProxy(ctx *gin.Context) {
+	network.WebProxySwitch(false)
+	network.SecureWebProxySwitch(false)
+	network.SocksProxySwitch(false)
+	ctx.JSON(200, Response{})
+}
 
 func NewShutdown(shutdownSignal chan bool) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
