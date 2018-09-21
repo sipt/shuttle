@@ -156,7 +156,7 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request, errChan 
 			}
 			h.req, err = http.ReadRequest(b)
 			if err != nil {
-				if err != io.EOF {
+				if err != io.EOF && !strings.Contains(err.Error(), "use of closed network connection") {
 					Logger.Errorf("ConnectID [%d] HttpChannel Transport c->[r]: %v", from.GetID(), err)
 				}
 				errChan <- err

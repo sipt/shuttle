@@ -36,9 +36,9 @@ const (
 	DumpRequestEntity
 	DumpResponseEntity
 
-	DumpFileDir       = "./temp"
-	DumpRequestFile   = DumpFileDir + "/%d_req.dump"
-	DumpResponseFile  = DumpFileDir + "/%d_resp.dump"
+	DumpFileDir       = "temp"
+	DumpRequestFile   = DumpFileDir + string(os.PathSeparator) + "%d_req.dump"
+	DumpResponseFile  = DumpFileDir + string(os.PathSeparator) + "%d_resp.dump"
 	LargeRequestBody  = 2 * 1024 * 1024 // 5MB
 	LargeResponseBody = 2 * 1024 * 1024 // 5MB
 )

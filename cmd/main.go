@@ -14,6 +14,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"github.com/sipt/shuttle/extension/config"
+	"io"
 )
 
 var (
@@ -23,14 +25,62 @@ var (
 	ReloadConfigSignal = make(chan bool, 1)
 )
 
-func main() {
+func configPath() (fullPath string, err error) {
 	var configFile = "shuttle.yaml"
-	var geoIPDB = "GeoLite2-Country.mmdb"
-	general, err := shuttle.InitConfig(configFile)
+	configPath, err := config.HomePath()
 	if err != nil {
 		panic(err)
 	}
-	shuttle.InitGeoIP(geoIPDB)
+	dir := configPath + string(os.PathSeparator) + "Documents" + string(os.PathSeparator) + "shuttle"
+	fullPath = dir + string(os.PathSeparator) + configFile
+	rc, err := os.Open(fullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = nil
+		} else {
+			return
+		}
+	} else {
+		rc.Close()
+		return
+	}
+	cc, err := os.Open("shuttle.yaml")
+	if err != nil {
+		return
+	}
+	defer cc.Close()
+	// not exist
+	err = os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return
+	}
+	//
+	dc, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return
+	}
+	defer dc.Close()
+	_, err = io.Copy(dc, cc)
+	return
+}
+
+func main() {
+	configPath, err := configPath()
+	if err != nil {
+		shuttle.Logger.Errorf("[PANIC] %s", err.Error())
+		return
+	}
+	general, err := shuttle.InitConfig(configPath)
+	if err != nil {
+		shuttle.Logger.Errorf("[PANIC] %s", err.Error())
+		return
+	}
+	var geoIPDB = "GeoLite2-Country.mmdb"
+	err = shuttle.InitGeoIP(geoIPDB)
+	if err != nil {
+		shuttle.Logger.Errorf("[PANIC] %s", err.Error())
+		return
+	}
 	// 启动api控制
 	go controller.StartController(general.ControllerInterface, general.ControllerPort,
 		ShutdownSignal,     // shutdown program
