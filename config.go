@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"fmt"
 	"github.com/sipt/yaml"
+	"github.com/sipt/shuttle/log"
 	"strings"
 	"regexp"
 )
@@ -77,13 +78,13 @@ func SetMimt(mitm *Mitm) {
 func SaveToFile() {
 	bytes, err := yaml.Marshal(conf)
 	if err != nil {
-		Logger.Errorf("[CONF] yaml marshal config failed : %v", err)
+		log.Logger.Errorf("[CONF] yaml marshal config failed : %v", err)
 	}
 	offset := EmojiDecode(bytes)
 	bytes = bytes[:offset]
 	err = ioutil.WriteFile(configFile, bytes, 0644)
 	if err != nil {
-		Logger.Errorf("[CONF] save config file failed : %v", err)
+		log.Logger.Errorf("[CONF] save config file failed : %v", err)
 	}
 }
 

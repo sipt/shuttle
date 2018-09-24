@@ -26,14 +26,14 @@ const (
 func EnableSystemProxy(host, port string) {
 	err := WebProxySwitch(true, host, port)
 	if err != nil {
-		shuttle.Logger.Errorf("Enable WebProxy failed: %v", err)
+		log.Logger.Errorf("Enable WebProxy failed: %v", err)
 	}
 }
 
 func DisableSystemProxy() {
 	err := WebProxySwitch(false)
 	if err != nil {
-		shuttle.Logger.Errorf("Disable WebProxy failed: %v", err)
+		log.Logger.Errorf("Disable WebProxy failed: %v", err)
 	}
 }
 

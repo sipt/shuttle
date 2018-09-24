@@ -13,7 +13,7 @@ var streamCiphers = make(map[string]IStreamCipher)
 
 func registerStreamCiphers(method string, c IStreamCipher) {
 	streamCiphers[method] = c
-	shuttle.Logger.Infof("[SS Ciphers] register cipher [%s]", method)
+	log.Logger.Infof("[SS Ciphers] register cipher [%s]", method)
 }
 
 func GetStreamCiphers(method string) func(string, shuttle.IConn) (shuttle.IConn, error) {
@@ -61,7 +61,7 @@ func (s *streamConn) Read(b []byte) (n int, err error) {
 		}
 		s.Decrypter, err = s.NewDecrypter(s.key, iv)
 		if err != nil {
-			shuttle.Logger.Errorf("[Stream Conn] init decrypter failed: %v", err)
+			log.Logger.Errorf("[Stream Conn] init decrypter failed: %v", err)
 			return 0, err
 		}
 	}

@@ -1,9 +1,21 @@
 package log
 
-import "fmt"
+import (
+	"fmt"
+)
+
+func NewStdLogger(level int) (ILogger, error) {
+	return &StdLogger{
+		Level: level,
+	}, nil
+}
 
 type StdLogger struct {
 	Level int
+}
+
+func (s *StdLogger) SetLevel(level int) {
+	s.Level = level
 }
 
 func (s *StdLogger) Trace(params ...interface{}) {
@@ -45,4 +57,8 @@ func (s *StdLogger) Errorf(fromat string, params ...interface{}) {
 	if s.Level <= LogError {
 		fmt.Printf("%s %c[1;0;31m[ERROR]%c[0m %s\n", Now(), 0x1B, 0x1B, fmt.Sprintf(fromat, params...))
 	}
+}
+
+func (s *StdLogger) Close() error {
+	return nil
 }

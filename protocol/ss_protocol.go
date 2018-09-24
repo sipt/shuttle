@@ -16,7 +16,7 @@ func init() {
 func NewSsProtocol(params []string) (shuttle.IProtocol, error) {
 	//[]string{"addr", "port", "method", "password"}
 	if len(params) != 4 {
-		shuttle.Logger.Errorf(`[SOCKS5 Server] init socks5 server failed params must be ["addr", "port", "method", "password"], but: %v`, params)
+		log.Logger.Errorf(`[SOCKS5 Server] init socks5 server failed params must be ["addr", "port", "method", "password"], but: %v`, params)
 		return nil, fmt.Errorf(`[SOCKS5 Server] init socks5 server failed params must be ["addr", "port", "method", "password"], but: %v`, params)
 	}
 	ser := &ssProtocol{
@@ -43,7 +43,7 @@ func (s *ssProtocol) Conn(req *shuttle.Request) (shuttle.IConn, error) {
 	}
 	err := shuttle.ResolveDomain(ssReq)
 	if err != nil {
-		shuttle.Logger.Errorf("[SsProtocol] [Conn] Resolve domain failed [%s]: %v", s.Addr, err)
+		log.Logger.Errorf("[SsProtocol] [Conn] Resolve domain failed [%s]: %v", s.Addr, err)
 	} else {
 		addr = ssReq.IP.String()
 	}

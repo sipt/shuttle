@@ -55,7 +55,7 @@ func (d *DirectChannel) send(from, to IConn, errChan chan error) {
 		//}
 		if err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "use of closed network connection") {
-				Logger.Errorf("ConnectID [%d] DirectChannel Transport: %v", from.GetID(), err)
+				log.Logger.Errorf("ConnectID [%d] DirectChannel Transport: %v", from.GetID(), err)
 			}
 			errChan <- err
 			return
@@ -63,7 +63,7 @@ func (d *DirectChannel) send(from, to IConn, errChan chan error) {
 		n, err = to.Write(buf[:n])
 		if err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "use of closed network connection") {
-				Logger.Error("ConnectID [%d] DirectChannel Transport: %v", to.GetID(), err)
+				log.Logger.Error("ConnectID [%d] DirectChannel Transport: %v", to.GetID(), err)
 			}
 			errChan <- err
 			return
@@ -127,12 +127,12 @@ func (h *HttpChannel) sendToClient(from, to IConn, errChan chan error) {
 		resp, err := http.ReadResponse(buf, nil)
 		if err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "use of closed network connection") {
-				Logger.Errorf("ConnectID [%d] HttpChannel Transport s->[b]: %v", from.GetID(), err)
+				log.Logger.Errorf("ConnectID [%d] HttpChannel Transport s->[b]: %v", from.GetID(), err)
 			}
 			errChan <- err
 			return
 		}
-		Logger.Debugf("ConnectID [%d] HttpChannel Transport return s->[b]", to.GetID())
+		log.Logger.Debugf("ConnectID [%d] HttpChannel Transport return s->[b]", to.GetID())
 		ResponseModify(h.req, resp, h.isHttps)
 		err = h.writeResponse(resp, to)
 		if err != nil {
@@ -157,7 +157,7 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request, errChan 
 			h.req, err = http.ReadRequest(b)
 			if err != nil {
 				if err != io.EOF && !strings.Contains(err.Error(), "use of closed network connection") {
-					Logger.Errorf("ConnectID [%d] HttpChannel Transport c->[r]: %v", from.GetID(), err)
+					log.Logger.Errorf("ConnectID [%d] HttpChannel Transport c->[r]: %v", from.GetID(), err)
 				}
 				errChan <- err
 				return
@@ -166,7 +166,7 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request, errChan 
 			resp = RequestModify(h.req, h.isHttps)
 		}
 		h.id = util.NextID()
-		Logger.Debugf("[connID:%d] [reqID:%d] HttpChannel Transport c->[req]: %s", from.GetID(), h.id, h.req.URL.String())
+		log.Logger.Debugf("[connID:%d] [reqID:%d] HttpChannel Transport c->[req]: %s", from.GetID(), h.id, h.req.URL.String())
 		record := *h.template
 		record.ID = h.id
 		record.URL = h.req.URL.String()
@@ -181,7 +181,7 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request, errChan 
 		record.Created = time.Now()
 		record.Dumped = h.allowDump
 		boxChan <- &Box{Op: RecordAppend, Value: &record, ID: record.ID}
-		Logger.Debugf("[reqID:%d] HttpChannel Transport send record to boxChan", h.id)
+		log.Logger.Debugf("[reqID:%d] HttpChannel Transport send record to boxChan", h.id)
 		to.SetRecordID(record.ID)
 		var dumpWriter io.Writer
 		if h.allowDump {
@@ -202,7 +202,7 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request, errChan 
 		err = h.req.Write(shunt)
 		if err != nil {
 			if err != io.EOF {
-				Logger.Errorf("ConnectID [%d] HttpChannel Transport [req]->c: %v", to.GetID(), err)
+				log.Logger.Errorf("ConnectID [%d] HttpChannel Transport [req]->c: %v", to.GetID(), err)
 				errChan <- err
 				return
 			}
@@ -232,11 +232,11 @@ func (h *HttpChannel) writeResponse(resp *http.Response, to IConn) (err error) {
 	err = resp.Write(shunt)
 	if err != nil {
 		if err != io.EOF {
-			Logger.Errorf("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
+			log.Logger.Errorf("ConnectID [%d] HttpChannel Transport [b]->c: %v", to.GetID(), err)
 			return
 		}
 	}
-	Logger.Debugf("ConnectID [%d] HttpChannel Transport return [b]->c", to.GetID())
+	log.Logger.Debugf("ConnectID [%d] HttpChannel Transport return [b]->c", to.GetID())
 	if h.allowDump {
 		go func() {
 			dump.Complete(h.id)

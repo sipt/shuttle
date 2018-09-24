@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
+	"github.com/sipt/shuttle/log"
 )
 
 const (
@@ -105,24 +106,24 @@ func ResolveDomain(req *Request) error {
 		switch v.MatchType {
 		case RuleDomainSuffix:
 			if strings.HasSuffix(req.Addr, v.Domain) {
-				Logger.Debug("[DNS] [Local] ", v.String())
+				log.Logger.Debug("[DNS] [Local] ", v.String())
 				return localResolve(v, req)
 			}
 		case RuleDomain:
 			if req.Addr == v.Domain {
-				Logger.Debug("[DNS] [Local] ", v.String())
+				log.Logger.Debug("[DNS] [Local] ", v.String())
 				return localResolve(v, req)
 			}
 		case RuleDomainKeyword:
 			if strings.Index(req.Addr, v.Domain) >= 0 {
-				Logger.Debug("[DNS] [Local] ", v.String())
+				log.Logger.Debug("[DNS] [Local] ", v.String())
 				return localResolve(v, req)
 			}
 		}
 	}
 	d := _CacheDNS.Pop(req.Addr)
 	if d != nil {
-		Logger.Debug("[DNS] [Cache] ", d.String())
+		log.Logger.Debug("[DNS] [Cache] ", d.String())
 		return localResolve(d, req)
 	}
 	return directResolve(_DNS, req)
@@ -148,7 +149,7 @@ func localResolve(dns *DNS, req *Request) error {
 	case DNSTypeRemote:
 		//remote 到proxy-server上解析
 		//remoteResolve(dns, req)
-		Logger.Debug("[DNS] [Remote] ", req.Addr)
+		log.Logger.Debug("[DNS] [Remote] ", req.Addr)
 		return nil
 	default:
 		return fmt.Errorf("not support DNSType [%s]", dns.Type)
@@ -161,7 +162,7 @@ func directResolve(servers []net.IP, req *Request) error {
 		go func(v net.IP) {
 			err := resolveDomain(req, v, reply)
 			if err != nil {
-				Logger.Errorf("[DNS] [%s] failed: %v", req.Addr, err)
+				log.Logger.Errorf("[DNS] [%s] failed: %v", req.Addr, err)
 			}
 		}(v)
 	}
@@ -183,7 +184,7 @@ func directResolve(servers []net.IP, req *Request) error {
 		}
 	}
 	if len(cache.IPs) == 0 {
-		Logger.Errorf("[DNS] resolve ip is empty")
+		log.Logger.Errorf("[DNS] resolve ip is empty")
 		return nil
 	}
 	req.IP = cache.IPs[0]
@@ -192,7 +193,7 @@ func directResolve(servers []net.IP, req *Request) error {
 	cache.Country = country
 	req.DomainHost.Country = country
 	req.DomainHost.DNS = r.DNS
-	Logger.Debug("[DNS] ", cache.String())
+	log.Logger.Debug("[DNS] ", cache.String())
 	return nil
 }
 

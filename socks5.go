@@ -27,29 +27,29 @@ const (
 )
 
 func SocksHandle(co net.Conn) {
-	Logger.Debug("start shuttle.IConn wrap net.Con")
+	log.Logger.Debug("start shuttle.IConn wrap net.Con")
 	conn, err := NewDefaultConn(co, TCP)
 	if err != nil {
-		Logger.Errorf("shuttle.IConn wrap net.Conn failed: %v", err)
+		log.Logger.Errorf("shuttle.IConn wrap net.Conn failed: %v", err)
 		return
 	}
-	Logger.Debugf("shuttle.IConn wrap net.Con success [ID:%d]", conn.GetID())
-	Logger.Debugf("[ID:%d] start handShake", conn.GetID())
+	log.Logger.Debugf("shuttle.IConn wrap net.Con success [ID:%d]", conn.GetID())
+	log.Logger.Debugf("[ID:%d] start handShake", conn.GetID())
 	err = handShake(conn)
 	if err != nil {
-		Logger.Errorf("[%d] handShake failed: %v", conn.GetID(), err)
+		log.Logger.Errorf("[%d] handShake failed: %v", conn.GetID(), err)
 		return
 	}
 	req, err := parseRequest(conn)
 	if err != nil {
-		Logger.Error("parseRequest failed: ", err)
+		log.Logger.Error("parseRequest failed: ", err)
 		return
 	}
 	req.Protocol = ProtocolSocks
 	req.Target = req.Host()
 	_, err = conn.Write([]byte{socksVer5, 0x00, 0x00, AddrTypeIPv4, 0x00, 0x00, 0x00, 0x00, 0x08, 0x43})
 	if err != nil {
-		Logger.Error("send connection confirmation:", err)
+		log.Logger.Error("send connection confirmation:", err)
 		return
 	}
 
@@ -64,16 +64,16 @@ func SocksHandle(co net.Conn) {
 	//filter by Rules and DNS
 	rule, s, err := FilterByReq(req)
 	if err != nil {
-		Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
+		log.Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
 	}
 
 	//connnet to server
 	sc, err := s.Conn(req)
 	if err != nil {
 		if err == ErrorReject {
-			Logger.Debugf("Reject [%s]", req.Target)
+			log.Logger.Debugf("Reject [%s]", req.Target)
 		} else {
-			Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
+			log.Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
 		}
 		return
 	}

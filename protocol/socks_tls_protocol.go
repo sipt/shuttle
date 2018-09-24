@@ -19,7 +19,7 @@ func init() {
 func NewSocks5TLSProtocol(params []string) (shuttle.IProtocol, error) {
 	//[]string{"addr", "port", "skip-verify","username", "password"}
 	if len(params) != 5 && len(params) != 3 {
-		shuttle.Logger.Errorf(`[SOCKS5 over TLS Server] init socks5 server failed params count must be 5 or 3, but: %v`, params)
+		log.Logger.Errorf(`[SOCKS5 over TLS Server] init socks5 server failed params count must be 5 or 3, but: %v`, params)
 		return nil, fmt.Errorf(`[SOCKS5 over TLS Server] init socks5 server failed params count must be 5 or 3, but: %v`, params)
 	}
 	ser := &socksTLSProtocol{
@@ -58,7 +58,7 @@ func (s *socksTLSProtocol) Conn(request *shuttle.Request) (shuttle.IConn, error)
 	}
 	err := shuttle.ResolveDomain(ssReq)
 	if err != nil {
-		shuttle.Logger.Errorf("[SocksProtocol] [Conn] Resolve domain failed [%s]: %v", s.Addr, err)
+		log.Logger.Errorf("[SocksProtocol] [Conn] Resolve domain failed [%s]: %v", s.Addr, err)
 	} else {
 		addr = ssReq.IP.String()
 	}

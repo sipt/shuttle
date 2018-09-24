@@ -10,7 +10,7 @@ import (
 func WsSpeedHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
-		shuttle.Logger.Errorf("[Speed] Failed to set websocket upgrade: %v", err)
+		log.Logger.Errorf("[Speed] Failed to set websocket upgrade: %v", err)
 		return
 	}
 	ticker := time.NewTicker(time.Second)

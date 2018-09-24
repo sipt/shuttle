@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"io"
+	"github.com/sipt/shuttle/log"
 )
 
 var dump IDump
@@ -68,12 +69,12 @@ type fileDumpEntity struct {
 func (f *FileDump) InitDump(id int64) error {
 	reqBuf, err := os.OpenFile(fmt.Sprintf(DumpRequestFile, id), os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		Logger.Errorf("[%d] create data file %s failed: %v", id, err)
+		log.Logger.Errorf("[%d] create data file %s failed: %v", id, err)
 		return err
 	}
 	respBuf, err := os.OpenFile(fmt.Sprintf(DumpResponseFile, id), os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
-		Logger.Errorf("[%d] create data file %s failed: %v", id, err)
+		log.Logger.Errorf("[%d] create data file %s failed: %v", id, err)
 		return err
 	}
 	sequenceHeap := NewSequenceHeap()
@@ -201,13 +202,13 @@ func (f *FileDump) Clear() error {
 	if !os.IsNotExist(err) {
 		err := os.RemoveAll("temp")
 		if err != nil {
-			Logger.Errorf("delete dir error: %v", err)
+			log.Logger.Errorf("delete dir error: %v", err)
 			return err
 		}
 	}
 	err = os.Mkdir("temp", os.ModePerm)
 	if err != nil {
-		Logger.Errorf("mkdir failed![%v]\n", err)
+		log.Logger.Errorf("mkdir failed![%v]\n", err)
 		return err
 	}
 	f.Unlock()

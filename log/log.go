@@ -2,6 +2,12 @@ package log
 
 import "time"
 
+var Logger ILogger = &StdLogger{Level: LogDebug}
+
+func SetLogger(logger ILogger) {
+	log.Logger = logger
+}
+
 const (
 	LogTrace = 0
 	LogDebug = 1
@@ -14,6 +20,7 @@ func Now() string {
 }
 
 type ILogger interface {
+	SetLevel(int)
 	Trace(...interface{})
 	Debug(...interface{})
 	Info(...interface{})
@@ -22,4 +29,5 @@ type ILogger interface {
 	Debugf(string, ...interface{})
 	Infof(string, ...interface{})
 	Errorf(string, ...interface{})
+	Close() error
 }

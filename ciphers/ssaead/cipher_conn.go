@@ -17,7 +17,7 @@ var aeadCiphers = make(map[string]IAEADCipher)
 
 func registerAEADCiphers(method string, c IAEADCipher) {
 	aeadCiphers[method] = c
-	shuttle.Logger.Infof("[SS Ciphers] register cipher [%s]", method)
+	log.Logger.Infof("[SS Ciphers] register cipher [%s]", method)
 }
 
 func GetAEADCiphers(method string) func(string, shuttle.IConn) (shuttle.IConn, error) {
@@ -79,7 +79,7 @@ func (a *aeadConn) Read(b []byte) (n int, err error) {
 		}
 		a.Decrypter, err = a.NewDecrypter(a.key, salt)
 		if err != nil {
-			shuttle.Logger.Errorf("[AEAD Conn] init decrypter failed: %v", err)
+			log.Logger.Errorf("[AEAD Conn] init decrypter failed: %v", err)
 			return 0, err
 		}
 	}

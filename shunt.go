@@ -29,7 +29,7 @@ func (s *Shunt) Write(p []byte) (n int, err error) {
 	if s.w2 != nil {
 		_, err := s.w2.Write(buf[:l])
 		if err != nil {
-			Logger.Errorf("[Shunt] [Sub2] Write data failed: %s", err.Error())
+			log.Logger.Errorf("[Shunt] [Sub2] Write data failed: %s", err.Error())
 		}
 	}
 	if s.w1 != nil {

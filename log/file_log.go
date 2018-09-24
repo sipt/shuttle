@@ -7,63 +7,78 @@ import (
 	"path/filepath"
 	"time"
 	"io"
+	"strconv"
 )
 
 func NewFileLogger(filePath string, level, multiSize int) (ILogger, error) {
-	l := &Logger{
-		Level: level,
-	}
+	os.MkdirAll(filePath, os.ModePerm)
 	lf := &LogFile{
 		path:      filePath,
 		multiSize: multiSize,
 	}
+	err := lf.Create()
+	if err != nil {
+		return nil, err
+	}
+	l := &FileLogger{
+		Level: level,
+		Out:   lf,
+	}
 	return l, nil
 }
 
-type Logger struct {
+type FileLogger struct {
 	Out   io.WriteCloser
 	Level int
 }
 
-func (l *Logger) Trace(params ...interface{}) {
+func (l *FileLogger) SetLevel(level int) {
+	l.Level = level
+}
+
+func (l *FileLogger) Trace(params ...interface{}) {
 	if l.Level <= LogTrace {
-		fmt.Printf("%s [TRACE] %s\n", Now(), fmt.Sprint(params ...))
+		l.Out.Write([]byte((fmt.Sprintf("%s [TRACE] %s\n", Now(), fmt.Sprint(params ...)))))
 	}
 }
-func (l *Logger) Debug(params ...interface{}) {
+func (l *FileLogger) Debug(params ...interface{}) {
 	if l.Level <= LogDebug {
-		fmt.Printf("%s [DEBUG] %s\n", Now(), fmt.Sprint(params ...))
+		l.Out.Write([]byte((fmt.Sprintf("%s [DEBUG] %s\n", Now(), fmt.Sprint(params ...)))))
 	}
 }
-func (l *Logger) Info(params ...interface{}) {
+func (l *FileLogger) Info(params ...interface{}) {
 	if l.Level <= LogInfo {
-		fmt.Printf("%s %c[1;0;32m[INFO] %s\n", Now(), fmt.Sprint(params ...))
+		l.Out.Write([]byte((fmt.Sprintf("%s [INFO] %s\n", Now(), fmt.Sprint(params ...)))))
 	}
 }
-func (l *Logger) Error(params ...interface{}) {
+func (l *FileLogger) Error(params ...interface{}) {
 	if l.Level <= LogError {
-		fmt.Printf("%s %c[1;0;31m[ERROR] %s\n", Now(), fmt.Sprint(params ...))
+		l.Out.Write([]byte((fmt.Sprintf("%s [ERROR] %s\n", Now(), fmt.Sprint(params ...)))))
 	}
 }
-func (l *Logger) Tracef(format string, params ...interface{}) {
+func (l *FileLogger) Tracef(format string, params ...interface{}) {
 	if l.Level <= LogTrace {
-		fmt.Printf("%s %c[1;0;33m[TRACE] %s\n", Now(), fmt.Sprintf(format, params...))
+		l.Out.Write([]byte((fmt.Sprintf("%s [TRACE] %s\n", Now(), fmt.Sprintf(format, params...)))))
 	}
 }
-func (l *Logger) Debugf(format string, params ...interface{}) {
+func (l *FileLogger) Debugf(format string, params ...interface{}) {
 	if l.Level <= LogDebug {
-		fmt.Printf("%s [DEBUG] %s\n", Now(), fmt.Sprintf(format, params...))
+		l.Out.Write([]byte((fmt.Sprintf("%s [DEBUG] %s\n", Now(), fmt.Sprintf(format, params...)))))
 	}
 }
-func (l *Logger) Infof(format string, params ...interface{}) {
+func (l *FileLogger) Infof(format string, params ...interface{}) {
 	if l.Level <= LogInfo {
-		fmt.Printf("%s %c[1;0;32m[INFO] %s\n", Now(), fmt.Sprintf(format, params...))
+		l.Out.Write([]byte((fmt.Sprintf("%s [INFO] %s\n", Now(), fmt.Sprintf(format, params...)))))
 	}
 }
-func (l *Logger) Errorf(format string, params ...interface{}) {
+func (l *FileLogger) Errorf(format string, params ...interface{}) {
 	if l.Level <= LogError {
-		fmt.Printf("%s %c[1;0;31m[ERROR] %s\n", Now(), fmt.Sprintf(format, params...))
+		l.Out.Write([]byte((fmt.Sprintf("%s [ERROR] %s\n", Now(), fmt.Sprintf(format, params...)))))
 	}
+}
+
+func (l *FileLogger) Close() error {
+	return l.Out.Close()
 }
 
 type LogFile struct {
@@ -71,6 +86,7 @@ type LogFile struct {
 	file      *os.File
 	multiSize int
 	size      int
+	index     int
 	sync.RWMutex
 }
 
@@ -88,7 +104,8 @@ func (l *LogFile) Write(b []byte) (int, error) {
 }
 
 func (l *LogFile) Create() error {
-	file, err := os.OpenFile(filepath.Join(l.path, time.Now().Format("2006-01-02_15:04:05")+".log"),
+	l.index ++
+	file, err := os.OpenFile(filepath.Join(l.path, time.Now().Format("2006-01-02_15:04:05")+"_"+strconv.Itoa(l.index)+".log"),
 		os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err

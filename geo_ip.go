@@ -4,6 +4,7 @@ import (
 	"net"
 	"github.com/sipt/shuttle/util"
 	"github.com/oschwald/geoip2-golang"
+	"github.com/sipt/shuttle/log"
 )
 
 var geoipDB *geoip2.Reader
@@ -17,7 +18,7 @@ func InitGeoIP(geoipDBFile string) error {
 	var err error
 	geoipDB, err = geoip2.Open(geoipDBFile)
 	if err != nil {
-		Logger.Errorf("[GeoIP] init failed [%v]", err)
+		log.Logger.Errorf("[GeoIP] init failed [%v]", err)
 		return err
 	}
 	return nil
@@ -26,12 +27,12 @@ func InitGeoIP(geoipDBFile string) error {
 func GeoLookUp(ip net.IP) string {
 	country, err := geoipDB.Country(ip)
 	if err == nil && country != nil {
-		Logger.Debugf("[GeoIP] lookup [%s] country -> [%s]", ip.String(), country.Country.IsoCode)
+		log.Logger.Debugf("[GeoIP] lookup [%s] country -> [%s]", ip.String(), country.Country.IsoCode)
 		return country.Country.IsoCode
 	}
 	r, err := util.WatchIP(ip.String())
 	if err == nil && r != nil {
-		Logger.Debugf("[GeoIP] use taobao api [%s] country -> [%s]", ip.String(), r.CountryID)
+		log.Logger.Debugf("[GeoIP] use taobao api [%s] country -> [%s]", ip.String(), r.CountryID)
 		return r.CountryID
 	}
 	return ""

@@ -153,7 +153,7 @@ func (l *LinkedList) List() []Record {
 }
 func (l *LinkedList) Append(r *Record) {
 	l.Lock()
-	Logger.Debugf("[Storage] ID:[%d] Policy:[%s(%s,%s)] URL:[%s]", r.ID, r.Proxy.Name, r.Rule.Type, r.Rule.Value, r.URL)
+	log.Logger.Debugf("[Storage] ID:[%d] Policy:[%s(%s,%s)] URL:[%s]", r.ID, r.Proxy.Name, r.Rule.Type, r.Rule.Value, r.URL)
 	if l.head == nil {
 		l.head = &node{record: r}
 		l.tail = l.head
