@@ -7,6 +7,7 @@ import (
 	"io"
 	"crypto/rand"
 	"crypto/md5"
+	"github.com/sipt/shuttle/log"
 )
 
 var streamCiphers = make(map[string]IStreamCipher)

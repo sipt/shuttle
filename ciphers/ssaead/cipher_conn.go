@@ -11,6 +11,7 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"github.com/sipt/shuttle/pool"
+	"github.com/sipt/shuttle/log"
 )
 
 var aeadCiphers = make(map[string]IAEADCipher)
