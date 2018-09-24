@@ -71,7 +71,6 @@ func (a *aeadConn) Read(b []byte) (n int, err error) {
 		n, err = a.readBuffer.Read(b)
 		return
 	}
-	var overHead = a.Encrypter.Overhead()
 	if a.Decrypter == nil {
 		salt := make([]byte, a.SaltSize())
 		if _, err = io.ReadFull(a.IConn, salt); err != nil {
@@ -83,6 +82,7 @@ func (a *aeadConn) Read(b []byte) (n int, err error) {
 			return 0, err
 		}
 	}
+	var overHead = a.Decrypter.Overhead()
 	buf := make([]byte, 2+overHead+DataMaxSize+overHead)
 	dataBuf := buf[:2+a.Decrypter.Overhead()]
 	_, err = io.ReadFull(a.IConn, dataBuf)
@@ -103,7 +103,6 @@ func (a *aeadConn) Read(b []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
-
 	if len(b) >= size {
 		n = size
 		_, err = a.Decrypter.Open(b[:0], a.rNonce, dataBuf, nil)
@@ -111,7 +110,7 @@ func (a *aeadConn) Read(b []byte) (n int, err error) {
 		_, err = a.Decrypter.Open(dataBuf[:0], a.rNonce, dataBuf, nil)
 		if err == nil {
 			n = copy(b, dataBuf[:len(b)])
-			a.readBuffer.Write(dataBuf[n:])
+			a.readBuffer.Write(dataBuf[n:size])
 		}
 	}
 	increment(a.rNonce)
