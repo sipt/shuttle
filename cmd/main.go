@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/sipt/shuttle/log"
 	"net"
 	"github.com/sipt/shuttle"
 	_ "github.com/sipt/shuttle/ciphers"
@@ -16,7 +17,6 @@ import (
 	"syscall"
 	"github.com/sipt/shuttle/extension/config"
 	"io"
-	"github.com/sipt/shuttle/log"
 	"os/exec"
 )
 
