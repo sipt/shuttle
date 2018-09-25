@@ -46,17 +46,18 @@ func FilterByReq(req *Request) (rule *Rule, s *Server, err error) {
 		return
 	}
 	if rule == nil {
-		log.Logger.Debugf("[%s] rule: [%v]", req.Host(), PolicyDirect)
+		log.Logger.Infof("[RULE] [ID:%d] [%s] rule: [%v]", req.ConnID, req.Host(), PolicyDirect)
 		s, err = GetServer(PolicyDirect) // 没有匹配规则，直连
 	} else {
-		log.Logger.Debugf("[RULE] [%s, %s, %s] rule: [%s,%s,%s]", req.Host(), req.Addr, req.DomainHost.Country, rule.Type, rule.Value, rule.Policy)
+		log.Logger.Infof("[RULE] [ID:%d] [%s, %s, %s] rule: [%s, %s, %s]", req.ConnID, req.Host(), req.Addr,
+			req.DomainHost.Country, rule.Type, rule.Value, rule.Policy)
 		//Select proxy server
 		s, err = GetServer(rule.Policy)
 		if err != nil {
 			err = errors.New(err.Error() + ":" + rule.Policy)
 			return
 		}
-		log.Logger.Debugf("get server by policy [%s] => %v", rule.Policy, s.Name)
+		log.Logger.Infof("[RULE] [ID:%d] Get server by policy [%s] => [%s]", req.ConnID, rule.Policy, s.Name)
 	}
 	return
 }

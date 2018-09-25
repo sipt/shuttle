@@ -110,8 +110,9 @@ func InitConfig(filePath string) (*General, error) {
 	if conf.Ver != ConfigFileVersion {
 		return nil, fmt.Errorf("resolve config file failed: only support ver:%s current:[%s]", ConfigFileVersion, conf.Ver)
 	}
-
 	//General
+	//logger level
+	log.Logger.SetLevel(log.LevelMap[conf.General.LogLevel])
 
 	//DNS
 	dns := make([]net.IP, len(conf.General.DNSServer))
@@ -291,10 +292,6 @@ func InitConfig(filePath string) (*General, error) {
 		}
 	}
 	InitHttpModify(reqMaps, respMaps)
-
-	//logger level
-	SetLeve(conf.General.LogLevel)
-	fmt.Println("use level:", conf.General.LogLevel)
 
 	err = InitCert(conf.Mitm)
 	if err != nil {

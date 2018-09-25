@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"github.com/sipt/shuttle"
+	"github.com/sipt/shuttle/log"
 	"time"
 	"fmt"
 )
@@ -10,7 +11,7 @@ import (
 func WsSpeedHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Logger.Errorf("[Speed] Failed to set websocket upgrade: %v", err)
+		log.Logger.Errorf("[Shuttle-Controller] [Speed] Failed to set websocket upgrade: %v", err)
 		return
 	}
 	ticker := time.NewTicker(time.Second)

@@ -3,6 +3,8 @@ package shuttle
 import (
 	"fmt"
 	"time"
+
+	"github.com/sipt/shuttle/log"
 )
 
 var groups []*ServerGroup

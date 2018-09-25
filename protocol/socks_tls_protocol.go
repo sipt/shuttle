@@ -4,6 +4,7 @@ import (
 	"net"
 	"github.com/sipt/shuttle"
 	"golang.org/x/net/proxy"
+	"github.com/sipt/shuttle/log"
 	"crypto/tls"
 	"fmt"
 )

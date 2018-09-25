@@ -4,6 +4,7 @@ import (
 	"time"
 	"sync"
 	"sync/atomic"
+	"github.com/sipt/shuttle/log"
 )
 
 const (

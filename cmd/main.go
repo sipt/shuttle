@@ -17,6 +17,7 @@ import (
 	"github.com/sipt/shuttle/extension/config"
 	"io"
 	"github.com/sipt/shuttle/log"
+	"path/filepath"
 )
 
 var (
@@ -28,11 +29,7 @@ var (
 
 func configPath() (fullPath string, err error) {
 	var configFile = "shuttle.yaml"
-	configPath, err := config.HomePath()
-	if err != nil {
-		panic(err)
-	}
-	dir := configPath + string(os.PathSeparator) + "Documents" + string(os.PathSeparator) + "shuttle"
+	dir := config.ShuttleHomeDir
 	fullPath = dir + string(os.PathSeparator) + configFile
 	rc, err := os.Open(fullPath)
 	if err != nil {
@@ -66,14 +63,10 @@ func configPath() (fullPath string, err error) {
 }
 
 func InitLogger() error {
-	dir, err := config.HomePath()
-	if err != nil {
-		return err
-	}
 	// path: $HOME/logs
 	// level: Debug
 	// multiSize: 100MB
-	l, err := log.NewFileLogger(dir+"/logs", log.LogDebug, 100*1000*1000)
+	l, err := log.NewFileLogger(filepath.Join(config.ShuttleHomeDir, "logs"), log.LogDebug, 100*1000*1000)
 	if err != nil {
 		return err
 	}
@@ -84,22 +77,23 @@ func InitLogger() error {
 func main() {
 	err := InitLogger()
 	if err != nil {
-		panic(err)
+		log.Logger.Errorf("[PANIC] [InitLogger] %s", err.Error())
+		return
 	}
 	configPath, err := configPath()
 	if err != nil {
-		log.Logger.Errorf("[PANIC] %s", err.Error())
+		log.Logger.Errorf("[PANIC] [ConfigPath] %s", err.Error())
 		return
 	}
 	general, err := shuttle.InitConfig(configPath)
 	if err != nil {
-		log.Logger.Errorf("[PANIC] %s", err.Error())
+		log.Logger.Errorf("[PANIC] [InitConfig] %s", err.Error())
 		return
 	}
 	var geoIPDB = "GeoLite2-Country.mmdb"
 	err = shuttle.InitGeoIP(geoIPDB)
 	if err != nil {
-		log.Logger.Errorf("[PANIC] %s", err.Error())
+		log.Logger.Errorf("[PANIC] [InitGeoIP] %s", err.Error())
 		return
 	}
 	// 启动api控制

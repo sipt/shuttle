@@ -7,7 +7,7 @@ import (
 	"strings"
 	"os/exec"
 	"bytes"
-	"github.com/sipt/shuttle"
+	"github.com/sipt/shuttle/log"
 )
 
 const (

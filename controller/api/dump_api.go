@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"compress/gzip"
 	"compress/zlib"
+	"github.com/sipt/shuttle/log"
 	"io"
 )
 
@@ -145,7 +146,7 @@ func DumpRequest(ctx *gin.Context) {
 		if resp.Header.Get("Content-Encoding") == "gzip" {
 			r, err = gzip.NewReader(resp.Body)
 			if err != nil {
-				log.Logger.Errorf("[%d] gzip init for response failed: %v", id, err)
+				log.Logger.Errorf("[Shuttle-Controller] [%d] gzip init for response failed: %v", id, err)
 				response.Code = 1
 				response.Message = err.Error()
 				ctx.JSON(500, response)
@@ -154,7 +155,7 @@ func DumpRequest(ctx *gin.Context) {
 		} else if resp.Header.Get("Content-Encoding") == "deflate" {
 			r, err = zlib.NewReader(resp.Body)
 			if err != nil {
-				log.Logger.Errorf("[%d] deflate init for response failed: %v", id, err)
+				log.Logger.Errorf("[Shuttle-Controller] [%d] deflate init for response failed: %v", id, err)
 				response.Code = 1
 				response.Message = err.Error()
 				ctx.JSON(500, response)
@@ -279,7 +280,7 @@ func DumpLarge(ctx *gin.Context) {
 		if resp.Header.Get("Content-Encoding") == "gzip" {
 			r, err = gzip.NewReader(resp.Body)
 			if err != nil {
-				log.Logger.Errorf("[%d] gzip init for response failed: %v", id, err)
+				log.Logger.Errorf("[Shuttle-Controller] [%d] gzip init for response failed: %v", id, err)
 				response.Code = 1
 				response.Message = err.Error()
 				ctx.JSON(500, response)
@@ -288,7 +289,7 @@ func DumpLarge(ctx *gin.Context) {
 		} else if resp.Header.Get("Content-Encoding") == "deflate" {
 			r, err = zlib.NewReader(resp.Body)
 			if err != nil {
-				log.Logger.Errorf("[%d] deflate init for response failed: %v", id, err)
+				log.Logger.Errorf("[Shuttle-Controller] [%d] deflate init for response failed: %v", id, err)
 				response.Code = 1
 				response.Message = err.Error()
 				ctx.JSON(500, response)

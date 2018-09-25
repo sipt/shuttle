@@ -5,7 +5,7 @@ import "time"
 var Logger ILogger = &StdLogger{Level: LogDebug}
 
 func SetLogger(logger ILogger) {
-	log.Logger = logger
+	Logger = logger
 }
 
 const (
@@ -14,6 +14,13 @@ const (
 	LogInfo  = 2
 	LogError = 3
 )
+
+var LevelMap = map[string]int{
+	"trace": LogTrace,
+	"debug": LogDebug,
+	"info":  LogInfo,
+	"error": LogError,
+}
 
 func Now() string {
 	return time.Now().Format("2006-01-02 15:04:05")

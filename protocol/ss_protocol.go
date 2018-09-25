@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/sipt/shuttle/ciphers"
+	"github.com/sipt/shuttle/log"
 )
 
 func init() {

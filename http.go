@@ -60,22 +60,22 @@ func HandleHTTP(co net.Conn) {
 	log.Logger.Debug("start shuttle.IConn wrap net.Con")
 	conn, err := NewDefaultConn(co, TCP)
 	if err != nil {
-		log.Logger.Errorf("shuttle.IConn wrap net.Conn failed: %v", err)
+		log.Logger.Errorf("[HTTP] shuttle.IConn wrap net.Conn failed: %v", err)
 		return
 	}
-	log.Logger.Debugf("shuttle.IConn wrap net.Con success [ID:%d]", conn.GetID())
-	log.Logger.Debugf("[ID:%d] start read http request", conn.GetID())
+	log.Logger.Debugf("[HTTP] [ID:%d] shuttle.IConn wrap net.Conn success", conn.GetID())
+	log.Logger.Debugf("[HTTP] [ID:%d] start read http request", conn.GetID())
 	//prepare request
 	req, hreq, err := prepareRequest(conn)
 	if err != nil {
-		log.Logger.Error("prepareRequest failed: ", err)
+		log.Logger.Errorf("[HTTP] [ID:%d] prepareRequest failed: %s", conn.GetID(), err.Error())
 		return
 	}
 
 	//request modify Or mock ?
 	respBuf, err := RequestModifyOrMock(req, hreq, hreq.URL.Scheme == HTTP)
 	if err != nil {
-		log.Logger.Errorf("[ID:%d] request modify or mock failed: %v", conn.GetID(), err)
+		log.Logger.Errorf("[HTTP] [ID:%d] request modify or mock failed: %s", conn.GetID(), err.Error())
 	}
 	if len(respBuf) > 0 {
 		conn.Write(respBuf)
@@ -94,10 +94,11 @@ func HandleHTTP(co net.Conn) {
 	//filter by Rules and DNS
 	rule, s, err := FilterByReq(req)
 	if err != nil {
-		log.Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
+		log.Logger.Errorf("[HTTP] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err)
 	}
 
 	//connect to server
+	log.Logger.Infof("[HTTP] [ID:%d] Start connect to Server [%s]", conn.GetID(), s.Name)
 	sc, err := s.Conn(req)
 	if err != nil {
 		if err == ErrorReject {
@@ -115,15 +116,17 @@ func HandleHTTP(co net.Conn) {
 				},
 			}
 		} else {
-			log.Logger.Error("ConnectToServer failed [", req.Host(), "] err: ", err)
+			log.Logger.Error("[HTTP] [ID:%d] Connect to Server [%s] failed [%s] err: %s",
+				conn.GetID(), s.Name, req.Host(), err.Error())
 		}
 		return
 	}
-	log.Logger.Debugf("Bind [client-local](%d) [local-server](%d)", conn.GetID(), sc.GetID())
+	log.Logger.Infof("[HTTP] [ID:%d] Server [%s] Connected success", conn.GetID(), s.Name)
+	log.Logger.Debugf("[HTTP] [ClientConnID:%d] Bind to [ServerConnID:%d]", conn.GetID(), sc.GetID())
 	if req.Protocol == ProtocolHttps {
 		_, err = conn.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n"))
 		if err != nil {
-			log.Logger.Error("reply https-CONNECT failed: ", err)
+			log.Logger.Errorf("[HTTP] [ID:%d] reply https-CONNECT failed: %s", conn.GetID(), err.Error())
 			conn.Close()
 			sc.Close()
 			return
@@ -131,14 +134,15 @@ func HandleHTTP(co net.Conn) {
 	}
 	//todo 白名单判断
 	if IsPass(req) {
-		lc, err := TimerDecorate(conn, DefaultTimeOut, -1)
-		if err != nil {
-			log.Logger.Error("Timer Decorate net.Conn failed: ", err)
-			lc = conn
-		}
+		// @fix time out bug
+		//lc, err := TimerDecorate(conn, DefaultTimeOut, -1)
+		//if err != nil {
+		//	log.Logger.Error("Timer Decorate net.Conn failed: ", err)
+		//	lc = conn
+		//}
 		hreq.Write(sc)
 		direct := &DirectChannel{}
-		direct.Transport(lc, sc)
+		direct.Transport(conn, sc)
 		return
 	}
 	//MitM filter
@@ -146,25 +150,25 @@ func HandleHTTP(co net.Conn) {
 	if allowMitm && len(MitMRules) > 0 && req.Protocol == ProtocolHttps {
 		for _, v := range MitMRules {
 			if v == "*" { // 通配
-				log.Logger.Debugf("[ID:%d] [HTTP/HTTPS] MitM filter [%s] use [%s]", conn.GetID(), req.Addr, v)
+				log.Logger.Debugf("[HTTP] [ID:%d] MitM filter [%s] use [%s]", conn.GetID(), req.Addr, v)
 				mitm = true
 				break
 			} else if v == req.Addr { // 全区配
-				log.Logger.Debugf("[ID:%d] [HTTP/HTTPS] MitM filter [%s] use [%s]", conn.GetID(), req.Addr, v)
+				log.Logger.Debugf("[HTTP] [ID:%d] MitM filter [%s] use [%s]", conn.GetID(), req.Addr, v)
 				mitm = true
 				break
 			} else if v[0] == '*' && strings.HasSuffix(req.Addr, v[1:]) { // 后缀匹配
-				log.Logger.Debugf("[ID:%d] [HTTP/HTTPS] MitM filter [%s] use [%s]", conn.GetID(), req.Addr, v)
+				log.Logger.Debugf("[HTTP] [ID:%d] MitM filter [%s] use [%s]", conn.GetID(), req.Addr, v)
 				mitm = true
 				break
 			}
 		}
 		//MitM Decorate
 		if mitm {
-			log.Logger.Debugf("[ID:%d] [HTTP/HTTPS] MitM Decorate", conn.GetID())
+			log.Logger.Debugf("[HTTP] [ID:%d] MitM Decorate", conn.GetID())
 			lct, sct, err := Mimt(conn, sc, req)
 			if err != nil {
-				log.Logger.Error("[HTTPS] MitM failed: ", err)
+				log.Logger.Error("[HTTP] [ID:%d] MitM failed: %s", conn.GetID(), err.Error())
 				conn.Close()
 				sc.Close()
 				return
@@ -181,11 +185,14 @@ func HandleHTTP(co net.Conn) {
 		URL:      req.Target,
 		Rule:     rule,
 	}
-	lc, err := TimerDecorate(conn, -1, -1)
-	if err != nil {
-		log.Logger.Error("Timer Decorate net.Conn failed: ", err)
-		lc = conn
-	}
+
+	// @fix time out bug
+	//lc, err := TimerDecorate(conn, -1, -1)
+	//if err != nil {
+	//	log.Logger.Error("Timer Decorate net.Conn failed: ", err)
+	//	lc = conn
+	//}
+	lc := conn
 	//Dump Decorate
 	if mitm {
 		HttpTransport(lc, sc, record, allowDump, nil)

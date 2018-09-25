@@ -3,6 +3,7 @@ package shuttle
 import (
 	"io"
 	"github.com/sipt/shuttle/pool"
+	"github.com/sipt/shuttle/log"
 )
 
 // 分流

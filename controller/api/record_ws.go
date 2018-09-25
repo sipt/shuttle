@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sync"
 	"github.com/sipt/shuttle/util"
+	"github.com/sipt/shuttle/log"
 	"github.com/sipt/shuttle"
 )
 
@@ -109,7 +110,7 @@ var wsUpgrader = websocket.Upgrader{
 func WsHandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Logger.Errorf("Failed to set websocket upgrade: %v", err)
+		log.Logger.Errorf("[Shuttle-Controller] Failed to set websocket upgrade: %v", err)
 		return
 	}
 	index, _ := util.IW.NextId()
