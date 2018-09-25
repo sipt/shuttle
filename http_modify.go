@@ -12,6 +12,7 @@ import (
 	"time"
 	"github.com/sipt/shuttle/util"
 	"github.com/sipt/shuttle/pool"
+	"github.com/sipt/shuttle/log"
 )
 
 const (
@@ -47,7 +48,7 @@ func RequestModifyOrMock(req *Request, hreq *http.Request, isHttps bool) (respBu
 	if port := hreq.URL.Port(); len(port) > 0 {
 		req.Port, err = strToUint16(port)
 		if err != nil {
-			Logger.Error("http port error:" + port)
+			log.Logger.Error("http port error:" + port)
 			return
 		}
 	}
@@ -128,24 +129,24 @@ func modifyMock(v *ModifyPolicy, req *http.Request, _ bool) *http.Response {
 		var err error
 		switch e.Type {
 		case ModifyTypeHeader:
-			Logger.Debugf("[Http Modify] [Mock] response set Header [%s:%s]", e.Key, e.Value)
+			log.Logger.Debugf("[Http Modify] [Mock] response set Header [%s:%s]", e.Key, e.Value)
 			resp.Header.Set(e.Key, e.Value)
 		case ModifyTypeBody:
 			file, err := os.Open(BodyFileDir + e.Value)
 			if err != nil {
-				Logger.Errorf("[HTTP MODIFY] open mock file failed: %v", err)
+				log.Logger.Errorf("[HTTP MODIFY] open mock file failed: %v", err)
 				return nil
 			}
 			status, err := file.Stat()
 			if err != nil {
-				Logger.Errorf("[HTTP MODIFY] read mock file [FileInfo] failed: %v", err)
+				log.Logger.Errorf("[HTTP MODIFY] read mock file [FileInfo] failed: %v", err)
 				return nil
 			}
-			Logger.Debugf("[Http Modify] [Mock] response set body [ContentLength:%d]", status.Size())
+			log.Logger.Debugf("[Http Modify] [Mock] response set body [ContentLength:%d]", status.Size())
 			resp.ContentLength = status.Size()
 			resp.Body = file
 		case ModifyTypeStatus:
-			Logger.Debugf("[Http Modify] [Mock] response set body [Status:%s]", e.Value)
+			log.Logger.Debugf("[Http Modify] [Mock] response set body [Status:%s]", e.Value)
 			resp.StatusCode, err = strconv.Atoi(e.Value)
 			if err != nil {
 				resp.StatusCode = 200
@@ -170,7 +171,7 @@ func modifyUpdate(v *ModifyPolicy, req *http.Request, isHttps bool) {
 			l = v.rex.ReplaceAllString(l, e.Value)
 			u, err := url.Parse(l)
 			if err != nil {
-				Logger.Errorf("[HTTP MODIFY] parse [%s] to url failed: %v", e.Value, err)
+				log.Logger.Errorf("[HTTP MODIFY] parse [%s] to url failed: %v", e.Value, err)
 				return
 			}
 			req.Host = u.Host
@@ -181,13 +182,13 @@ func modifyUpdate(v *ModifyPolicy, req *http.Request, isHttps bool) {
 				u.Host = ""
 			}
 			if req.URL.Scheme != u.Scheme {
-				Logger.Errorf("[HTTP MODIFY] not support [%s] to [%s]", req.URL.Scheme, u.Scheme)
+				log.Logger.Errorf("[HTTP MODIFY] not support [%s] to [%s]", req.URL.Scheme, u.Scheme)
 				return
 			}
-			Logger.Debugf("[Http Modify] [Update] response set URL [%s]", e.Value)
+			log.Logger.Debugf("[Http Modify] [Update] response set URL [%s]", e.Value)
 			req.URL = u
 		case ModifyTypeHeader:
-			Logger.Debugf("[Http Modify] [Update] response set Header [%s:%s]", e.Key, e.Value)
+			log.Logger.Debugf("[Http Modify] [Update] response set Header [%s:%s]", e.Key, e.Value)
 			req.Header.Set(e.Key, e.Value)
 		}
 	}
@@ -213,10 +214,10 @@ func ResponseModify(req *http.Request, resp *http.Response, isHttps bool) {
 			for _, e := range v.MVs {
 				switch e.Type {
 				case ModifyTypeHeader:
-					Logger.Debugf("[Http Modify] [Update] response set Header [%s, %s]", e.Key, e.Value)
+					log.Logger.Debugf("[Http Modify] [Update] response set Header [%s, %s]", e.Key, e.Value)
 					resp.Header.Set(e.Key, e.Value)
 				case ModifyTypeStatus:
-					Logger.Debugf("[Http Modify] [Update] response  [Status:%s]", e.Value)
+					log.Logger.Debugf("[Http Modify] [Update] response  [Status:%s]", e.Value)
 					code, err := strconv.Atoi(e.Value)
 					if err == nil {
 						resp.StatusCode = code

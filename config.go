@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"fmt"
 	"github.com/sipt/yaml"
+	"github.com/sipt/shuttle/log"
 	"strings"
 	"regexp"
 )
@@ -77,13 +78,13 @@ func SetMimt(mitm *Mitm) {
 func SaveToFile() {
 	bytes, err := yaml.Marshal(conf)
 	if err != nil {
-		Logger.Errorf("[CONF] yaml marshal config failed : %v", err)
+		log.Logger.Errorf("[CONF] yaml marshal config failed : %v", err)
 	}
 	offset := EmojiDecode(bytes)
 	bytes = bytes[:offset]
 	err = ioutil.WriteFile(configFile, bytes, 0644)
 	if err != nil {
-		Logger.Errorf("[CONF] save config file failed : %v", err)
+		log.Logger.Errorf("[CONF] save config file failed : %v", err)
 	}
 }
 
@@ -109,8 +110,9 @@ func InitConfig(filePath string) (*General, error) {
 	if conf.Ver != ConfigFileVersion {
 		return nil, fmt.Errorf("resolve config file failed: only support ver:%s current:[%s]", ConfigFileVersion, conf.Ver)
 	}
-
 	//General
+	//logger level
+	log.Logger.SetLevel(log.LevelMap[conf.General.LogLevel])
 
 	//DNS
 	dns := make([]net.IP, len(conf.General.DNSServer))
@@ -290,10 +292,6 @@ func InitConfig(filePath string) (*General, error) {
 		}
 	}
 	InitHttpModify(reqMaps, respMaps)
-
-	//logger level
-	SetLeve(conf.General.LogLevel)
-	fmt.Println("use level:", conf.General.LogLevel)
 
 	err = InitCert(conf.Mitm)
 	if err != nil {

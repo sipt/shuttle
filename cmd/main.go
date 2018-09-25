@@ -14,6 +14,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"github.com/sipt/shuttle/extension/config"
+	"io"
+	"github.com/sipt/shuttle/log"
+	"path/filepath"
 )
 
 var (
@@ -23,14 +27,75 @@ var (
 	ReloadConfigSignal = make(chan bool, 1)
 )
 
-func main() {
+func configPath() (fullPath string, err error) {
 	var configFile = "shuttle.yaml"
-	var geoIPDB = "GeoLite2-Country.mmdb"
-	general, err := shuttle.InitConfig(configFile)
+	dir := config.ShuttleHomeDir
+	fullPath = dir + string(os.PathSeparator) + configFile
+	rc, err := os.Open(fullPath)
 	if err != nil {
-		panic(err)
+		if os.IsNotExist(err) {
+			err = nil
+		} else {
+			return
+		}
+	} else {
+		rc.Close()
+		return
 	}
-	shuttle.InitGeoIP(geoIPDB)
+	cc, err := os.Open("shuttle.yaml")
+	if err != nil {
+		return
+	}
+	defer cc.Close()
+	// not exist
+	err = os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return
+	}
+	//
+	dc, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return
+	}
+	defer dc.Close()
+	_, err = io.Copy(dc, cc)
+	return
+}
+
+func InitLogger() error {
+	// path: $HOME/logs
+	// level: Debug
+	// multiSize: 100MB
+	l, err := log.NewFileLogger(filepath.Join(config.ShuttleHomeDir, "logs"), log.LogDebug, 100*1000*1000)
+	if err != nil {
+		return err
+	}
+	log.SetLogger(l)
+	return nil
+}
+
+func main() {
+	err := InitLogger()
+	if err != nil {
+		log.Logger.Errorf("[PANIC] [InitLogger] %s", err.Error())
+		return
+	}
+	configPath, err := configPath()
+	if err != nil {
+		log.Logger.Errorf("[PANIC] [ConfigPath] %s", err.Error())
+		return
+	}
+	general, err := shuttle.InitConfig(configPath)
+	if err != nil {
+		log.Logger.Errorf("[PANIC] [InitConfig] %s", err.Error())
+		return
+	}
+	var geoIPDB = "GeoLite2-Country.mmdb"
+	err = shuttle.InitGeoIP(geoIPDB)
+	if err != nil {
+		log.Logger.Errorf("[PANIC] [InitGeoIP] %s", err.Error())
+		return
+	}
 	// 启动api控制
 	go controller.StartController(general.ControllerInterface, general.ControllerPort,
 		ShutdownSignal,     // shutdown program
@@ -52,7 +117,7 @@ func main() {
 			//disable system proxy
 			DisableSystemProxy()
 			time.Sleep(time.Second)
-			shuttle.Logger.Info("[Shuttle] is shutdown, see you later!")
+			log.Logger.Info("[Shuttle] is shutdown, see you later!")
 			return
 		case <-signalChan:
 			StopSocksSignal <- true
@@ -60,14 +125,14 @@ func main() {
 			//disable system proxy
 			DisableSystemProxy()
 			time.Sleep(time.Second)
-			shuttle.Logger.Info("[Shuttle] is shutdown, see you later!")
+			log.Logger.Info("[Shuttle] is shutdown, see you later!")
 			return
 		case <-ReloadConfigSignal:
 			StopSocksSignal <- true
 			StopHTTPSignal <- true
 			general, err := shuttle.ReloadConfig()
 			if err != nil {
-				shuttle.Logger.Error("Reload Config failed: ", err)
+				log.Logger.Error("Reload Config failed: ", err)
 			}
 			//enable system proxy
 			EnableSystemProxy(general)
@@ -94,34 +159,34 @@ func HandleSocks5(socksPort, socksInterface string, stopHandle chan bool) {
 	if err != nil {
 		panic(err)
 	}
-	shuttle.Logger.Info("Listen to [SOCKS]: ", net.JoinHostPort(socksInterface, socksPort))
+	log.Logger.Info("Listen to [SOCKS]: ", net.JoinHostPort(socksInterface, socksPort))
 	var shutdown = false
 	go func() {
 		if shutdown = <-stopHandle; shutdown {
 			listener.Close()
-			shuttle.Logger.Infof("close socks listener!")
+			log.Logger.Infof("close socks listener!")
 		}
 	}()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			if shutdown && strings.Contains(err.Error(), "use of closed network connection") {
-				shuttle.Logger.Info("Stopped HTTP/HTTPS Proxy goroutine...")
+				log.Logger.Info("Stopped HTTP/HTTPS Proxy goroutine...")
 				return
 			} else {
-				shuttle.Logger.Error(err)
+				log.Logger.Error(err)
 			}
 			continue
 		}
 		go func() {
 			defer func() {
 				if err := recover(); err != nil {
-					shuttle.Logger.Error("[HTTP/HTTPS]panic :", err)
-					shuttle.Logger.Error("[HTTP/HTTPS]stack :", debug.Stack())
+					log.Logger.Error("[HTTP/HTTPS]panic :", err)
+					log.Logger.Error("[HTTP/HTTPS]stack :", debug.Stack())
 					conn.Close()
 				}
 			}()
-			shuttle.Logger.Debug("[SOCKS]Accept tcp connection")
+			log.Logger.Debug("[SOCKS]Accept tcp connection")
 			shuttle.SocksHandle(conn)
 		}()
 	}
@@ -131,23 +196,23 @@ func HandleHTTP(httpPort, httpInterface string, stopHandle chan bool) {
 	if err != nil {
 		panic(err)
 	}
-	shuttle.Logger.Info("Listen to [HTTP/HTTPS]: ", net.JoinHostPort(httpInterface, httpPort))
+	log.Logger.Info("Listen to [HTTP/HTTPS]: ", net.JoinHostPort(httpInterface, httpPort))
 
 	var shutdown = false
 	go func() {
 		if shutdown = <-stopHandle; shutdown {
 			listener.Close()
-			shuttle.Logger.Infof("close HTTP/HTTPS listener!")
+			log.Logger.Infof("close HTTP/HTTPS listener!")
 		}
 	}()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			if shutdown && strings.Contains(err.Error(), "use of closed network connection") {
-				shuttle.Logger.Info("Stopped HTTP/HTTPS Proxy goroutine...")
+				log.Logger.Info("Stopped HTTP/HTTPS Proxy goroutine...")
 				return
 			} else {
-				shuttle.Logger.Error(err)
+				log.Logger.Error(err)
 			}
 			continue
 		}
@@ -155,11 +220,11 @@ func HandleHTTP(httpPort, httpInterface string, stopHandle chan bool) {
 			defer func() {
 				conn.Close()
 				if err := recover(); err != nil {
-					shuttle.Logger.Errorf("[HTTP/HTTPS]panic :%v", err)
-					shuttle.Logger.Errorf("[HTTP/HTTPS]stack :%s", debug.Stack())
+					log.Logger.Errorf("[HTTP/HTTPS]panic :%v", err)
+					log.Logger.Errorf("[HTTP/HTTPS]stack :%s", debug.Stack())
 				}
 			}()
-			shuttle.Logger.Debug("[HTTP/HTTPS]Accept tcp connection")
+			log.Logger.Debug("[HTTP/HTTPS]Accept tcp connection")
 			shuttle.HandleHTTP(conn)
 		}()
 	}
@@ -170,15 +235,15 @@ func HandleUDP() {
 	if err != nil {
 		panic(err)
 	}
-	shuttle.Logger.Info("Listen to [udp]: ", port)
+	log.Logger.Info("Listen to [udp]: ", port)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			shuttle.Logger.Error(err)
+			log.Logger.Error(err)
 			continue
 		}
 		go func() {
-			shuttle.Logger.Info("Accept tcp connection")
+			log.Logger.Info("Accept tcp connection")
 			shuttle.SocksHandle(conn)
 		}()
 	}
