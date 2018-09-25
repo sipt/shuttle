@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSignal chan bool) {
+func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string) {
 	//dns
 	router.GET("/dns", DNSCacheList)
 	router.DELETE("/dns", ClearDNSCache)
@@ -43,6 +43,8 @@ func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSi
 	router.POST("/reload", ReloadConfig(reloadConfigSignal))
 	router.GET("/mode", GetConnMode)
 	router.POST("/mode/:mode", SetConnMode)
+	router.GET("/upgrade/check", CheckUpdate)
+	router.POST("/upgrade", NewUpgrade(upgradeSignal))
 
 	//ws
 	router.GET("/ws/records", func(ctx *gin.Context) {

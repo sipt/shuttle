@@ -390,3 +390,5 @@ func as_hex(b []byte, i int) int {
 	}
 	return int(bi) - '0'
 }
+
+var ShuttleVersion = "v0.5.0"

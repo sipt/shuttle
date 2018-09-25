@@ -18,10 +18,12 @@ import (
 	"io"
 	"github.com/sipt/shuttle/log"
 	"path/filepath"
+	"os/exec"
 )
 
 var (
 	ShutdownSignal     = make(chan bool, 1)
+	UpgradeSignal      = make(chan string, 1)
 	StopSocksSignal    = make(chan bool, 1)
 	StopHTTPSignal     = make(chan bool, 1)
 	ReloadConfigSignal = make(chan bool, 1)
@@ -100,6 +102,7 @@ func main() {
 	go controller.StartController(general.ControllerInterface, general.ControllerPort,
 		ShutdownSignal,     // shutdown program
 		ReloadConfigSignal, // reload config
+		UpgradeSignal,      // upgrade
 		general.LogLevel,
 	)
 	//go HandleUDP()
@@ -111,6 +114,22 @@ func main() {
 	EnableSystemProxy(general)
 	for {
 		select {
+		case fileName := <-UpgradeSignal:
+			StopSocksSignal <- true
+			StopHTTPSignal <- true
+			//disable system proxy
+			DisableSystemProxy()
+			time.Sleep(time.Second)
+			log.Logger.Info("[Shuttle] is shutdown, for upgrade!")
+			cmd := exec.Command("./upgrade", "-f", fileName)
+			err = cmd.Start()
+			if err != nil {
+				log.Logger.Errorf("[Shuttle] [Upgrade] failed: %s", err)
+			}
+			err = cmd.Wait()
+			if err != nil {
+				log.Logger.Errorf("[Shuttle] [Upgrade] failed: %s", err)
+			}
 		case <-ShutdownSignal:
 			StopSocksSignal <- true
 			StopHTTPSignal <- true
