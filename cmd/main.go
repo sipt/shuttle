@@ -17,7 +17,6 @@ import (
 	"github.com/sipt/shuttle/extension/config"
 	"io"
 	"github.com/sipt/shuttle/log"
-	"path/filepath"
 	"os/exec"
 )
 
@@ -64,24 +63,7 @@ func configPath() (fullPath string, err error) {
 	return
 }
 
-func InitLogger() error {
-	// path: $HOME/logs
-	// level: Debug
-	// multiSize: 100MB
-	l, err := log.NewFileLogger(filepath.Join(config.ShuttleHomeDir, "logs"), log.LogDebug, 100*1000*1000)
-	if err != nil {
-		return err
-	}
-	log.SetLogger(l)
-	return nil
-}
-
 func main() {
-	err := InitLogger()
-	if err != nil {
-		log.Logger.Errorf("[PANIC] [InitLogger] %s", err.Error())
-		return
-	}
 	configPath, err := configPath()
 	if err != nil {
 		log.Logger.Errorf("[PANIC] [ConfigPath] %s", err.Error())
