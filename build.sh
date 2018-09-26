@@ -29,7 +29,7 @@ nohup ./shuttle >> shuttle.log 2>&1 &" > _output/shuttle/start.sh`
 `chmod a+x _output/shuttle/start.sh`
 elif [ "$1" == "win" ];then
 # windows
-GOOS=windows GOARCH=amd64 go build -ldflags="-H windows" -o _output/shuttle/shuttle.exe cmd/main.go
+GOOS=windows GOARCH=amd64 go build -o _output/shuttle/shuttle.exe cmd/main.go
 GOOS=windows GOARCH=amd64 go build -o _output/shuttle/upgrade.exe scripts/upgrade.go
 `echo "@echo off
 if \"%1\" == \"h\" goto begin
