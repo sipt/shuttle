@@ -24,7 +24,7 @@ if [ "$1" == "mac" ];then
 # mac os
 GOOS=darwin GOARCH=amd64 go build -o _output/shuttle/shuttle cmd/main.go
 GOOS=darwin GOARCH=amd64 go build -o _output/shuttle/upgrade scripts/upgrade.go
-`echo "#!/usr/bin/env bash
+`echo "c
 nohup ./shuttle >> shuttle.log 2>&1 &" > _output/shuttle/start.sh`
 `chmod a+x _output/shuttle/start.sh`
 elif [ "$1" == "win" ];then

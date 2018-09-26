@@ -2,11 +2,11 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sipt/shuttle/upgrade"
 	"github.com/sipt/shuttle"
-	"path/filepath"
 	"github.com/sipt/shuttle/extension/config"
+	"github.com/sipt/shuttle/upgrade"
 	"os"
+	"path/filepath"
 )
 
 var latest string
@@ -24,8 +24,9 @@ func CheckUpdate(ctx *gin.Context) {
 	ctx.JSON(200, Response{
 		Code: 0,
 		Data: map[string]string{
-			"Latest": latest,
-			"URL":    url,
+			"Current": shuttle.ShuttleVersion,
+			"Latest":  latest,
+			"URL":     url,
 		},
 	})
 }
