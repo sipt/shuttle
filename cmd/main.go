@@ -18,6 +18,9 @@ import (
 	"github.com/sipt/shuttle/extension/config"
 	"io"
 	"os/exec"
+	"runtime"
+	"io/ioutil"
+	"path/filepath"
 )
 
 var (
@@ -97,36 +100,30 @@ func main() {
 	for {
 		select {
 		case fileName := <-UpgradeSignal:
-			StopSocksSignal <- true
-			StopHTTPSignal <- true
-			//disable system proxy
-			DisableSystemProxy()
-			time.Sleep(time.Second)
+			shutdown()
 			log.Logger.Info("[Shuttle] is shutdown, for upgrade!")
-			cmd := exec.Command("./upgrade", "-f", fileName)
+			var name string
+			if runtime.GOOS == "windows" {
+				name = "upgrade"
+			} else {
+				name = "./upgrade"
+			}
+			cmd := exec.Command(name, "-f="+fileName)
 			err = cmd.Start()
 			if err != nil {
-				log.Logger.Errorf("[Shuttle] [Upgrade] failed: %s", err)
+				ioutil.WriteFile(filepath.Join(config.ShuttleHomeDir, "logs", "error.log"), []byte(err.Error()), 0664)
 			}
-			err = cmd.Wait()
-			if err != nil {
-				log.Logger.Errorf("[Shuttle] [Upgrade] failed: %s", err)
-			}
+			ioutil.WriteFile(filepath.Join(config.ShuttleHomeDir, "logs", "end.log"), []byte("ending"), 0664)
+			os.Exit(0)
 		case <-ShutdownSignal:
-			StopSocksSignal <- true
-			StopHTTPSignal <- true
-			//disable system proxy
-			DisableSystemProxy()
-			time.Sleep(time.Second)
 			log.Logger.Info("[Shuttle] is shutdown, see you later!")
+			shutdown()
+			os.Exit(0)
 			return
 		case <-signalChan:
-			StopSocksSignal <- true
-			StopHTTPSignal <- true
-			//disable system proxy
-			DisableSystemProxy()
-			time.Sleep(time.Second)
 			log.Logger.Info("[Shuttle] is shutdown, see you later!")
+			shutdown()
+			os.Exit(0)
 			return
 		case <-ReloadConfigSignal:
 			StopSocksSignal <- true
@@ -141,6 +138,16 @@ func main() {
 			go HandleSocks5(general.SocksPort, general.SocksInterface, StopHTTPSignal)
 		}
 	}
+}
+
+func shutdown() {
+	StopSocksSignal <- true
+	StopHTTPSignal <- true
+	//disable system proxy
+	DisableSystemProxy()
+	log.Logger.Close()
+	shuttle.CloseGeoDB()
+	time.Sleep(time.Second)
 }
 
 func EnableSystemProxy(g *shuttle.General) {

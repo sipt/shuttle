@@ -10,6 +10,7 @@ import (
 	"flag"
 	"github.com/sipt/shuttle/extension/config"
 	"os/exec"
+	"runtime"
 	"time"
 )
 
@@ -19,17 +20,22 @@ func main() {
 		err      error
 		cmd      *exec.Cmd
 	)
-	time.Sleep(time.Second) // wait for shuttle shutdown.
 	flag.StringVar(&fileName, "f", "shuttle.zip", "shuttle upgrade zip")
+	flag.Parse()
+	time.Sleep(3 * time.Second) // wait for shuttle shutdown.
 	err = ClearDir(getCurrentDirectory())
 	if err != nil {
 		goto Failed
 	}
-	err = Unzip(filepath.Join(config.HomeDir, "Downloads", fileName), "../")
+	err = Unzip(filepath.Join(config.HomeDir, "Downloads", fileName), ".."+string(os.PathSeparator))
 	if err != nil {
 		goto Failed
 	}
-	cmd = exec.Command("./start.sh")
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("startup")
+	} else {
+		cmd = exec.Command("./start.sh")
+	}
 	err = cmd.Start()
 	if err != nil {
 		goto Failed
@@ -50,9 +56,12 @@ func ClearDir(dir string) error {
 	}
 	for _, v := range infos {
 		if v.IsDir() {
-			os.RemoveAll(v.Name())
+			err = os.RemoveAll(v.Name())
 		} else {
-			os.Remove(v.Name())
+			err = os.Remove(v.Name())
+		}
+		if err != nil {
+			fmt.Println(err)
 		}
 	}
 	return nil

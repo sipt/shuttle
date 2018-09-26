@@ -37,3 +37,7 @@ func GeoLookUp(ip net.IP) string {
 	}
 	return ""
 }
+
+func CloseGeoDB() error {
+	return geoipDB.Close()
+}
