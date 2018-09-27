@@ -1,9 +1,9 @@
 package config
 
 import (
-	"github.com/sipt/shuttle/log"
 	"os"
 	"path/filepath"
+	"io/ioutil"
 )
 
 var HomeDir string
@@ -13,7 +13,8 @@ func init() {
 	var err error
 	HomeDir, err = HomePath()
 	if err != nil {
-		log.Logger.Errorf("[Extension-Config] get home path failed: %s", err.Error())
+		ioutil.WriteFile("error.log", []byte(err.Error()), 0664)
+		panic(err)
 	} else {
 		HomeDir += string(os.PathSeparator)
 	}

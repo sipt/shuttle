@@ -81,5 +81,6 @@ func (s *socksTLSProtocol) Conn(request *shuttle.Request) (shuttle.IConn, error)
 func (s *socksTLSProtocol) Dial(network, addr string) (c net.Conn, err error) {
 	return tls.Dial(network, addr, &tls.Config{
 		InsecureSkipVerify: s.InsecureSkipVerify,
+		ServerName:         s.Addr,
 	})
 }

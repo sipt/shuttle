@@ -105,7 +105,7 @@ func (l *LogFile) Write(b []byte) (int, error) {
 
 func (l *LogFile) Create() error {
 	l.index ++
-	file, err := os.OpenFile(filepath.Join(l.path, time.Now().Format("2006-01-02_15:04:05")+"_"+strconv.Itoa(l.index)+".log"),
+	file, err := os.OpenFile(filepath.Join(l.path, time.Now().Format("2006-01-02-150405")+"_"+strconv.Itoa(l.index)+".log"),
 		os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err

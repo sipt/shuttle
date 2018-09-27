@@ -1,13 +1,13 @@
 package shuttle
 
 import (
-	"net"
-	"io/ioutil"
 	"fmt"
-	"github.com/sipt/yaml"
 	"github.com/sipt/shuttle/log"
-	"strings"
+	"github.com/sipt/yaml"
+	"io/ioutil"
+	"net"
 	"regexp"
+	"strings"
 )
 
 const ControllerDomain = "c.sipt.top"
@@ -390,3 +390,5 @@ func as_hex(b []byte, i int) int {
 	}
 	return int(bi) - '0'
 }
+
+var ShuttleVersion = "v0.5.0"

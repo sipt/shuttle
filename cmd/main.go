@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/sipt/shuttle/log"
 	"net"
 	"github.com/sipt/shuttle"
 	_ "github.com/sipt/shuttle/ciphers"
@@ -16,12 +17,15 @@ import (
 	"syscall"
 	"github.com/sipt/shuttle/extension/config"
 	"io"
-	"github.com/sipt/shuttle/log"
+	"os/exec"
+	"runtime"
+	"io/ioutil"
 	"path/filepath"
 )
 
 var (
 	ShutdownSignal     = make(chan bool, 1)
+	UpgradeSignal      = make(chan string, 1)
 	StopSocksSignal    = make(chan bool, 1)
 	StopHTTPSignal     = make(chan bool, 1)
 	ReloadConfigSignal = make(chan bool, 1)
@@ -62,24 +66,7 @@ func configPath() (fullPath string, err error) {
 	return
 }
 
-func InitLogger() error {
-	// path: $HOME/logs
-	// level: Debug
-	// multiSize: 100MB
-	l, err := log.NewFileLogger(filepath.Join(config.ShuttleHomeDir, "logs"), log.LogDebug, 100*1000*1000)
-	if err != nil {
-		return err
-	}
-	log.SetLogger(l)
-	return nil
-}
-
 func main() {
-	err := InitLogger()
-	if err != nil {
-		log.Logger.Errorf("[PANIC] [InitLogger] %s", err.Error())
-		return
-	}
 	configPath, err := configPath()
 	if err != nil {
 		log.Logger.Errorf("[PANIC] [ConfigPath] %s", err.Error())
@@ -100,6 +87,7 @@ func main() {
 	go controller.StartController(general.ControllerInterface, general.ControllerPort,
 		ShutdownSignal,     // shutdown program
 		ReloadConfigSignal, // reload config
+		UpgradeSignal,      // upgrade
 		general.LogLevel,
 	)
 	//go HandleUDP()
@@ -111,21 +99,31 @@ func main() {
 	EnableSystemProxy(general)
 	for {
 		select {
+		case fileName := <-UpgradeSignal:
+			shutdown()
+			log.Logger.Info("[Shuttle] is shutdown, for upgrade!")
+			var name string
+			if runtime.GOOS == "windows" {
+				name = "upgrade"
+			} else {
+				name = "./upgrade"
+			}
+			cmd := exec.Command(name, "-f="+fileName)
+			err = cmd.Start()
+			if err != nil {
+				ioutil.WriteFile(filepath.Join(config.ShuttleHomeDir, "logs", "error.log"), []byte(err.Error()), 0664)
+			}
+			ioutil.WriteFile(filepath.Join(config.ShuttleHomeDir, "logs", "end.log"), []byte("ending"), 0664)
+			os.Exit(0)
 		case <-ShutdownSignal:
-			StopSocksSignal <- true
-			StopHTTPSignal <- true
-			//disable system proxy
-			DisableSystemProxy()
-			time.Sleep(time.Second)
 			log.Logger.Info("[Shuttle] is shutdown, see you later!")
+			shutdown()
+			os.Exit(0)
 			return
 		case <-signalChan:
-			StopSocksSignal <- true
-			StopHTTPSignal <- true
-			//disable system proxy
-			DisableSystemProxy()
-			time.Sleep(time.Second)
 			log.Logger.Info("[Shuttle] is shutdown, see you later!")
+			shutdown()
+			os.Exit(0)
 			return
 		case <-ReloadConfigSignal:
 			StopSocksSignal <- true
@@ -140,6 +138,16 @@ func main() {
 			go HandleSocks5(general.SocksPort, general.SocksInterface, StopHTTPSignal)
 		}
 	}
+}
+
+func shutdown() {
+	StopSocksSignal <- true
+	StopHTTPSignal <- true
+	//disable system proxy
+	DisableSystemProxy()
+	log.Logger.Close()
+	shuttle.CloseGeoDB()
+	time.Sleep(time.Second)
 }
 
 func EnableSystemProxy(g *shuttle.General) {
