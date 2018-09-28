@@ -113,6 +113,12 @@ func InitConfig(filePath string) (*General, error) {
 	//General
 	//logger level
 	log.Logger.SetLevel(log.LevelMap[conf.General.LogLevel])
+	//controller port
+	if len(controllerPort) == 0 {
+		controllerPort = conf.General.ControllerPort
+	} else {
+		conf.General.ControllerPort = controllerPort
+	}
 
 	//DNS
 	dns := make([]net.IP, len(conf.General.DNSServer))
@@ -299,11 +305,6 @@ func InitConfig(filePath string) (*General, error) {
 	}
 	if conf.Mitm != nil {
 		SetMitMRules(conf.Mitm.Rules)
-	}
-	if len(controllerPort) == 0 {
-		controllerPort = conf.General.ControllerPort
-	} else {
-		conf.General.ControllerPort = controllerPort
 	}
 	return conf.General, nil
 }

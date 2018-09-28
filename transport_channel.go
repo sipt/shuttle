@@ -1,14 +1,15 @@
 package shuttle
 
 import (
-	"io"
-	"net/http"
-	"time"
 	"bufio"
-	"strings"
+	"github.com/sipt/shuttle/log"
 	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/util"
-	"github.com/sipt/shuttle/log"
+	"io"
+	"net"
+	"net/http"
+	"strings"
+	"time"
 )
 
 type DirectChannel struct{}
@@ -72,9 +73,8 @@ func (d *DirectChannel) send(from, to IConn, errChan chan error) {
 	}
 }
 
-func HttpTransport(lc, sc IConn, template *Record, allowDump bool, first *http.Request) {
+func HttpTransport(lc, sc IConn, allowDump bool, first *http.Request) {
 	h := &HttpChannel{
-		template:  template,
 		allowDump: allowDump,
 		isHttps:   first == nil,
 	}
@@ -82,113 +82,111 @@ func HttpTransport(lc, sc IConn, template *Record, allowDump bool, first *http.R
 }
 
 type HttpChannel struct {
-	id        int64
-	req       *http.Request
-	urlStr    string
 	allowDump bool
-	template  *Record
 	isHttps   bool
 }
 
-func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) {
-	errChan := make(chan error, 2)
-	go func() {
-		defer Recover(func() {
-			select {
-			case errChan <- nil:
-			default:
-			}
-		})
-		h.sendToClient(sc, lc, errChan)
-	}()
-	go func() {
-		defer Recover(func() {
-			select {
-			case errChan <- nil:
-			default:
-			}
-		})
-		h.sendToServer(lc, sc, first, errChan)
-	}()
-	<-errChan
-
-	lc.Close()
-	sc.Close()
-	if h.id != 0 {
-		if h.allowDump {
-			go dump.Complete(h.id)
-		}
-		boxChan <- &Box{h.id, RecordStatus, RecordStatusCompleted}
+func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
+	var (
+		oldHreq, hreq *http.Request
+		lcBuf         = bufio.NewReader(lc)
+		scBuf         *bufio.Reader
+		resp          *http.Response
+		rule          *Rule
+		server        *Server
+	)
+	if sc != nil {
+		scBuf = bufio.NewReader(sc)
 	}
-}
-
-func (h *HttpChannel) sendToClient(from, to IConn, errChan chan error) {
-	buf := bufio.NewReader(from)
-	for {
-		resp, err := http.ReadResponse(buf, nil)
-		if err != nil {
-			if err != io.EOF && !strings.Contains(err.Error(), "use of closed network connection") {
-				log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport s->[b]: %v", from.GetID(), err)
-			}
-			errChan <- err
-			return
+	defer func() {
+		lc.Close()
+		if sc != nil {
+			sc.Close()
 		}
-		log.Logger.Debugf("[ID:%d] [HttpChannel] HttpChannel Transport return s->[b]", to.GetID())
-		ResponseModify(h.req, resp, h.isHttps)
-		err = h.writeResponse(resp, to)
-		if err != nil {
-			errChan <- err
-			return
-		}
-	}
-}
-
-func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request, errChan chan error) {
-	var err error
-	var b *bufio.Reader
-	var resp *http.Response
+	}()
 	for {
-		if first != nil {
-			h.req = first
-			first = nil
+		// read from client
+		if hreq == nil && first != nil {
+			hreq = first
 		} else {
-			if b == nil {
-				b = bufio.NewReader(from)
-			}
-			h.req, err = http.ReadRequest(b)
+			oldHreq = hreq
+			hreq, err = http.ReadRequest(lcBuf)
 			if err != nil {
-				if err != io.EOF && !strings.Contains(err.Error(), "use of closed network connection") {
-					log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport c->[r]: %v", from.GetID(), err)
+				if err != io.EOF {
+					log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport c->[hreq]: %v", sc.GetID(), err)
 				}
-				errChan <- err
 				return
 			}
+
 			//request update
-			resp = RequestModify(h.req, h.isHttps)
+			resp = RequestModify(hreq, h.isHttps)
 		}
-		h.id = util.NextID()
-		log.Logger.Debugf("[ID:%d] [HttpChannel] [reqID:%d] HttpChannel Transport c->[req]: %s", from.GetID(), h.id, h.req.URL.String())
-		record := *h.template
-		record.ID = h.id
-		record.URL = h.req.URL.String()
-		if h.req.URL.Host == "" {
+		// Record
+		record := &Record{
+			ID:      util.NextID(),
+			URL:     hreq.URL.String(),
+			Status:  RecordStatusActive,
+			Created: time.Now(),
+			Dumped:  h.allowDump,
+			Rule:    rule,
+			Proxy:   server,
+		}
+		if h.isHttps {
+			record.Protocol = HTTPS
+		} else {
+			record.Protocol = HTTP + "(" + hreq.Method + ")"
+		}
+		if hreq.URL.Host == "" {
 			if h.isHttps {
-				record.URL = "https://" + h.req.Host + record.URL
+				record.URL = "https://" + hreq.Host + record.URL
 			} else {
-				record.URL = "http://" + h.req.Host + record.URL
+				record.URL = "http://" + hreq.Host + record.URL
+			}
+		} else if hreq.URL.Scheme == "" {
+			if h.isHttps {
+				record.URL = "https:" + record.URL
+			} else {
+				record.URL = "http:" + record.URL
 			}
 		}
-		record.Status = RecordStatusActive
-		record.Created = time.Now()
-		record.Dumped = h.allowDump
-		boxChan <- &Box{Op: RecordAppend, Value: &record, ID: record.ID}
-		log.Logger.Debugf("[ID:%d] [HttpChannel] [reqID:%d] HttpChannel Transport send record to boxChan", from.GetID(), h.id)
-		to.SetRecordID(record.ID)
+		log.Logger.Debugf("[ID:%d] [HttpChannel] [reqID:%d] HttpChannel Transport c->[hreq]: %s", lc.GetID(), record.ID, record.URL)
+
+		// rule filter
+		if resp == nil && (sc == nil || hreq.URL.Host != oldHreq.URL.Host) {
+			if sc != nil {
+				sc.Close()
+			}
+			rule, server, sc, err = ConnectFilter(hreq, lc.GetID())
+			if err != nil {
+				if err == ErrorReject {
+					record.Status = RecordStatusReject
+				} else {
+					record.Status = RecordStatusFailed
+				}
+				record.Dumped = false
+				boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+				return
+			}
+			record.Rule = rule
+			record.Proxy = server
+			if scBuf == nil {
+				scBuf = bufio.NewReader(sc)
+			} else {
+				scBuf.Reset(sc)
+			}
+		}
+		boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+		if sc != nil {
+			log.Logger.Debugf("[ID:%d] [HttpChannel] [reqID:%d] HttpChannel Transport send record to boxChan", sc.GetID(), record.ID)
+			sc.SetRecordID(record.ID)
+		}
+
+		// dump
 		var dumpWriter io.Writer
 		if h.allowDump {
-			dump.InitDump(h.id)
+			dump.InitDump(record.ID)
 			dumpWriter = ToWriter(func(b []byte) (int, error) {
-				return dump.WriteRequest(h.id, b)
+				return dump.WriteRequest(record.ID, b)
 			})
 		}
 		// 分流器
@@ -197,53 +195,132 @@ func (h *HttpChannel) sendToServer(from, to IConn, first *http.Request, errChan 
 			// response mock, set nil to server conn
 			shunt = NewShunt(nil, dumpWriter)
 		} else {
-			shunt = NewShunt(to, dumpWriter)
+			shunt = NewShunt(sc, dumpWriter)
 		}
 
-		err = h.req.Write(shunt)
+		err = hreq.Write(shunt)
 		if err != nil {
 			if err != io.EOF {
-				log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport [req]->c: %v", to.GetID(), err)
-				errChan <- err
+				log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport [hreq]->s: %v", sc.GetID(), err)
 				return
 			}
 		}
 		//response mock ?
 		if resp != nil {
 			// write response to client
-			err = h.writeResponse(resp, from)
+			err = h.writeResponse(resp, lc, record.ID)
 			if err != nil {
-				errChan <- err
 				return
 			}
+			continue
+		}
+		//==================
+		//Read response
+		//==================
+		resp, err = http.ReadResponse(scBuf, nil)
+		if err != nil {
+			if err != io.EOF {
+				log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport s->[b]: %v", sc.GetID(), err)
+			}
+			return
+		}
+		log.Logger.Debugf("[ID:%d] [HttpChannel] HttpChannel Transport return s->[b]", sc.GetID())
+		ResponseModify(hreq, resp, h.isHttps)
+		err = h.writeResponse(resp, lc, record.ID)
+		if err != nil {
+			return
 		}
 	}
+	return
 }
 
 // write response in connection
-func (h *HttpChannel) writeResponse(resp *http.Response, to IConn) (err error) {
+func (h *HttpChannel) writeResponse(resp *http.Response, to IConn, recordID int64) (err error) {
 	var dumpWriter io.Writer
 	if h.allowDump {
 		dumpWriter = ToWriter(func(b []byte) (int, error) {
-			return dump.WriteResponse(h.id, b)
+			return dump.WriteResponse(recordID, b)
 		})
 	}
 	// 分流器
 	shunt := NewShunt(to, dumpWriter)
 	err = resp.Write(shunt)
-	if err != nil {
-		if err != io.EOF {
-			log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport [b]->c: %v", to.GetID(), err)
+	if err != nil && err != io.EOF {
+		log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport [b]->c: %v", to.GetID(), err)
+	} else {
+		log.Logger.Debugf("[ID:%d] [HttpChannel] HttpChannel Transport return [b]->c", to.GetID())
+	}
+	if h.allowDump {
+		go func() {
+			dump.Complete(recordID)
+		}()
+	}
+	if err == nil || err == io.EOF {
+		boxChan <- &Box{recordID, RecordStatus, RecordStatusCompleted}
+	} else {
+		boxChan <- &Box{recordID, RecordStatus, RecordStatusReject}
+	}
+	return
+}
+
+func HostName(req *http.Request) (host string) {
+	if req.URL != nil {
+		host = req.URL.Hostname()
+	}
+	if len(host) == 0 {
+		host = req.Header.Get("Host")
+	}
+	return
+}
+
+func ConnectFilter(hreq *http.Request, connID int64) (rule *Rule, server *Server, conn IConn, err error) {
+	req := &Request{}
+	req.Addr = HostName(hreq)
+	req.ConnID = connID
+	ip := net.ParseIP(req.Addr)
+	if ip == nil {
+		req.Atyp = AddrTypeDomain
+	} else if len(ip) == net.IPv4len {
+		req.Atyp = AddrTypeIPv4
+	} else {
+		req.Atyp = AddrTypeIPv6
+	}
+	req.Cmd = CmdTCP
+	port := hreq.URL.Port()
+	if len(port) > 0 {
+		req.Port, err = strToUint16(port)
+		if err != nil {
+			log.Logger.Errorf("[HTTP] [ID:%d] Port to int16 failed [%d] err: %s", connID, req.Port, err)
 			return
 		}
 	}
-	log.Logger.Debugf("[ID:%d] [HttpChannel] HttpChannel Transport return [b]->c", to.GetID())
-	if h.allowDump {
-		go func() {
-			dump.Complete(h.id)
-		}()
+
+	rule, server, err = FilterByReq(req)
+	if err != nil {
+		log.Logger.Errorf("[HTTP] [ID:%d] ConnectToServer failed [%s] err: %s", connID, req.Host(), err)
+		return
 	}
-	boxChan <- &Box{h.id, RecordStatus, RecordStatusCompleted}
-	h.id = 0
+
+	if req.Port == 0 {
+		if hreq.URL.Scheme == HTTP {
+			req.Port = 80
+		} else if hreq.URL.Scheme == HTTPS {
+			req.Port = 443
+		}
+	}
+
+	log.Logger.Infof("[HTTP] [ID:%d] Start connect to Server [%s]", connID, server.Name)
+	conn, err = server.Conn(req)
+	if err != nil {
+		if err == ErrorReject {
+			log.Logger.Debugf("Reject [%s]", req.Target)
+		} else {
+			log.Logger.Errorf("[HTTP] [ID:%d] Connect to Server [%s] failed [%s] err: %s",
+				connID, server.Name, req.Host(), err.Error())
+			return
+		}
+	} else {
+		log.Logger.Infof("[HTTP] [ClientConnID:%d] Bind to Server [ServerConnID:%d]", connID, conn.GetID())
+	}
 	return
 }

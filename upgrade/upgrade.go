@@ -1,19 +1,23 @@
 package upgrade
 
 import (
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
-	"fmt"
-	"strings"
-	"runtime"
 	"errors"
-	"strconv"
-	"os"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"runtime"
+	"strconv"
+	"strings"
 )
 
-func CheckUpgrade(ver string) (latest string, url string, err error) {
+const VersionEqual = "equal"
+const VersionLess = "less"
+const VersionGreater = "greater"
+
+func CheckUpgrade(ver string) (latest, url, status string, err error) {
 	r, err := GetLatestRelease()
 	if err != nil {
 		return
@@ -33,8 +37,14 @@ func CheckUpgrade(ver string) (latest string, url string, err error) {
 	if err != nil {
 		return
 	}
-	if currentVer >= tagVer {
+	if currentVer == tagVer {
+		status = VersionEqual
 		return
+	} else if currentVer > tagVer {
+		status = VersionGreater
+		return
+	} else {
+		status = VersionLess
 	}
 	goos := runtime.GOOS
 	if goos == "darwin" {
@@ -119,7 +129,7 @@ type Release struct {
 		Size               int         `json:"size"`
 		State              string      `json:"state"`
 		UpdatedAt          string      `json:"updated_at"`
-		Uploader struct {
+		Uploader           struct {
 			AvatarURL         string `json:"avatar_url"`
 			EventsURL         string `json:"events_url"`
 			FollowersURL      string `json:"followers_url"`
@@ -142,7 +152,7 @@ type Release struct {
 		URL string `json:"url"`
 	} `json:"assets"`
 	AssetsURL string `json:"assets_url"`
-	Author struct {
+	Author    struct {
 		AvatarURL         string `json:"avatar_url"`
 		EventsURL         string `json:"events_url"`
 		FollowersURL      string `json:"followers_url"`
