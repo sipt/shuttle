@@ -94,6 +94,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 		resp          *http.Response
 		rule          *Rule
 		server        *Server
+		passed        bool // inner request
 	)
 	if sc != nil {
 		scBuf = bufio.NewReader(sc)
@@ -121,13 +122,14 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 			//request update
 			resp = RequestModify(hreq, h.isHttps)
 		}
+		passed = IsPass(hreq.URL.Hostname(), hreq.URL.Hostname(), hreq.URL.Port())
 		// Record
 		record := &Record{
 			ID:      util.NextID(),
 			URL:     hreq.URL.String(),
 			Status:  RecordStatusActive,
 			Created: time.Now(),
-			Dumped:  h.allowDump,
+			Dumped:  h.allowDump && !passed,
 			Rule:    rule,
 			Proxy:   server,
 		}
@@ -157,6 +159,8 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 				sc.Close()
 			}
 			rule, server, sc, err = ConnectFilter(hreq, lc.GetID())
+			record.Rule = rule
+			record.Proxy = server
 			if err != nil {
 				if err == ErrorReject {
 					record.Status = RecordStatusReject
@@ -164,18 +168,20 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 					record.Status = RecordStatusFailed
 				}
 				record.Dumped = false
-				boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+				if !passed {
+					boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+				}
 				return
 			}
-			record.Rule = rule
-			record.Proxy = server
 			if scBuf == nil {
 				scBuf = bufio.NewReader(sc)
 			} else {
 				scBuf.Reset(sc)
 			}
 		}
-		boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+		if !passed {
+			boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+		}
 		if sc != nil {
 			log.Logger.Debugf("[ID:%d] [HttpChannel] [reqID:%d] HttpChannel Transport send record to boxChan", sc.GetID(), record.ID)
 			sc.SetRecordID(record.ID)
@@ -183,7 +189,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 
 		// dump
 		var dumpWriter io.Writer
-		if h.allowDump {
+		if !passed && h.allowDump {
 			dump.InitDump(record.ID)
 			dumpWriter = ToWriter(func(b []byte) (int, error) {
 				return dump.WriteRequest(record.ID, b)
@@ -208,7 +214,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 		//response mock ?
 		if resp != nil {
 			// write response to client
-			err = h.writeResponse(resp, lc, record.ID)
+			err = h.writeResponse(resp, lc, record.ID, h.allowDump && !passed)
 			if err != nil {
 				return
 			}
@@ -226,7 +232,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 		}
 		log.Logger.Debugf("[ID:%d] [HttpChannel] HttpChannel Transport return s->[b]", sc.GetID())
 		ResponseModify(hreq, resp, h.isHttps)
-		err = h.writeResponse(resp, lc, record.ID)
+		err = h.writeResponse(resp, lc, record.ID, h.allowDump && !passed)
 		if err != nil {
 			return
 		}
@@ -235,9 +241,9 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 }
 
 // write response in connection
-func (h *HttpChannel) writeResponse(resp *http.Response, to IConn, recordID int64) (err error) {
+func (h *HttpChannel) writeResponse(resp *http.Response, to IConn, recordID int64, allowDump bool) (err error) {
 	var dumpWriter io.Writer
-	if h.allowDump {
+	if allowDump {
 		dumpWriter = ToWriter(func(b []byte) (int, error) {
 			return dump.WriteResponse(recordID, b)
 		})
@@ -250,7 +256,7 @@ func (h *HttpChannel) writeResponse(resp *http.Response, to IConn, recordID int6
 	} else {
 		log.Logger.Debugf("[ID:%d] [HttpChannel] HttpChannel Transport return [b]->c", to.GetID())
 	}
-	if h.allowDump {
+	if allowDump {
 		go func() {
 			dump.Complete(recordID)
 		}()

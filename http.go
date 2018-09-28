@@ -185,12 +185,11 @@ func strToUint16(v string) (i uint16, err error) {
 	return
 }
 
-func IsPass(req *Request) bool {
-	if req.Addr == ControllerDomain {
+func IsPass(host, port, ip string) bool {
+	if host == ControllerDomain {
 		return true
 	}
-	port, _ := strToUint16(controllerPort)
-	if (req.Addr == "localhost" || req.Addr == "127.0.0.1" || req.IP.String() == "127.0.0.1") && req.Port == port {
+	if (host == "localhost" || host == "127.0.0.1" || ip == "127.0.0.1") && controllerPort == port {
 		return true
 	}
 	return false

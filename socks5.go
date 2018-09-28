@@ -1,14 +1,14 @@
 package shuttle
 
 import (
-	"net"
-	"errors"
-	"github.com/sipt/shuttle/pool"
 	"encoding/binary"
-	"time"
-	"github.com/sipt/shuttle/util"
+	"errors"
 	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/pool"
+	"github.com/sipt/shuttle/util"
+	"net"
 	"strconv"
+	"time"
 )
 
 const (
@@ -82,8 +82,8 @@ func SocksHandle(co net.Conn) {
 	}
 	log.Logger.Debugf("[SOCKS] [ID:%d] Server [%s] Connected success", conn.GetID(), s.Name)
 	log.Logger.Debugf("[HTTP] [ClientConnID:%d] Bind to [ServerConnID:%d]", conn.GetID(), sc.GetID())
-	//todo 白名单判断
-	if IsPass(req) {
+	// 白名单判断
+	if IsPass(req.Addr, req.IP.String(), strconv.Itoa(int(req.Port))) {
 		direct := &DirectChannel{}
 		direct.Transport(conn, sc)
 		return
