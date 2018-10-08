@@ -188,7 +188,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 			boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
 		}
 		if sc != nil {
-			log.Logger.Debugf("[ID:%d] [HttpChannel] [reqID:%d] HttpChannel Transport send record to boxChan", sc.GetID(), record.ID)
+			log.Logger.Debugf("[ID:%d] [HttpChannel] [reqID:%d] HttpChannel Transport send record to boxChan", scid, record.ID)
 			sc.SetRecordID(record.ID)
 		}
 
