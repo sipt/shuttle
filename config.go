@@ -15,6 +15,9 @@ const ConfigFileVersion = "v1.0.1"
 const SetAsSystemProxyAuto = "auto"
 const SetAsSystemProxyManual = "manual"
 
+var HTTPProxyPort string
+var SOCKSProxyPort string
+
 var controllerDomain string
 var controllerPort string
 
@@ -114,6 +117,8 @@ func InitConfig(filePath string) (*General, error) {
 		return nil, fmt.Errorf("resolve config file failed: only support ver:%s current:[%s]", ConfigFileVersion, conf.Ver)
 	}
 	//General
+	HTTPProxyPort = conf.General.HttpPort
+	SOCKSProxyPort = conf.General.SocksPort
 	//logger level
 	log.Logger.SetLevel(log.LevelMap[conf.General.LogLevel])
 	//controller port
@@ -395,4 +400,4 @@ func as_hex(b []byte, i int) int {
 	return int(bi) - '0'
 }
 
-var ShuttleVersion = "v0.5.0"
+var ShuttleVersion = "v0.5.1"

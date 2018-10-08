@@ -177,7 +177,7 @@ func prepareRequest(conn IConn) (*http.Request, error) {
 	return hreq, nil
 }
 
-func strToUint16(v string) (i uint16, err error) {
+func StrToUint16(v string) (i uint16, err error) {
 	r, err := strconv.ParseUint(v, 10, 2*8)
 	if err == nil {
 		i = uint16(r)

@@ -76,7 +76,7 @@ func InitDNS(dns []net.IP, localDNS []*DNS) error {
 		IPs:       []net.IP{{127, 0, 0, 1}},
 		Type:      DNSTypeStatic,
 	}
-	cdns.Port, _ = strToUint16(controllerPort)
+	cdns.Port, _ = StrToUint16(controllerPort)
 	_LocalDNS = append([]*DNS{cdns}, localDNS...)
 	if _CacheDNS == nil {
 		_CacheDNS = NewDefaultDNSCache()
