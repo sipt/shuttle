@@ -36,6 +36,9 @@ func (s *Shunt) Write(p []byte) (n int, err error) {
 	if s.w1 != nil {
 		n, err = s.w1.Write(p)
 	}
+	if n == 0 {
+		n = l
+	}
 	return
 }
 

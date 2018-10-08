@@ -95,6 +95,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 		rule          *Rule
 		server        *Server
 		passed        bool // inner request
+		scid          int64
 	)
 	if sc != nil {
 		scBuf = bufio.NewReader(sc)
@@ -118,10 +119,10 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 				}
 				return
 			}
-
-			//request update
-			resp = RequestModify(hreq, h.isHttps)
 		}
+
+		//request update
+		resp = RequestModify(hreq, h.isHttps)
 		passed = IsPass(hreq.URL.Hostname(), hreq.URL.Hostname(), hreq.URL.Port())
 		// Record
 		record := &Record{
@@ -178,6 +179,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 			} else {
 				scBuf.Reset(sc)
 			}
+			scid = sc.GetID()
 		}
 		if !passed {
 			boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
@@ -207,7 +209,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 		err = hreq.Write(shunt)
 		if err != nil {
 			if err != io.EOF {
-				log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport [hreq]->s: %v", sc.GetID(), err)
+				log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport [hreq]->s: %v", scid, err)
 				return
 			}
 		}
@@ -226,11 +228,11 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 		resp, err = http.ReadResponse(scBuf, nil)
 		if err != nil {
 			if err != io.EOF {
-				log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport s->[b]: %v", sc.GetID(), err)
+				log.Logger.Errorf("[ID:%d] [HttpChannel] HttpChannel Transport s->[b]: %v", scid, err)
 			}
 			return
 		}
-		log.Logger.Debugf("[ID:%d] [HttpChannel] HttpChannel Transport return s->[b]", sc.GetID())
+		log.Logger.Debugf("[ID:%d] [HttpChannel] HttpChannel Transport return s->[b]", scid)
 		ResponseModify(hreq, resp, h.isHttps)
 		err = h.writeResponse(resp, lc, record.ID, h.allowDump && !passed)
 		if err != nil {
