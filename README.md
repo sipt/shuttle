@@ -9,7 +9,7 @@
 
 - [Introduction](#introduction)
 - [Features](#features)
-- [Installlation & Launch](#installlation-&-launch)
+- [Installlation & Launch](#installlation--launch)
   - [macOS](#macos)
   - [Windows](#windows)
   - [Linux](#linux)
@@ -18,7 +18,7 @@
   - [General Settings](#general-settings)
   - [Proxy Settings](#proxy-settings)
   - [DNS](#dns)
-  - [Request/Response Modification & Reverse Proxy](#request/response-modification-&-url-rewrite)
+  - [Request/Response Modification & Reverse Proxy](#request/response-modification--url-rewrite)
   - [MitM](#mitm)
   - [Rule Configuration](#rule-configuration)
 - [API](static/API.md)
@@ -27,8 +27,6 @@
   - [DNS Cache](#dns-cache)
   - [Records](#records)
   - [Traffic Capture](#traffic-capture)
-
-[TOC]
 
 ## Introduction
 
