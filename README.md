@@ -9,7 +9,7 @@
 
 - [Introduction](#introduction)
 - [Features](#features)
-- [Installlation & Launch](#installlation--launch)
+- [Installation & Launch](#installation--launch)
   - [macOS](#macos)
   - [Windows](#windows)
   - [Linux](#linux)
