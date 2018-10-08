@@ -1,26 +1,26 @@
 package main
 
 import (
-	"github.com/sipt/shuttle/log"
-	"net"
 	"github.com/sipt/shuttle"
 	_ "github.com/sipt/shuttle/ciphers"
-	_ "github.com/sipt/shuttle/selector"
-	_ "github.com/sipt/shuttle/protocol"
 	"github.com/sipt/shuttle/controller"
-	"time"
-	"strings"
-	"runtime/debug"
-	"github.com/sipt/shuttle/extension/network"
-	"os"
-	"os/signal"
-	"syscall"
 	"github.com/sipt/shuttle/extension/config"
+	"github.com/sipt/shuttle/extension/network"
+	"github.com/sipt/shuttle/log"
+	_ "github.com/sipt/shuttle/protocol"
+	_ "github.com/sipt/shuttle/selector"
 	"io"
-	"os/exec"
-	"runtime"
 	"io/ioutil"
+	"net"
+	"os"
+	"os/exec"
+	"os/signal"
 	"path/filepath"
+	"runtime"
+	"runtime/debug"
+	"strings"
+	"syscall"
+	"time"
 )
 
 var (
@@ -95,8 +95,10 @@ func main() {
 	go HandleSocks5(general.SocksPort, general.SocksInterface, StopHTTPSignal)
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-	//enable system proxy
-	EnableSystemProxy(general)
+	if general.SetAsSystemProxy == "" || general.SetAsSystemProxy == shuttle.SetAsSystemProxyAuto {
+		//enable system proxy
+		EnableSystemProxy(general)
+	}
 	for {
 		select {
 		case fileName := <-UpgradeSignal:
@@ -132,8 +134,10 @@ func main() {
 			if err != nil {
 				log.Logger.Error("Reload Config failed: ", err)
 			}
-			//enable system proxy
-			EnableSystemProxy(general)
+			if general.SetAsSystemProxy == "" || general.SetAsSystemProxy == shuttle.SetAsSystemProxyAuto {
+				//enable system proxy
+				EnableSystemProxy(general)
+			}
 			go HandleHTTP(general.HttpPort, general.HttpInterface, StopSocksSignal)
 			go HandleSocks5(general.SocksPort, general.SocksInterface, StopHTTPSignal)
 		}

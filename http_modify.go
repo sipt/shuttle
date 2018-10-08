@@ -1,18 +1,20 @@
 package shuttle
 
 import (
+	"bytes"
+	"github.com/sipt/shuttle/extension/config"
+	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/pool"
+	"github.com/sipt/shuttle/util"
+	"net"
 	"net/http"
-	"regexp"
 	"net/url"
 	"os"
+	"path/filepath"
+	"regexp"
 	"strconv"
-	"net"
 	"strings"
-	"bytes"
 	"time"
-	"github.com/sipt/shuttle/util"
-	"github.com/sipt/shuttle/pool"
-	"github.com/sipt/shuttle/log"
 )
 
 const (
@@ -24,15 +26,17 @@ const (
 	ModifyMock   = "MOCK"
 	ModifyUpdate = "UPDATE"
 
-	BodyFileDir = "./RespFiles/"
+	BodyFileDir = "RespFiles"
 )
 
 var reqPolicies []*ModifyPolicy
 var respPolicies []*ModifyPolicy
+var bodyFilePath = filepath.Join(".", BodyFileDir)
 
 func InitHttpModify(req []*ModifyPolicy, resp []*ModifyPolicy) {
 	reqPolicies = req
 	respPolicies = resp
+	bodyFilePath = filepath.Join(config.ShuttleHomeDir, BodyFileDir)
 }
 
 func ClearHttpModify() {
@@ -132,7 +136,7 @@ func modifyMock(v *ModifyPolicy, req *http.Request, _ bool) *http.Response {
 			log.Logger.Debugf("[Http Modify] [Mock] response set Header [%s:%s]", e.Key, e.Value)
 			resp.Header.Set(e.Key, e.Value)
 		case ModifyTypeBody:
-			file, err := os.Open(BodyFileDir + e.Value)
+			file, err := os.Open(filepath.Join(bodyFilePath, e.Value))
 			if err != nil {
 				log.Logger.Errorf("[HTTP MODIFY] open mock file failed: %v", err)
 				return nil

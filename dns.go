@@ -21,6 +21,7 @@ const (
 
 type DomainHost struct {
 	IP            net.IP
+	Port          uint16
 	Country       string
 	DNS           net.IP
 	RemoteResolve bool
@@ -31,6 +32,7 @@ type DNS struct {
 	Domain    string
 	IPs       []net.IP
 	DNSs      []net.IP
+	Port      uint16
 	Type      string `json:",omitempty"`
 	Country   string
 }
@@ -68,7 +70,14 @@ var (
 
 func InitDNS(dns []net.IP, localDNS []*DNS) error {
 	_DNS = dns
-	_LocalDNS = localDNS
+	cdns := &DNS{
+		MatchType: RuleDomain,
+		Domain:    ControllerDomain,
+		IPs:       []net.IP{{127, 0, 0, 1}},
+		Type:      DNSTypeStatic,
+	}
+	cdns.Port, _ = strToUint16(controllerPort)
+	_LocalDNS = append([]*DNS{cdns}, localDNS...)
 	if _CacheDNS == nil {
 		_CacheDNS = NewDefaultDNSCache()
 	}
@@ -141,6 +150,9 @@ func localResolve(dns *DNS, req *Request) error {
 		req.DomainHost.Country = dns.Country
 		if len(dns.DNSs) > 0 {
 			req.DomainHost.DNS = dns.DNSs[0]
+		}
+		if req.Port == 0 && dns.Port > 0 {
+			req.Port = dns.Port
 		}
 		return nil
 	case DNSTypeDirect:

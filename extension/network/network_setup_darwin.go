@@ -3,11 +3,10 @@
 package network
 
 import (
-	"fmt"
-	"strings"
-	"os/exec"
 	"bytes"
 	"github.com/sipt/shuttle/log"
+	"os/exec"
+	"strings"
 )
 
 const (
@@ -66,7 +65,6 @@ func DisableSystemProxy() {
 func listServices(callback networkSetupFunc) error {
 	out, err := Command(networksetup, listallnetworkservices)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	out = strings.TrimSpace(out)
@@ -77,7 +75,6 @@ func listServices(callback networkSetupFunc) error {
 		}
 		err = callback(v)
 		if err != nil {
-			fmt.Println(v, err)
 			return err
 		}
 	}

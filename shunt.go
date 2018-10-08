@@ -1,9 +1,9 @@
 package shuttle
 
 import (
-	"io"
-	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/pool"
+	"io"
 )
 
 // 分流
@@ -19,15 +19,15 @@ type Shunt struct {
 }
 
 func (s *Shunt) Write(p []byte) (n int, err error) {
-	var buf []byte
 	var l = len(p)
-	if pool.BufferSize >= l {
-		buf = pool.GetBuf()
-	} else {
-		buf = make([]byte, l)
-	}
-	copy(buf, p)
 	if s.w2 != nil {
+		var buf []byte
+		if pool.BufferSize >= l {
+			buf = pool.GetBuf()
+		} else {
+			buf = make([]byte, l)
+		}
+		copy(buf, p)
 		_, err := s.w2.Write(buf[:l])
 		if err != nil {
 			log.Logger.Errorf("[Shunt] [Sub2] Write data failed: %s", err.Error())
@@ -35,6 +35,9 @@ func (s *Shunt) Write(p []byte) (n int, err error) {
 	}
 	if s.w1 != nil {
 		n, err = s.w1.Write(p)
+	}
+	if n == 0 {
+		n = l
 	}
 	return
 }
