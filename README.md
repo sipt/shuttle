@@ -3,10 +3,9 @@
 **Shuttle** is a **cross-platform** network proxy tool based on Go. Feel free to join our [Slack](https://join.slack.com/t/shuttle-talk/shared_invite/enQtNDMxNTQyNTIwODcwLTcyNTc0NmU4MzJhOTEzNTMwYWJlMGM1NDE2OTA2OWNmZDRlM2M0MjYxNjgzMTc1YWRhOTA4MTAzNTRkZDM0NDc) or [Telegram](https://t.me/joinchat/GrRxoBJXAKTdZBrTIJfIbQ).
 （logo created by **@不二**）
 
-[中文文档](README_zh.md)
-
 ![Shuttle](./Shuttle_Logo.PNG)
 
+- [中文文档](README_zh.md)
 - [Introduction](#introduction)
 - [Features](#features)
 - [Installation & Launch](#installation--launch)
@@ -27,6 +26,8 @@
   - [DNS Cache](#dns-cache)
   - [Records](#records)
   - [Traffic Capture](#traffic-capture)
+
+(Translated by [wao1201](https://github.com/wao1201), reviewed by [Joe Hill](https://github.com/Joe-Hill).)
 
 ## Introduction
 
@@ -565,5 +566,3 @@ Large file download
 Enter the file name in the input filed, then click download.
 
 The dumped data just shows "The file is too large" instead of data detail for the better webpage performance when the file data size is over 2MB. You can download it for more details.
-
-Translated by [wao1201](https://github.com/wao1201), [Joe Hill](https://github.com/Joe-Hill) review.
