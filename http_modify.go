@@ -50,7 +50,7 @@ func RequestModifyOrMock(req *Request, hreq *http.Request, isHttps bool) (respBu
 	req.Addr = hreq.URL.Hostname()
 	req.IP = net.ParseIP(req.Addr)
 	if port := hreq.URL.Port(); len(port) > 0 {
-		req.Port, err = strToUint16(port)
+		req.Port, err = StrToUint16(port)
 		if err != nil {
 			log.Logger.Error("http port error:" + port)
 			return

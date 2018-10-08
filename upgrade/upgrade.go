@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/sipt/shuttle"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime"
 	"strconv"
@@ -60,13 +62,15 @@ func CheckUpgrade(ver string) (latest, url, status string, err error) {
 	return
 }
 
-func DownloadFile(name, url string) error {
+func DownloadFile(name, downloadURL string) error {
 	os.Remove(name)
 	f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
-	resp, err := http.Get(url)
+	proxyUrl, err := url.Parse("http://127.0.0.1:" + shuttle.HTTPProxyPort)
+	myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+	resp, err := myClient.Get(downloadURL)
 	if err != nil {
 		return err
 	}

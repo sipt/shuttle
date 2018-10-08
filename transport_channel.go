@@ -299,7 +299,7 @@ func ConnectFilter(hreq *http.Request, connID int64) (rule *Rule, server *Server
 	req.Cmd = CmdTCP
 	port := hreq.URL.Port()
 	if len(port) > 0 {
-		req.Port, err = strToUint16(port)
+		req.Port, err = StrToUint16(port)
 		if err != nil {
 			log.Logger.Errorf("[HTTP] [ID:%d] Port to int16 failed [%d] err: %s", connID, req.Port, err)
 			return
