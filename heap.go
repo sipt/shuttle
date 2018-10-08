@@ -2,8 +2,8 @@ package shuttle
 
 import (
 	"container/heap"
-	"sync/atomic"
 	"sync"
+	"sync/atomic"
 )
 
 type Item struct {

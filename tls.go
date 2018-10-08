@@ -1,20 +1,20 @@
 package shuttle
 
 import (
-	"crypto/x509"
-	"crypto/rsa"
-	"encoding/base64"
-	"crypto/rand"
-	"crypto/x509/pkix"
-	"math/big"
-	"time"
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
-	"crypto/tls"
-	"reflect"
-	"unsafe"
 	"fmt"
+	"math/big"
+	"reflect"
+	"time"
+	"unsafe"
 )
 
 var ca *x509.Certificate
@@ -74,9 +74,9 @@ func GenerateCA() error {
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(5, 0, 0),
 		BasicConstraintsValid: true,
-		IsCA:                  true,
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		IsCA:        true,
+		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 	}
 
 	caBytes, err = x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
@@ -134,7 +134,7 @@ func makeCert(cert *x509.Certificate) ([]byte, error) {
 	return derBytes, nil
 }
 
-func Mimt(lc, sc IConn, req *Request) (IConn, IConn, error) {
+func Mimt(lc, sc IConn) (IConn, IConn, error) {
 	if ca == nil {
 		return nil, nil, errors.New("please first generate CA")
 	}
@@ -156,7 +156,7 @@ func Mimt(lc, sc IConn, req *Request) (IConn, IConn, error) {
 		ptr := (uintptr)(unsafe.Pointer(scTls))
 		cert = (*(*[]*x509.Certificate)(unsafe.Pointer(ptr + filed.Offset)))[0]
 	}
-	sc, err = DefaultDecorateForTls(scTls, req.Network(), scID)
+	sc, err = DefaultDecorateForTls(scTls, TCP, scID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -175,6 +175,6 @@ func Mimt(lc, sc IConn, req *Request) (IConn, IConn, error) {
 		},
 	}
 	lcTls := tls.Server(lc, conf)
-	lc, err = DefaultDecorateForTls(lcTls, req.Network(), lcID)
+	lc, err = DefaultDecorateForTls(lcTls, TCP, lcID)
 	return lc, sc, err
 }

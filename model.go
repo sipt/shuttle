@@ -3,6 +3,8 @@ package shuttle
 import (
 	"net"
 	"strconv"
+
+	"github.com/sipt/shuttle/log"
 )
 
 const (
@@ -68,6 +70,6 @@ func (r *Request) GetIP() net.IP {
 		return r.IP
 	}
 	err := ResolveDomain(r)
-	Logger.Errorf("[Request] GetIP error: %v", err)
+	log.Logger.Errorf("[Request] GetIP error: %v", err)
 	return nil
 }

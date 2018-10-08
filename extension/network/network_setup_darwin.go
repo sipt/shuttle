@@ -3,11 +3,10 @@
 package network
 
 import (
-	"fmt"
-	"strings"
-	"os/exec"
 	"bytes"
-	"github.com/sipt/shuttle"
+	"github.com/sipt/shuttle/log"
+	"os/exec"
+	"strings"
 )
 
 const (
@@ -36,37 +35,36 @@ var networkServices = []string{"Wi-Fi", "Thunderbolt Bridge", "Thunderbolt Ether
 func EnableSystemProxy(host, port string) {
 	err := WebProxySwitch(true, host, port)
 	if err != nil {
-		shuttle.Logger.Errorf("Enable WebProxy failed: %v", err)
+		log.Logger.Errorf("Enable WebProxy failed: %v", err)
 	}
 	err = SecureWebProxySwitch(true, host, port)
 	if err != nil {
-		shuttle.Logger.Errorf("Enable SecureWeb failed: %v", err)
+		log.Logger.Errorf("Enable SecureWeb failed: %v", err)
 	}
 	err = SocksProxySwitch(true, host, port)
 	if err != nil {
-		shuttle.Logger.Errorf("Enable SocksProxy failed: %v", err)
+		log.Logger.Errorf("Enable SocksProxy failed: %v", err)
 	}
 }
 
 func DisableSystemProxy() {
 	err := WebProxySwitch(false)
 	if err != nil {
-		shuttle.Logger.Errorf("Disable WebProxy failed: %v", err)
+		log.Logger.Errorf("Disable WebProxy failed: %v", err)
 	}
 	err = SecureWebProxySwitch(false)
 	if err != nil {
-		shuttle.Logger.Errorf("Disable SecureWebProxy failed: %v", err)
+		log.Logger.Errorf("Disable SecureWebProxy failed: %v", err)
 	}
 	err = SocksProxySwitch(false)
 	if err != nil {
-		shuttle.Logger.Errorf("Disable SocksProxy failed: %v", err)
+		log.Logger.Errorf("Disable SocksProxy failed: %v", err)
 	}
 }
 
 func listServices(callback networkSetupFunc) error {
 	out, err := Command(networksetup, listallnetworkservices)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	out = strings.TrimSpace(out)
@@ -77,7 +75,6 @@ func listServices(callback networkSetupFunc) error {
 		}
 		err = callback(v)
 		if err != nil {
-			fmt.Println(v, err)
 			return err
 		}
 	}

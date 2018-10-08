@@ -1,16 +1,19 @@
 package shuttle
 
 import (
-	"net"
-	"io/ioutil"
 	"fmt"
+	"github.com/sipt/shuttle/log"
 	"github.com/sipt/yaml"
-	"strings"
+	"io/ioutil"
+	"net"
 	"regexp"
+	"strings"
 )
 
 const ControllerDomain = "c.sipt.top"
 const ConfigFileVersion = "v1.0.1"
+const SetAsSystemProxyAuto = "auto"
+const SetAsSystemProxyManual = "manual"
 
 var controllerDomain string
 var controllerPort string
@@ -35,6 +38,7 @@ type General struct {
 	SocksInterface      string   `yaml:"socks-interface,2quoted"`
 	ControllerPort      string   `yaml:"controller-port,2quoted"`
 	ControllerInterface string   `yaml:"controller-interface,2quoted"`
+	SetAsSystemProxy    string   `yaml:"set-as-system-proxy,2quoted"`
 }
 
 type Mitm struct {
@@ -77,13 +81,13 @@ func SetMimt(mitm *Mitm) {
 func SaveToFile() {
 	bytes, err := yaml.Marshal(conf)
 	if err != nil {
-		Logger.Errorf("[CONF] yaml marshal config failed : %v", err)
+		log.Logger.Errorf("[CONF] yaml marshal config failed : %v", err)
 	}
 	offset := EmojiDecode(bytes)
 	bytes = bytes[:offset]
 	err = ioutil.WriteFile(configFile, bytes, 0644)
 	if err != nil {
-		Logger.Errorf("[CONF] save config file failed : %v", err)
+		log.Logger.Errorf("[CONF] save config file failed : %v", err)
 	}
 }
 
@@ -109,8 +113,15 @@ func InitConfig(filePath string) (*General, error) {
 	if conf.Ver != ConfigFileVersion {
 		return nil, fmt.Errorf("resolve config file failed: only support ver:%s current:[%s]", ConfigFileVersion, conf.Ver)
 	}
-
 	//General
+	//logger level
+	log.Logger.SetLevel(log.LevelMap[conf.General.LogLevel])
+	//controller port
+	if len(controllerPort) == 0 {
+		controllerPort = conf.General.ControllerPort
+	} else {
+		conf.General.ControllerPort = controllerPort
+	}
 
 	//DNS
 	dns := make([]net.IP, len(conf.General.DNSServer))
@@ -291,21 +302,12 @@ func InitConfig(filePath string) (*General, error) {
 	}
 	InitHttpModify(reqMaps, respMaps)
 
-	//logger level
-	SetLeve(conf.General.LogLevel)
-	fmt.Println("use level:", conf.General.LogLevel)
-
 	err = InitCert(conf.Mitm)
 	if err != nil {
 		return nil, fmt.Errorf("mitm init failed: %v", err)
 	}
 	if conf.Mitm != nil {
 		SetMitMRules(conf.Mitm.Rules)
-	}
-	if len(controllerPort) == 0 {
-		controllerPort = conf.General.ControllerPort
-	} else {
-		conf.General.ControllerPort = controllerPort
 	}
 	return conf.General, nil
 }
@@ -392,3 +394,5 @@ func as_hex(b []byte, i int) int {
 	}
 	return int(bi) - '0'
 }
+
+var ShuttleVersion = "v0.5.0"

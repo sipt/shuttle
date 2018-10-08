@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/util"
+	"github.com/sipt/shuttle/log"
 )
 
 var DefaultTimeOut = 10 * time.Second
@@ -57,16 +58,16 @@ func (c *DefaultConn) GetNetwork() string {
 
 func (c *DefaultConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
-	Logger.Tracef("[ID:%d] Read Data: %v", c.GetID(), b[:n])
+	log.Logger.Tracef("[ID:%d] Read Data: %v", c.GetID(), b[:n])
 	return
 }
 
 func (c *DefaultConn) Write(b []byte) (n int, err error) {
-	Logger.Tracef("[ID:%d] Write Data: %v", c.GetID(), b)
+	log.Logger.Tracef("[ID:%d] Write Data: %v", c.GetID(), b)
 	return c.Conn.Write(b)
 }
 func (c *DefaultConn) Close() error {
-	Logger.Tracef("[ID:%d] close connection", c.GetID())
+	log.Logger.Infof("[ID:%d] close connection", c.GetID())
 	return c.Conn.Close()
 }
 

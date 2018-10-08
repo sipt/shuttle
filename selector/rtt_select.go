@@ -5,6 +5,7 @@ import (
 	"time"
 	"sync/atomic"
 	"io"
+	"github.com/sipt/shuttle/log"
 )
 
 const (
@@ -69,7 +70,7 @@ func (r *rttSelector) autoTest() {
 		}
 	}
 	r.timer.Stop()
-	shuttle.Logger.Debug("[RTT-Selector] start testing ...")
+	log.Logger.Debug("[RTT-Selector] start testing ...")
 	var is shuttle.IServer
 	var s *shuttle.Server
 	var err error
@@ -83,7 +84,7 @@ func (r *rttSelector) autoTest() {
 		go urlTest(s, c)
 	}
 	s = <-c
-	shuttle.Logger.Infof("[RTT-Select] rtt select server: [%s]", s.Name)
+	log.Logger.Infof("[RTT-Select] rtt select server: [%s]", s.Name)
 	r.selected = s
 	r.timer.Reset(timerDulation)
 	atomic.CompareAndSwapUint32(&r.status, 1, 0)
@@ -98,21 +99,21 @@ func urlTest(s *shuttle.Server, c chan *shuttle.Server) {
 		Port: 80,
 	})
 	if err != nil {
-		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+		log.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
 		return
 	}
 	defer conn.Close()
 	start := time.Now()
 	_, err = conn.Write([]byte("GET /generate_204 HTTP/1.1\r\nHost: www.gstatic.com\r\n\r\n"))
 	if err != nil {
-		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+		log.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
 		return
 	}
 	buf := make([]byte, 128)
 	_, err = conn.Read(buf)
 	if err != nil {
 		if err != io.EOF {
-			shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+			log.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
 		}
 		return
 	}
@@ -126,9 +127,9 @@ func urlTest(s *shuttle.Server, c chan *shuttle.Server) {
 		s.Rtt = 0
 	}
 	if err != nil {
-		shuttle.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+		log.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
 	} else {
-		shuttle.Logger.Debugf("[RTT-Select] [%s]  RTT:[%dms]", s.Name, s.Rtt.Nanoseconds()/1000000)
+		log.Logger.Debugf("[RTT-Select] [%s]  RTT:[%dms]", s.Name, s.Rtt.Nanoseconds()/1000000)
 	}
 	if closer != nil {
 		closer()

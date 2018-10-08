@@ -3,6 +3,8 @@ package shuttle
 import (
 	"fmt"
 	"time"
+
+	"github.com/sipt/shuttle/log"
 )
 
 var groups []*ServerGroup
@@ -67,7 +69,7 @@ var proxyProtocolCreator = make(map[string]NewProtocol)
 
 func RegisterProxyProtocolCreator(name string, p NewProtocol) {
 	proxyProtocolCreator[name] = p
-	Logger.Infof("Support Proxy Protocol: [%s]", name)
+	log.Logger.Infof("Support Proxy Protocol: [%s]", name)
 }
 
 type IServer interface {

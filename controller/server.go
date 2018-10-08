@@ -10,14 +10,14 @@ import (
 	"io/ioutil"
 )
 
-func StartController(inter, port string, shutdownSignal chan bool, reloadConfigSignal chan bool, level string) {
+func StartController(inter, port string, shutdownSignal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string, level string) {
 	if level == "info" {
 		gin.SetMode(gin.ReleaseMode)
 		gin.DefaultWriter = ioutil.Discard
 	}
 	e := gin.Default()
 	e.Use(Cors())
-	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal)
+	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal, upgradeSignal)
 	web.WebRoute(e)
 	e.Run(inter + ":" + port)
 }
