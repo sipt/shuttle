@@ -565,3 +565,5 @@ Large file download
 Enter the file name in the input filed, then click download.
 
 The dumped data just shows "The file is too large" instead of data detail for the better webpage performance when the file data size is over 2MB. You can download it for more details.
+
+Translated by [wao1201](https://github.com/wao1201), [Joe Hill](https://github.com/Joe-Hill) review.
