@@ -17,7 +17,7 @@
   - [General Settings](#general-settings)
   - [Proxy Settings](#proxy-settings)
   - [DNS](#dns)
-  - [Request/Response Modification & Reverse Proxy](#request/response-modification--url-rewrite)
+  - [Request/Response Modification & URL Rewrite](#request/response-modification--url-rewrite)
   - [MitM](#mitm)
   - [Rule Configuration](#rule-configuration)
 - [API](static/API.md)
@@ -399,14 +399,14 @@ Http-Map:
 
 | Modify Type | Description                                                  | Condition                                       |
 | ----------- | ------------------------------------------------------------ | ----------------------------------------------- |
-| HEADER      | Add/modify header ([Example](#Header)                        | (`Req-Map`or`Resp-Map`) type:(`UPDATE`or`MOCK`) |
-| STATUS      | Modify return status code ([Example](#Status))               | (`Resp-Map`) type:(`UPDATE`or`MOCK`)            |
-| BODY        | Response Body([Example](#Status))<br />(HTTPS domain must exists and supports HTTPS) | (`Resp-Map`) type:(`MOCK`)                      |
-| URL         | Use `url-rex` to replace `URL`，<br />**Currently, HTTPS is not supported** ([Reverse Proxy](#Reverse)) | (`Req-Map`) type:(`UPDATE`)                     |
+| HEADER      | Add/modify header ([Example](#header-modify))                | (`Req-Map`or`Resp-Map`) type:(`UPDATE`or`MOCK`) |
+| STATUS      | Modify return status code ([Example](#request-mapping))      | (`Resp-Map`) type:(`UPDATE`or`MOCK`)            |
+| BODY        | Response Body([Example](#request-mapping))<br />(HTTPS domain must exists and supports HTTPS) | (`Resp-Map`) type:(`MOCK`)                      |
+| URL         | Use `url-rex` to replace `URL`，<br />**Currently, HTTPS is not supported** ([URL Rewrite](#url-rewrite)) | (`Req-Map`) type:(`UPDATE`)                     |
 
 #### Examples：
 
-##### Header
+##### Header Modify
 
 Add `Scheme: http` to every request that matches `^http://www.zhihu.com`
 
@@ -419,7 +419,7 @@ Http-Map:
         - ["HEADER", "Scheme", "http"]
 ```
 
-##### Status
+##### Request Mapping
 
 **If the type is MOCK, all HTTP domains are good to go but HTTPS domains must exist and support HTTPS**
 
@@ -454,7 +454,7 @@ Http-Map:
         - ["BODY", "", "mock.json"] #return data matches RespFiles/mock.json
 ```
 
-##### Reverse
+##### URL Rewrite
 
 **HTTPS is not supported currently**
 
