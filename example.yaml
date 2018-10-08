@@ -10,6 +10,7 @@ General:
   socks-interface: "0.0.0.0"
   controller-port: "8082"
   controller-interface: "0.0.0.0"
+  set-as-system-proxy: "auto"
 Proxy:
   "🇯🇵JP_a": ["ss", "jp.a.example.com", "12345", "rc4-md5", "123456"]
   "🇯🇵JP_b": ["ss", "jp.b.example.com", "12345", "rc4-md5", "123456"]
@@ -53,23 +54,23 @@ Local-DNS:
 - ["DOMAIN-SUFFIX", "facebook.com", "remote", ""]
 Http-Map:
   Req-Map:
-    - url-rex: "^http://www.example.aaa"
-      type: "UPDATE"
-      items:
-       - ["URL", "", "http://www.example.bbb"]
-       - ["HEADER", "test_header", "vvvvvvvv"]
-    - url-rex: "^http://www.mock.ccc"
-      type: "MOCK"
-      items:
-        - ["STATUS", "", "500"]
-        - ["HEADER", "Content-Type", "application/json"]
-        - ["BODY", "", "mock.json"]
+  - url-rex: "^http://www.example.aaa"
+    type: "UPDATE"
+    items:
+    - ["URL", "", "http://www.example.bbb"]
+    - ["HEADER", "test_header", "vvvvvvvv"]
+  - url-rex: "^http://www.mock.ccc"
+    type: "MOCK"
+    items:
+    - ["STATUS", "", "500"]
+    - ["HEADER", "Content-Type", "application/json"]
+    - ["BODY", "", "mock.json"]
   Resp-Map:
-    - url-rex: "^http://www.redirect_to_github.com"
-      type: "UPDATE"
-      items:
-         - ["STATUS", "", "301"]
-         - ["HEADER", "Location", "https://github.com"]
+  - url-rex: "^http://www.redirect_to_github.com"
+    type: "UPDATE"
+    items:
+    - ["STATUS", "", "301"]
+    - ["HEADER", "Location", "https://github.com"]
 MITM:
   rules: ["*.baidu.com"]
   ca: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMzekNDQWNlZ0F3SUJBZ0lCQVRBTkJna3Foa2lHOXcwQkFRc0ZBREF4TVJBd0RnWURWUVFLRXdkVGFIVjAKZEd4bE1SMHdHd1lEVlFRREV4UlRhSFYwZEd4bElFZGxibVZ5WVhSbFpDQkRRVEFlRncweE9EQTRNVEF4TVRRNApOVGRhRncweU16QTRNVEF4TVRRNE5UZGFNREV4RURBT0JnTlZCQW9UQjFOb2RYUjBiR1V4SFRBYkJnTlZCQU1UCkZGTm9kWFIwYkdVZ1IyVnVaWEpoZEdWa0lFTkJNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUIKQ2dLQ0FRRUFyUVF5aU90T1ZSZEpqOHJPb2k2LzhjSkdiSmtiVnVYOTYyRTlweWFyTy9GZWhoL1R5c3d4SHJFRgovcW1IUGpvcXBjMjA5VXU2RHNVRk1HMjRXTGJuV05JMElWY3U1YURuVWVCa204ZnFEa25qZUh3cXQveEJ1b1FnCnhNbWROQTRDNjd3alpWL0VlUldpVTlrbXhtK2k2cEFRcXR3Y0Y3N3B6TDRuZUdLbFRTMGdadlVXWng3TEZDaS8KbDBWZzBFNHZDckNWeUpncUx6Y2UrdkoxUml5U0hFYVRSdVo1SUZYbU84ZmYwd0hNNGlsT3kyVHRnTFh0TjdMSApHRDFEOFc1TS9qemllVzQvQVhMeURYUEVKeTZ6S2lOOVU4K2FJbUNUcHBydnl1Q2FlMXRMeFdmcWcwWkVYYy9VCnpNcktjcXBBb2Noc1hLd2dINm5nU0VkMHU0V1NrUUlEQVFBQm93SXdBREFOQmdrcWhraUc5dzBCQVFzRkFBT0MKQVFFQVAvSVVWdDFVbXAxVkFzdVJXazRLdzVUamFlbUsvb1hQVkFBdkVyOEJaQS9IWXpsdU1TUTgrSWc1NlR2agpxNnJzMFpLU002K0t1TERyeEhsZHcxelJsUTFCYlRPMkVHNHdGSEZ5RHA3eGswbWs1TXAvbDBNd1ZpWjlDbkFGCnFMVDRtc1MyRjlzREM2MHN5M3lrd1g1OWtIcS9tTWIyNENaRnhGdVR6N3dpNmdlN0t1YlM3dDI3WGlOTHNZSlMKMG11N2MveFZLcUVTd21jNWdVa2M2OTVzdEczZExxZDJBenovZWZSOWZSREJIUEhlcForYXZNKzBkekRPdzdNKwpZOVNFeFl3K3lQUE1kUXkxZ3ZOTmFRait1LzhrTm9odW94cEladmJ2N1BSckE0bTVZblVOcm1Va0dFQi8vU0FnClc3cTVuSXlQdWo0d08xSW5SeU1mZHNyOFdnPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo"

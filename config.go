@@ -12,6 +12,8 @@ import (
 
 const ControllerDomain = "c.sipt.top"
 const ConfigFileVersion = "v1.0.1"
+const SetAsSystemProxyAuto = "auto"
+const SetAsSystemProxyManual = "manual"
 
 var controllerDomain string
 var controllerPort string
@@ -36,6 +38,7 @@ type General struct {
 	SocksInterface      string   `yaml:"socks-interface,2quoted"`
 	ControllerPort      string   `yaml:"controller-port,2quoted"`
 	ControllerInterface string   `yaml:"controller-interface,2quoted"`
+	SetAsSystemProxy    string   `yaml:"set-as-system-proxy"`
 }
 
 type Mitm struct {
