@@ -38,7 +38,7 @@ type General struct {
 	SocksInterface      string   `yaml:"socks-interface,2quoted"`
 	ControllerPort      string   `yaml:"controller-port,2quoted"`
 	ControllerInterface string   `yaml:"controller-interface,2quoted"`
-	SetAsSystemProxy    string   `yaml:"set-as-system-proxy"`
+	SetAsSystemProxy    string   `yaml:"set-as-system-proxy,2quoted"`
 }
 
 type Mitm struct {
