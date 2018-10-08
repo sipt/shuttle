@@ -2,26 +2,28 @@ package main
 
 import (
 	"archive/zip"
-	"os"
-	"path/filepath"
-	"io"
-	"fmt"
-	"io/ioutil"
 	"flag"
+	"fmt"
 	"github.com/sipt/shuttle/extension/config"
+	"io"
+	"io/ioutil"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"time"
 )
 
 func main() {
 	var (
-		fileName string
-		err      error
-		cmd      *exec.Cmd
+		fileName     string
+		err          error
+		cmd          *exec.Cmd
+		configBackup []byte
 	)
 	flag.StringVar(&fileName, "f", "shuttle.zip", "shuttle upgrade zip")
 	flag.Parse()
+	configBackup, _ = ioutil.ReadFile(filepath.Join(config.ShuttleHomeDir, "shuttle.yaml"))
 	time.Sleep(3 * time.Second) // wait for shuttle shutdown.
 	err = ClearDir(getCurrentDirectory())
 	if err != nil {
@@ -31,6 +33,7 @@ func main() {
 	if err != nil {
 		goto Failed
 	}
+	ioutil.WriteFile(filepath.Join(config.ShuttleHomeDir, "shuttle.yaml"), configBackup, 0644)
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("startup")
 	} else {
@@ -46,7 +49,8 @@ func main() {
 	}
 	return
 Failed:
-	ioutil.WriteFile(filepath.Join(config.HomeDir, "Documents", "shuttle", "logs", "upgrade.log"), []byte(err.Error()), 0664)
+	os.MkdirAll(filepath.Join(config.ShuttleHomeDir, "logs"), 0755)
+	ioutil.WriteFile(filepath.Join(config.ShuttleHomeDir, "logs", "upgrade.log"), []byte(err.Error()), 0664)
 }
 
 func ClearDir(dir string) error {
