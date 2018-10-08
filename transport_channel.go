@@ -180,6 +180,9 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 				scBuf.Reset(sc)
 			}
 			scid = sc.GetID()
+		} else if resp != nil {
+			record.Rule = mockRule
+			record.Proxy = mockServer
 		}
 		if !passed {
 			boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}

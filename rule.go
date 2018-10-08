@@ -1,15 +1,16 @@
 package shuttle
 
 import (
-	"strings"
-	"net"
 	"fmt"
+	"net"
+	"strings"
 )
 
 const (
 	PolicyReject = "REJECT"
 	PolicyDirect = "DIRECT"
 	PolicyGlobal = "GLOBAL"
+	PolicyMock   = "MOCK"
 	PolicyNone   = "NONE"
 
 	RuleDomainSuffix  = "DOMAIN-SUFFIX"
@@ -117,4 +118,11 @@ var remoteRule = &Rule{
 var rejectRule = &Rule{
 	Type:   "GLOBAL",
 	Policy: PolicyReject,
+}
+var mockRule = &Rule{
+	Type:   "MOCK",
+	Policy: PolicyMock,
+}
+var mockServer = &Server{
+	Name: "MOCK",
 }
