@@ -102,7 +102,7 @@ func main() {
 	for {
 		select {
 		case fileName := <-UpgradeSignal:
-			shutdown()
+			shutdown(general)
 			log.Logger.Info("[Shuttle] is shutdown, for upgrade!")
 			var name string
 			if runtime.GOOS == "windows" {
@@ -119,12 +119,12 @@ func main() {
 			os.Exit(0)
 		case <-ShutdownSignal:
 			log.Logger.Info("[Shuttle] is shutdown, see you later!")
-			shutdown()
+			shutdown(general)
 			os.Exit(0)
 			return
 		case <-signalChan:
 			log.Logger.Info("[Shuttle] is shutdown, see you later!")
-			shutdown()
+			shutdown(general)
 			os.Exit(0)
 			return
 		case <-ReloadConfigSignal:
@@ -144,11 +144,13 @@ func main() {
 	}
 }
 
-func shutdown() {
+func shutdown(general *shuttle.General) {
 	StopSocksSignal <- true
 	StopHTTPSignal <- true
-	//disable system proxy
-	DisableSystemProxy()
+	if general.SetAsSystemProxy == "" || general.SetAsSystemProxy == shuttle.SetAsSystemProxyAuto {
+		//disable system proxy
+		DisableSystemProxy()
+	}
 	log.Logger.Close()
 	shuttle.CloseGeoDB()
 	time.Sleep(time.Second)
