@@ -24,16 +24,24 @@ const (
 	ConnModeRemote = "REMOTE"
 	ConnModeRule   = "RULE"
 	ConnModeReject = "REJECT"
+
+	OptionTunMode = "tun-mode"
 )
 
 var rules []*Rule
 var connMode = ConnModeRule
+var tunRules []*Rule
+
+func GetTunRules() []*Rule {
+	return tunRules
+}
 
 var ipCidrMap map[string]*net.IPNet
 
 func InitRule(rs []*Rule) error {
 	rules = rs
 	ipCidrMap = make(map[string]*net.IPNet)
+	tunRules = make([]*Rule, 0, 16)
 	for _, v := range rs {
 		if v.Type == RuleIPCIDR {
 			_, ipNet, err := net.ParseCIDR(v.Value)
@@ -41,6 +49,13 @@ func InitRule(rs []*Rule) error {
 				return fmt.Errorf("[Rule] [IP-CIDR] [%s] error: %v", v.Value, err)
 			}
 			ipCidrMap[v.Value] = ipNet
+		}
+		if len(v.Options) > 0 {
+			for _, op := range v.Options {
+				if op == OptionTunMode {
+					tunRules = append(tunRules, v)
+				}
+			}
 		}
 	}
 	return nil
@@ -68,17 +83,33 @@ type Rule struct {
 	Comment string
 }
 
-func filter(req *Request) (*Rule, error) {
-	switch connMode {
-	case ConnModeDirect:
-		return directRule, nil
-	case ConnModeRemote:
-		return remoteRule, nil
-	case ConnModeReject:
-		return rejectRule, nil
+func RuleFilter(req *Request, options ...string) (*Rule, error) {
+	tunMode := false
+	if len(options) > 0 {
+		for _, op := range options {
+			if op == OptionTunMode {
+				tunMode = true
+				break
+			}
+		}
+	}
+	if !tunMode {
+		switch connMode {
+		case ConnModeDirect:
+			return directRule, nil
+		case ConnModeRemote:
+			return remoteRule, nil
+		case ConnModeReject:
+			return rejectRule, nil
+		}
 	}
 
-	for _, v := range rules {
+	rs := rules
+	if tunMode {
+		rs = tunRules
+	}
+
+	for _, v := range rs {
 		switch v.Type {
 		case RuleDomainSuffix:
 			if req.Addr == v.Value || strings.HasSuffix(req.Addr, "."+v.Value) {
@@ -93,7 +124,7 @@ func filter(req *Request) (*Rule, error) {
 				return v, nil
 			}
 		case RuleIPCIDR:
-			if ipCidrMap[v.Value].Contains(req.IP) {
+			if len(req.IP) > 0 && ipCidrMap[v.Value].Contains(req.IP) {
 				return v, nil
 			}
 		case RuleGeoIP:

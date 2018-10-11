@@ -68,6 +68,10 @@ var (
 	_CacheDNS IDNSCache
 )
 
+func GetDNSServers() []net.IP {
+	return _DNS
+}
+
 func InitDNS(dns []net.IP, localDNS []*DNS) error {
 	_DNS = dns
 	cdns := &DNS{
@@ -178,7 +182,13 @@ func directResolve(servers []net.IP, req *Request) error {
 			}
 		}(v)
 	}
-	r := <-reply
+	var r *_Reply
+	var timer = time.NewTimer(2 * time.Second)
+	select {
+	case r = <-reply:
+	case <-timer.C:
+		return fmt.Errorf("[DNS] resovle timeout: %s", req.Addr)
+	}
 	var (
 		a     *dns.A
 		ok    bool
