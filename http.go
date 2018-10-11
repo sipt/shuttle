@@ -117,6 +117,13 @@ func ProxyHTTPS(lc IConn, hreq *http.Request) {
 			record.Status = RecordStatusReject
 		} else {
 			record.Status = RecordStatusFailed
+			record.Rule = &Rule{
+				Type:   "FAILED",
+				Policy: "FAILED",
+			}
+			record.Proxy = &Server{
+				Name: "FAILED",
+			}
 		}
 		boxChan <- &Box{Op: RecordAppend, Value: record}
 		return
@@ -126,15 +133,15 @@ func ProxyHTTPS(lc IConn, hreq *http.Request) {
 	if allowMitm {
 		for _, v := range MitMRules {
 			if v == "*" { // 通配
-				log.Logger.Debugf("[HTTPS] [ID:%d] MitM filter [%s] use [%s]", lc.GetID(), domain, v)
+				log.Logger.Debugf("[HTTPS] [ID:%d] MitM RuleFilter [%s] use [%s]", lc.GetID(), domain, v)
 				mitm = true
 				break
 			} else if v == domain { // 全区配
-				log.Logger.Debugf("[HTTPS] [ID:%d] MitM filter [%s] use [%s]", lc.GetID(), domain, v)
+				log.Logger.Debugf("[HTTPS] [ID:%d] MitM RuleFilter [%s] use [%s]", lc.GetID(), domain, v)
 				mitm = true
 				break
 			} else if v[0] == '*' && strings.HasSuffix(domain, v[1:]) { // 后缀匹配
-				log.Logger.Debugf("[HTTPS] [ID:%d] MitM filter [%s] use [%s]", lc.GetID(), domain, v)
+				log.Logger.Debugf("[HTTPS] [ID:%d] MitM RuleFilter [%s] use [%s]", lc.GetID(), domain, v)
 				mitm = true
 				break
 			}

@@ -154,7 +154,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 		}
 		log.Logger.Debugf("[ID:%d] [HttpChannel] [reqID:%d] HttpChannel Transport c->[hreq]: %s", lc.GetID(), record.ID, record.URL)
 
-		// rule filter
+		// rule RuleFilter
 		if resp == nil && (sc == nil || hreq.URL.Host != oldHreq.URL.Host) {
 			if sc != nil {
 				sc.Close()
@@ -167,6 +167,13 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 					record.Status = RecordStatusReject
 				} else {
 					record.Status = RecordStatusFailed
+					record.Rule = &Rule{
+						Type:   "FAILED",
+						Policy: "FAILED",
+					}
+					record.Proxy = &Server{
+						Name: "FAILED",
+					}
 				}
 				record.Dumped = false
 				if !passed {

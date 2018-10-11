@@ -63,7 +63,7 @@ func SocksHandle(co net.Conn) {
 		}
 	}
 
-	//filter by Rules and DNS
+	//RuleFilter by Rules and DNS
 	rule, s, err := FilterByReq(req)
 	if err != nil {
 		log.Logger.Errorf("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err)

@@ -1,9 +1,9 @@
 package shuttle
 
 import (
-	"net"
 	"errors"
 	"github.com/sipt/shuttle/log"
+	"net"
 )
 
 const (
@@ -32,6 +32,8 @@ func FilterByReq(req *Request) (rule *Rule, s *Server, err error) {
 		if len(req.IP) == 0 {
 			err = ResolveDomain(req)
 			if err != nil {
+				// skip error
+				log.Logger.Errorf("[FilterByReq] %s", err.Error())
 				return
 			}
 		} else if len(req.DomainHost.Country) == 0 {
@@ -40,8 +42,8 @@ func FilterByReq(req *Request) (rule *Rule, s *Server, err error) {
 	} else if len(req.DomainHost.Country) == 0 {
 		req.DomainHost.Country = GeoLookUp(req.IP)
 	}
-	//Rules filter
-	rule, err = filter(req)
+	//Rules RuleFilter
+	rule, err = RuleFilter(req)
 	if err != nil {
 		return
 	}
