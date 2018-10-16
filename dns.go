@@ -68,10 +68,6 @@ var (
 	_CacheDNS IDNSCache
 )
 
-func GetDNSServers() []net.IP {
-	return _DNS
-}
-
 func InitDNS(dns []net.IP, localDNS []*DNS) error {
 	_DNS = dns
 	cdns := &DNS{
@@ -232,6 +228,10 @@ func resolveDomain(req *Request, s net.IP, c chan *_Reply) (err error) {
 	m.SetQuestion(dns.Fqdn(req.Addr), dns.TypeA)
 	m.RecursionDesired = true
 	conn, err = RealTimeDecorate(conn)
+	if err != nil {
+		return err
+	}
+	conn, err = TimerDecorate(conn, 5*time.Second, 5*time.Second)
 	if err != nil {
 		return err
 	}
