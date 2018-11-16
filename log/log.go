@@ -1,22 +1,50 @@
 package log
 
 import (
-	"github.com/sipt/shuttle/extension/config"
-	"io/ioutil"
-	"path/filepath"
+	"errors"
 	"time"
 )
 
-func init() {
-	//path: $HOME/logs
-	//level: Debug
-	//multiSize: 100MB
-	l, err := NewFileLogger(filepath.Join(config.ShuttleHomeDir, "logs"), LogDebug, 100*1000*1000)
-	if err != nil {
-		ioutil.WriteFile(filepath.Join(config.ShuttleHomeDir, "logs", "error.log"), []byte(err.Error()), 0664)
-		panic(err)
+const (
+	LogModeOff     = "off"
+	LogModeConsole = "console"
+	LogModeFile    = "file"
+)
+
+func InitLogger(logMode, logPath, level string) (err error) {
+	var (
+		ok        bool
+		levelFlag int
+	)
+	switch logMode {
+	case LogModeOff:
+		Logger, err = NewSkipLogger()
+		if err != nil {
+			return errors.New("init logger failed:" + err.Error())
+		}
+	case LogModeConsole:
+		levelFlag, ok = LevelMap[level]
+		if !ok {
+			return errors.New("not support LogLevel:" + level)
+		}
+		Logger, err = NewStdLogger(levelFlag)
+		if err != nil {
+			return errors.New("init logger failed:" + err.Error())
+		}
+	case LogModeFile:
+		levelFlag, ok = LevelMap[level]
+		if !ok {
+			return errors.New("not support LogLevel:" + level)
+		}
+		//multiSize: 100MB
+		Logger, err = NewFileLogger(logPath, levelFlag, 100*1000*1000)
+		if err != nil {
+			return errors.New("init logger failed:" + err.Error())
+		}
+	default:
+		return errors.New("not support LogMode:" + logMode)
 	}
-	Logger = l
+	return
 }
 
 var Logger ILogger = &StdLogger{Level: LogDebug}

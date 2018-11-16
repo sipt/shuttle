@@ -1,20 +1,20 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/controller/api"
-	"strings"
-	"fmt"
-	"net/http"
 	"github.com/sipt/shuttle/controller/web"
 	"io/ioutil"
+	"net/http"
+	"strings"
 )
 
 func StartController(inter, port string, shutdownSignal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string, level string) {
-	if level == "info" {
-		gin.SetMode(gin.ReleaseMode)
-		gin.DefaultWriter = ioutil.Discard
-	}
+	//if level == "info" {
+	gin.SetMode(gin.ReleaseMode)
+	gin.DefaultWriter = ioutil.Discard
+	//}
 	e := gin.Default()
 	e.Use(Cors())
 	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal, upgradeSignal)

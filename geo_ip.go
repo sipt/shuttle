@@ -1,10 +1,10 @@
 package shuttle
 
 import (
-	"net"
-	"github.com/sipt/shuttle/util"
 	"github.com/oschwald/geoip2-golang"
 	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/util"
+	"net"
 )
 
 var geoipDB *geoip2.Reader
@@ -18,7 +18,6 @@ func InitGeoIP(geoipDBFile string) error {
 	var err error
 	geoipDB, err = geoip2.Open(geoipDBFile)
 	if err != nil {
-		log.Logger.Errorf("[GeoIP] init failed [%v]", err)
 		return err
 	}
 	return nil

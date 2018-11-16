@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/sipt/shuttle"
 	_ "github.com/sipt/shuttle/ciphers"
 	"github.com/sipt/shuttle/controller"
@@ -9,7 +11,6 @@ import (
 	"github.com/sipt/shuttle/log"
 	_ "github.com/sipt/shuttle/protocol"
 	_ "github.com/sipt/shuttle/selector"
-	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -31,56 +32,28 @@ var (
 	ReloadConfigSignal = make(chan bool, 1)
 )
 
-func configPath() (fullPath string, err error) {
-	var configFile = "shuttle.yaml"
-	dir := config.ShuttleHomeDir
-	fullPath = dir + string(os.PathSeparator) + configFile
-	rc, err := os.Open(fullPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			err = nil
-		} else {
-			return
-		}
-	} else {
-		rc.Close()
-		return
-	}
-	cc, err := os.Open("shuttle.yaml")
-	if err != nil {
-		return
-	}
-	defer cc.Close()
-	// not exist
-	err = os.MkdirAll(dir, os.ModePerm)
-	if err != nil {
-		return
-	}
-	//
-	dc, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return
-	}
-	defer dc.Close()
-	_, err = io.Copy(dc, cc)
-	return
-}
-
 func main() {
-	configPath, err := configPath()
+	configPath := flag.String("c", "shuttle.yaml", "configuration file path")
+	logMode := flag.String("l", "file", "logMode: off | console | file")
+	logPath := flag.String("lp", "logs", "logs path")
+	flag.Parse()
+	//init Config
+	general, err := shuttle.InitConfig(*configPath)
 	if err != nil {
-		log.Logger.Errorf("[PANIC] [ConfigPath] %s", err.Error())
+		fmt.Println(err.Error())
 		return
 	}
-	general, err := shuttle.InitConfig(configPath)
-	if err != nil {
-		log.Logger.Errorf("[PANIC] [InitConfig] %s", err.Error())
-		return
-	}
+	//init GeoIP
 	var geoIPDB = "GeoLite2-Country.mmdb"
 	err = shuttle.InitGeoIP(geoIPDB)
 	if err != nil {
-		log.Logger.Errorf("[PANIC] [InitGeoIP] %s", err.Error())
+		fmt.Println(err.Error())
+		return
+	}
+	//init Logger
+	err = log.InitLogger(*logMode, *logPath, general.LogLevel)
+	if err != nil {
+		fmt.Println(err.Error())
 		return
 	}
 	// 启动api控制
@@ -99,6 +72,7 @@ func main() {
 		//enable system proxy
 		EnableSystemProxy(general)
 	}
+	fmt.Println("success")
 	for {
 		select {
 		case fileName := <-UpgradeSignal:
