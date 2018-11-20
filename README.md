@@ -93,12 +93,10 @@ Download the zip file from release and unzip it. The Folder structure is shown b
 
 ```shell
 shuttle
-   ├── GeoLite2-Country.mmdb
    ├── RespFiles/ #mock file directory
    ├── shuttle  #shuttle main executable
    ├── shuttle.yaml #config file
-   ├── start.sh #launch script
-   └── view/ #dashboard related directory
+   └── start.sh #launch script
 
 ```
 
@@ -149,12 +147,10 @@ Download the zip file from release and unzip it. The Folder structure is shown b
 
 ```
 shuttle
-   ├── GeoLite2-Country.mmdb
    ├── RespFiles/ #mock file directory
    ├── shuttle  #shuttle main executable
    ├── shuttle.yaml #config file
-   ├── startup.bat #launch script
-   └── view/ #dashboard related directory
+   └── startup.bat #launch script
 
 ```
 
@@ -185,12 +181,10 @@ Download the zip file from release and unzip it. The Folder structure is shown b
 
 ```
 shuttle
-   ├── GeoLite2-Country.mmdb
    ├── RespFiles/ #mock file directory
    ├── shuttle  #shuttle main executable
    ├── shuttle.yaml #config file
-   ├── start.sh #launch script
-   └── view/ #dashboard related directory
+   └── start.sh #launch script
 
 ```
 
@@ -566,3 +560,13 @@ Large file download
 Enter the file name in the input filed, then click download.
 
 The dumped data just shows "The file is too large" instead of data detail for the better webpage performance when the file data size is over 2MB. You can download it for more details.
+
+
+### Build from source
+```sh
+go get -d github.com/sipt/shuttle
+cd $GOPATH/src/github.com/sipt/shuttle/assets
+go generate # package html and GeoLite2-Country.mmdb resources into assets/assets.go
+cd $GOPATH/src/github.com/sipt/shuttle/cmd
+go build
+```

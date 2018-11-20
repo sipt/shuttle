@@ -94,12 +94,12 @@ Shuttle 是基于Go实现的全平台网络代理：
 
 ```
 shuttle
-   ├── GeoLite2-Country.mmdb
-   ├── RespFiles/ #mock文件存方
-   ├── shuttle  #shuttle主程序
-   ├── shuttle.yaml #配置文件
-   ├── start.sh #启动脚本
-   └── view/ #web界面目录
+   ├── GeoLite2-Country.mmdb
+   ├── RespFiles/ #mock文件存方
+   ├── shuttle  #shuttle主程序
+   ├── shuttle.yaml #配置文件
+   ├── start.sh #启动脚本
+   └── view/ #web界面目录
 
 ```
 
@@ -150,12 +150,12 @@ export all_proxy="socks5://127.0.0.1:8081"
 
 ```
 shuttle
-   ├── GeoLite2-Country.mmdb
-   ├── RespFiles/ #mock文件存方
-   ├── shuttle  #shuttle主程序
-   ├── shuttle.yaml #配置文件
-   ├── startup.bat #启动
-   └── view/ #web界面目录
+   ├── GeoLite2-Country.mmdb
+   ├── RespFiles/ #mock文件存方
+   ├── shuttle  #shuttle主程序
+   ├── shuttle.yaml #配置文件
+   ├── startup.bat #启动
+   └── view/ #web界面目录
 
 ```
 
@@ -188,12 +188,12 @@ General:
 
 ```
 shuttle
-   ├── GeoLite2-Country.mmdb
-   ├── RespFiles/ #mock文件存方
-   ├── shuttle  #shuttle主程序
-   ├── shuttle.yaml #配置文件
-   ├── start.sh #启动脚本
-   └── view/ #web界面目录
+   ├── GeoLite2-Country.mmdb
+   ├── RespFiles/ #mock文件存方
+   ├── shuttle  #shuttle主程序
+   ├── shuttle.yaml #配置文件
+   ├── start.sh #启动脚本
+   └── view/ #web界面目录
 
 ```
 
@@ -592,3 +592,13 @@ HTTPS抓包需要几个步骤：
 在输入框内输入文件名，点击下载。
 
 当Dump数据超过2MB时就不会显示数据，只显示文件过大，考虑到网页性能此时最好下载查看。
+
+
+### 从源码编译
+```sh
+go get -d github.com/sipt/shuttle
+cd $GOPATH/src/github.com/sipt/shuttle/assets
+go generate # 打包HTML和GeoLite2-Country.mmdb到assets/assets.go文件
+cd $GOPATH/src/github.com/sipt/shuttle/cmd
+go build
+```

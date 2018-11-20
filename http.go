@@ -2,19 +2,20 @@ package shuttle
 
 import (
 	"bufio"
-	"github.com/sipt/shuttle/log"
-	"github.com/sipt/shuttle/util"
 	"io"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/util"
 )
 
 const (
-	HTTP  = "http"
-	HTTPS = "https"
+	HTTP_SCHEME  = "http"
+	HTTPS_SCHEME = "https"
 )
 
 var allowMitm = false
@@ -79,7 +80,7 @@ func HandleHTTP(co net.Conn) {
 	//case "HTTP/2":
 	//	ProxyHTTP2()
 	//case "HTTP/1.1":
-	if hreq.URL.Scheme == HTTP { // HTTP
+	if hreq.URL.Scheme == HTTP_SCHEME { // HTTP
 		ProxyHTTP(conn, hreq)
 	} else { // HTTPS
 		ProxyHTTPS(conn, hreq)
@@ -102,7 +103,7 @@ func ProxyHTTPS(lc IConn, hreq *http.Request) {
 	rule, server, sc, err := ConnectFilter(hreq, lc.GetID())
 	record := &Record{
 		ID:       util.NextID(),
-		Protocol: HTTPS,
+		Protocol: HTTPS_SCHEME,
 		Created:  time.Now(),
 		Status:   RecordStatusActive,
 		URL:      hreq.URL.String(),
