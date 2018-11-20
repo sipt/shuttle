@@ -94,7 +94,7 @@ Shuttle 是基于Go实现的全平台网络代理：
 
 ```
 shuttle
-   ├── RespFiles/ #mock文件存方
+   ├── RespFiles/ #mock文件存放
    ├── shuttle  #shuttle主程序
    ├── shuttle.yaml #配置文件
    └── start.sh #启动脚本
@@ -148,7 +148,7 @@ export all_proxy="socks5://127.0.0.1:8081"
 
 ```
 shuttle
-   ├── RespFiles/ #mock文件存方
+   ├── RespFiles/ #mock文件存放
    ├── shuttle  #shuttle主程序
    ├── shuttle.yaml #配置文件
    └── startup.bat #启动
@@ -184,7 +184,7 @@ General:
 
 ```
 shuttle
-   ├── RespFiles/ #mock文件存方
+   ├── RespFiles/ #mock文件存放
    ├── shuttle  #shuttle主程序
    ├── shuttle.yaml #配置文件
    └── start.sh #启动脚本
