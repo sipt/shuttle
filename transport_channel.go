@@ -136,9 +136,9 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 			Proxy:   server,
 		}
 		if h.isHttps {
-			record.Protocol = HTTPS_SCHEME
+			record.Protocol = HTTPS
 		} else {
-			record.Protocol = HTTP_SCHEME + "(" + hreq.Method + ")"
+			record.Protocol = HTTP + "(" + hreq.Method + ")"
 		}
 		if hreq.URL.Host == "" {
 			if h.isHttps {
@@ -321,9 +321,9 @@ func ConnectFilter(hreq *http.Request, connID int64) (rule *Rule, server *Server
 	}
 
 	if req.Port == 0 {
-		if hreq.URL.Scheme == HTTP_SCHEME {
+		if hreq.URL.Scheme == HTTP {
 			req.Port = 80
-		} else if hreq.URL.Scheme == HTTPS_SCHEME {
+		} else if hreq.URL.Scheme == HTTPS {
 			req.Port = 443
 		}
 	}

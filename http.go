@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	HTTP_SCHEME  = "http"
-	HTTPS_SCHEME = "https"
+	HTTP  = "http"
+	HTTPS = "https"
 )
 
 var allowMitm = false
@@ -80,7 +80,7 @@ func HandleHTTP(co net.Conn) {
 	//case "HTTP/2":
 	//	ProxyHTTP2()
 	//case "HTTP/1.1":
-	if hreq.URL.Scheme == HTTP_SCHEME { // HTTP
+	if hreq.URL.Scheme == HTTP { // HTTP
 		ProxyHTTP(conn, hreq)
 	} else { // HTTPS
 		ProxyHTTPS(conn, hreq)
@@ -103,7 +103,7 @@ func ProxyHTTPS(lc IConn, hreq *http.Request) {
 	rule, server, sc, err := ConnectFilter(hreq, lc.GetID())
 	record := &Record{
 		ID:       util.NextID(),
-		Protocol: HTTPS_SCHEME,
+		Protocol: HTTPS,
 		Created:  time.Now(),
 		Status:   RecordStatusActive,
 		URL:      hreq.URL.String(),
