@@ -72,15 +72,16 @@ func main() {
 		log.Logger.Errorf("[PANIC] [ConfigPath] %s", err.Error())
 		return
 	}
-	general, err := shuttle.InitConfig(configPath)
-	if err != nil {
-		log.Logger.Errorf("[PANIC] [InitConfig] %s", err.Error())
-		return
-	}
 	var geoIPDB = "GeoLite2-Country.mmdb"
 	err = shuttle.InitGeoIP(geoIPDB)
 	if err != nil {
 		log.Logger.Errorf("[PANIC] [InitGeoIP] %s", err.Error())
+		return
+	}
+	var general *shuttle.General
+	general, err = shuttle.InitConfig(configPath)
+	if err != nil {
+		log.Logger.Errorf("[PANIC] [InitConfig] %s", err.Error())
 		return
 	}
 	// 启动api控制
