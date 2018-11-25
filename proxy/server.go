@@ -1,24 +1,115 @@
-package shuttle
+package proxy
 
 import (
+	"errors"
 	"fmt"
-	"time"
-
+	"github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/log"
+	"time"
 )
 
-var groups []*ServerGroup
-var servers []*Server
+const (
+	ProxyDirect = "DIRECT"
+	ProxyReject = "REJECT"
+	ProxyGlobal = "GLOBAL"
+)
+
+var (
+	groups  []*ServerGroup
+	servers []*Server
+
+	ErrorReject         = errors.New("connection reject")
+	ErrorServerNotFound = errors.New("server or server group not found")
+
+	MockServer   = &Server{Name: "MOCK"}
+	FailedServer = &Server{Name: "FAILED"}
+)
+
+type IProxyConfig interface {
+	GetProxy() map[string][]string
+	SetProxy(map[string][]string)
+	GetProxyGroup() map[string][]string
+	SetProxyGroup(map[string][]string)
+}
+
+type IRequest interface {
+	Network() string
+	Domain() string
+	IP() string
+	Port() string
+	Host() string
+}
+
+func ApplyConfig(config IProxyConfig) (err error) {
+	proxy := config.GetProxy()
+	//Servers
+	ss := make([]*Server, len(proxy)+2)
+	index := 0
+	ss[index] = &Server{Name: ProxyDirect} // 直连
+	index ++
+	ss[index] = &Server{Name: ProxyReject} // 拒绝
+	for k, v := range proxy {
+		index ++
+		if len(v) < 2 {
+			return fmt.Errorf("resolve config file [proxy] [%s] failed", k)
+		}
+		ss[index], err = NewServer(k, v)
+		if err != nil {
+			return
+		}
+	}
+
+	proxyGroup := config.GetProxyGroup()
+	gs := make([]*ServerGroup, len(proxyGroup))
+	index = 0
+	for k := range proxyGroup {
+		gs[index] = &ServerGroup{Name: k}
+		index ++
+	}
+	getServer := func(name string) interface{} {
+		for i := range ss {
+			if ss[i].Name == name {
+				return ss[i]
+			}
+		}
+		for i := range gs {
+			if gs[i].Name == name {
+				return gs[i]
+			}
+		}
+		return nil
+	}
+	var cs []string
+	for _, v := range gs {
+		cs = proxyGroup[v.Name]
+		if len(cs) < 2 {
+			return fmt.Errorf("resolve config file [proxy_group] [%s] failed", v.Name)
+		}
+		v.SelectType = cs[0]
+		v.Servers = make([]interface{}, len(cs)-1)
+		for i := range v.Servers {
+			v.Servers[i] = getServer(cs[i+1])
+			if v.Servers[i] == nil {
+				return fmt.Errorf("resolve config file [proxy_group] [%s] [%s] not found", v.Name, cs[i+1])
+			}
+		}
+	}
+	err = InitServers(gs, ss)
+	if err != nil {
+		return fmt.Errorf("init server failed: %v", err)
+	}
+	return nil
+}
 
 func InitServers(gs []*ServerGroup, ss []*Server) error {
 	g := &ServerGroup{
-		Name:       PolicyGlobal,
+		Name:       ProxyGlobal,
 		SelectType: "select",
 		Servers:    make([]interface{}, len(gs)+len(ss)),
 	}
 	index := 0
 	for i := range ss {
-		if ss[i].Name != PolicyDirect && ss[i].Name != PolicyReject {
+		if ss[i].Name != ProxyDirect && ss[i].Name != ProxyReject {
 			g.Servers[index] = ss[i]
 			index ++
 		}
@@ -31,7 +122,7 @@ func InitServers(gs []*ServerGroup, ss []*Server) error {
 	gs = append(gs, g)
 	var err error
 	for i, v := range gs {
-		v.Selector, err = seletors[gs[i].SelectType](v)
+		v.Selector, err = GetSelector(gs[i].SelectType, v)
 		if err != nil {
 			return err
 		}
@@ -81,7 +172,7 @@ type NewProtocol func([]string) (IProtocol, error)
 
 type IProtocol interface {
 	//获取服务器连接
-	Conn(request *Request) (IConn, error)
+	Conn(request IRequest) (conn.IConn, error)
 }
 
 type ServerGroup struct {
@@ -121,7 +212,7 @@ type Server struct {
 	Name          string
 	Rtt           time.Duration
 	ProxyProtocol string
-	IProtocol `json:"-"`
+	IProtocol     `json:"-"`
 }
 
 func (s *Server) GetName() string {
@@ -131,11 +222,11 @@ func (s *Server) GetServer() (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) Conn(req *Request) (IConn, error) {
+func (s *Server) Conn(req IRequest) (conn.IConn, error) {
 	switch s.Name {
-	case PolicyDirect:
-		return DirectConn(req)
-	case PolicyReject:
+	case ProxyDirect:
+		return conn.DirectConn(req.Network(), req.Host())
+	case ProxyReject:
 		return nil, ErrorReject
 	}
 	return s.IProtocol.Conn(req)

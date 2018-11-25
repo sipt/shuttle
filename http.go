@@ -2,7 +2,11 @@ package shuttle
 
 import (
 	"bufio"
+	"github.com/sipt/shuttle/config"
+	connect "github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/proxy"
+	rule2 "github.com/sipt/shuttle/rule"
 	"github.com/sipt/shuttle/util"
 	"io"
 	"net"
@@ -44,22 +48,26 @@ func GetMitMRules() []string { // For controller API
 }
 func AppendMitMRules(r string) { // For controller API
 	MitMRules = append(MitMRules, r)
-	SetMimt(&Mitm{Rules: MitMRules})
+	conf := config.CurrentConfig()
+	conf.Mitm.Rules = MitMRules
+	config.SaveConfig(config.CurrentConfigFile(), conf)
 }
 func RemoveMitMRules(r string) { // For controller API
 	for i, v := range MitMRules {
 		if v == r {
 			MitMRules[i] = MitMRules[len(MitMRules)-1]
 			MitMRules = MitMRules[:len(MitMRules)-1]
-			SetMimt(&Mitm{Rules: MitMRules})
+			conf := config.CurrentConfig()
+			conf.Mitm.Rules = MitMRules
+			config.SaveConfig(config.CurrentConfigFile(), conf)
 			return
 		}
 	}
 }
 
 func HandleHTTP(co net.Conn) {
-	log.Logger.Debug("start shuttle.IConn wrap net.Con")
-	conn, err := NewDefaultConn(co, TCP)
+	log.Logger.Debug("start conn.IConn wrap net.Con")
+	conn, err := connect.NewDefaultConn(co, connect.TCP)
 	if err != nil {
 		log.Logger.Errorf("[HTTP] shuttle.IConn wrap net.Conn failed: %v", err)
 		return
@@ -87,10 +95,10 @@ func HandleHTTP(co net.Conn) {
 	//}
 }
 
-func ProxyHTTP(lc IConn, hreq *http.Request) {
+func ProxyHTTP(lc connect.IConn, hreq *http.Request) {
 	HttpTransport(lc, nil, allowDump, hreq)
 }
-func ProxyHTTPS(lc IConn, hreq *http.Request) {
+func ProxyHTTPS(lc connect.IConn, hreq *http.Request) {
 	// Handshake
 	_, err := lc.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n"))
 	if err != nil {
@@ -117,13 +125,8 @@ func ProxyHTTPS(lc IConn, hreq *http.Request) {
 			record.Status = RecordStatusReject
 		} else {
 			record.Status = RecordStatusFailed
-			record.Rule = &Rule{
-				Type:   "FAILED",
-				Policy: "FAILED",
-			}
-			record.Proxy = &Server{
-				Name: "FAILED",
-			}
+			record.Rule = rule2.FailedRule
+			record.Proxy = proxy.FailedServer
 		}
 		boxChan <- &Box{Op: RecordAppend, Value: record}
 		return
@@ -174,7 +177,7 @@ func ProxyHTTP2() {
 
 }
 
-func prepareRequest(conn IConn) (*http.Request, error) {
+func prepareRequest(conn connect.IConn) (*http.Request, error) {
 	br := bufio.NewReader(conn)
 	hreq, err := http.ReadRequest(br)
 	if err != nil {
@@ -196,7 +199,7 @@ func IsPass(host, port, ip string) bool {
 	if host == ControllerDomain {
 		return true
 	}
-	if (host == "localhost" || host == "127.0.0.1" || ip == "127.0.0.1") && controllerPort == port {
+	if (host == "localhost" || host == "127.0.0.1" || ip == "127.0.0.1") && ControllerPort == port {
 		return true
 	}
 	return false

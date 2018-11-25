@@ -1,20 +1,23 @@
 package protocol
 
 import (
-	"net"
-	"github.com/sipt/shuttle"
-	"strconv"
 	"bytes"
 	"fmt"
+	"github.com/sipt/shuttle"
 	"github.com/sipt/shuttle/ciphers"
+	connect "github.com/sipt/shuttle/conn"
+	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/log"
+	sproxy "github.com/sipt/shuttle/proxy"
+	"net"
+	"strconv"
 )
 
 func init() {
-	shuttle.RegisterProxyProtocolCreator("ss", NewSsProtocol)
+	sproxy.RegisterProxyProtocolCreator("ss", NewSsProtocol)
 }
 
-func NewSsProtocol(params []string) (shuttle.IProtocol, error) {
+func NewSsProtocol(params []string) (sproxy.IProtocol, error) {
 	//[]string{"addr", "port", "method", "password"}
 	if len(params) != 4 {
 		log.Logger.Errorf(`[SOCKS5 Server] init socks5 server failed params must be ["addr", "port", "method", "password"], but: %v`, params)
@@ -36,32 +39,30 @@ type ssProtocol struct {
 	Password string
 }
 
-func (s *ssProtocol) Conn(req *shuttle.Request) (shuttle.IConn, error) {
+func (s *ssProtocol) Conn(req sproxy.IRequest) (connect.IConn, error) {
 	network := req.Network()
-	addr := s.Addr
-	ssReq := &shuttle.Request{
-		Addr: s.Addr,
-	}
-	err := shuttle.ResolveDomain(ssReq)
+
+	var addr = s.Addr
+	answer, err := dns.ResolveDomainByCache(s.Addr)
 	if err != nil {
 		log.Logger.Errorf("[SsProtocol] [Conn] Resolve domain failed [%s]: %v", s.Addr, err)
-	} else {
-		addr = ssReq.IP.String()
+	} else if answer != nil {
+		addr = answer.IPs[0]
 	}
-	conn, err := net.DialTimeout(network, net.JoinHostPort(addr, s.Port), shuttle.DefaultTimeOut)
+	conn, err := net.DialTimeout(network, net.JoinHostPort(addr, s.Port), connect.DefaultTimeOut)
 	if err != nil {
 		return nil, err
 	}
-	c, err := shuttle.DefaultDecorate(conn, network)
+	c, err := connect.DefaultDecorate(conn, network)
 	if err != nil {
 		return nil, err
 	}
-	c, err = shuttle.TrafficDecorate(c)
+	c, err = connect.TrafficDecorate(c)
 	if err != nil {
 		return nil, err
 	}
-	if network == shuttle.UDP {
-		c, err = shuttle.BufferDecorate(c)
+	if network == connect.UDP {
+		c, err = connect.BufferDecorate(c)
 		if err != nil {
 			return nil, err
 		}
@@ -70,13 +71,7 @@ func (s *ssProtocol) Conn(req *shuttle.Request) (shuttle.IConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	var addrBytes []byte
-	if len(req.Addr) > 0 {
-		addrBytes = []byte(req.Addr)
-	} else {
-		addrBytes = req.IP
-	}
-	rawAddr, err := AddressEncoding(req.Atyp, addrBytes, req.Port)
+	rawAddr, err := AddressEncoding(req)
 	if err != nil {
 		return nil, err
 	}
@@ -87,19 +82,23 @@ func (s *ssProtocol) Conn(req *shuttle.Request) (shuttle.IConn, error) {
 	return rc, nil
 }
 
-func DomainEncodeing(host string) ([]byte, error) {
-	domain, port, err := net.SplitHostPort(host)
-	if err != nil {
-		return nil, err
+func AddressEncoding(req sproxy.IRequest) ([]byte, error) {
+	var atyp uint8 = shuttle.AddrTypeDomain
+	ip := net.ParseIP(req.Domain())
+	addr := []byte(req.Domain())
+	if ip != nil {
+		if len(ip) == net.IPv4len {
+			atyp = shuttle.AddrTypeIPv4
+		} else {
+			atyp = shuttle.AddrTypeIPv6
+		}
+		addr = []byte(ip)
 	}
-	p, err := strconv.ParseUint(port, 10, 16)
-	if err != nil {
-		return nil, err
-	}
-	return AddressEncoding(shuttle.AddrTypeDomain, []byte(domain), uint16(p))
-}
 
-func AddressEncoding(atyp uint8, addr []byte, port uint16) ([]byte, error) {
+	port, err := strconv.ParseUint(req.Port(), 10, 16)
+	if err != nil {
+		return nil, err
+	}
 	portBytes := []byte{byte(port >> 8), byte(port & 0xff)}
 	buffer := bytes.NewBuffer([]byte{})
 	switch atyp {

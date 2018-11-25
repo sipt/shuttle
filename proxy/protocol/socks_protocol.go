@@ -1,18 +1,22 @@
 package protocol
 
 import (
-	"net"
-	"github.com/sipt/shuttle"
-	"golang.org/x/net/proxy"
-	"github.com/sipt/shuttle/log"
 	"fmt"
+	"net"
+
+	connect "github.com/sipt/shuttle/conn"
+	"github.com/sipt/shuttle/dns"
+	"github.com/sipt/shuttle/log"
+	sproxy "github.com/sipt/shuttle/proxy"
+
+	"golang.org/x/net/proxy"
 )
 
 func init() {
-	shuttle.RegisterProxyProtocolCreator("socks", NewSocks5Protocol)
+	sproxy.RegisterProxyProtocolCreator("socks", NewSocks5Protocol)
 }
 
-func NewSocks5Protocol(params []string) (shuttle.IProtocol, error) {
+func NewSocks5Protocol(params []string) (sproxy.IProtocol, error) {
 	//[]string{"addr", "port", "username", "password"}
 	if len(params) != 4 && len(params) != 2 {
 		log.Logger.Errorf(`[SOCKS5 Server] init socks5 server failed params must be ["addr", "port"] or ["addr", "port", "username", "password"], but: %v`, params)
@@ -32,7 +36,7 @@ func NewSocks5Protocol(params []string) (shuttle.IProtocol, error) {
 //implement protocol.IServer
 //type IServer interface {
 //	//获取服务器连接
-//	Conn(request shuttle.Request) (shuttle.IConn, error)
+//	Conn(request shuttle.SocksRequest) (shuttle.IConn, error)
 //}
 type socksProtocol struct {
 	Addr     string
@@ -41,32 +45,35 @@ type socksProtocol struct {
 	Password string
 }
 
-func (s *socksProtocol) Conn(request *shuttle.Request) (shuttle.IConn, error) {
+func (s *socksProtocol) Conn(req sproxy.IRequest) (connect.IConn, error) {
 	var auth *proxy.Auth
 	if len(s.UserName) > 0 {
 		auth = &proxy.Auth{User: s.UserName, Password: s.Password}
 	}
-	addr := s.Addr
-	ssReq := &shuttle.Request{
-		Addr: s.Addr,
-	}
-	err := shuttle.ResolveDomain(ssReq)
+	var addr = s.Addr
+	answer, err := dns.ResolveDomainByCache(s.Addr)
 	if err != nil {
 		log.Logger.Errorf("[SocksProtocol] [Conn] Resolve domain failed [%s]: %v", s.Addr, err)
-	} else {
-		addr = ssReq.IP.String()
+	} else if answer != nil {
+		addr = answer.IPs[0]
 	}
-	dialer, err := proxy.SOCKS5(request.Network(), net.JoinHostPort(addr, s.Port), auth, nil)
+	dialer, err := proxy.SOCKS5(req.Network(), net.JoinHostPort(addr, s.Port), auth, nil)
 	if err != nil {
 		return nil, err
 	}
-	conn, err := dialer.Dial(request.Network(), request.Host2())
+	addr = req.IP()
+	if addr == "" {
+		addr = req.Domain()
+	}
+	addr = net.JoinHostPort(addr, req.Port())
+	conn, err := dialer.Dial(req.Network(), addr)
 	if err != nil {
 		return nil, err
 	}
-	c, err := shuttle.DefaultDecorate(conn, request.Network())
+	c, err := connect.DefaultDecorate(conn, req.Network())
 	if err != nil {
 		return nil, err
 	}
-	return shuttle.TrafficDecorate(c)
+	return connect.TrafficDecorate(c)
+
 }

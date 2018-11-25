@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var dnsServers []net.IP
+var dnsServers []string
 
 type Answer struct {
 	MatchType string
@@ -23,27 +23,61 @@ type Answer struct {
 }
 
 //resolve domain
-func ResolveDomain(domain string) (*Answer, error) {
+func ResolveDomain(domain string) (answer *Answer, err error) {
+LOOP:
 	for _, v := range dnsConfig.localDNS {
 		switch v.MatchType {
 		case MatchTypeDomainSuffix:
 			if strings.HasSuffix(domain, v.Domain) {
 				log.Logger.Debug("[DNS] [Local] ", v.String())
-				return localResolve(v, domain)
+				answer, err = localResolve(v, domain)
+				break LOOP
 			}
 		case MatchTypeDomain:
 			if domain == v.Domain {
 				log.Logger.Debug("[DNS] [Local] ", v.String())
-				return localResolve(v, domain)
+				answer, err = localResolve(v, domain)
+				break LOOP
 			}
 		case MatchTypeDomainKeyword:
 			if strings.Index(domain, v.Domain) >= 0 {
 				log.Logger.Debug("[DNS] [Local] ", v.String())
-				return localResolve(v, domain)
+				answer, err = localResolve(v, domain)
+				break LOOP
 			}
 		}
 	}
-	return nil, nil
+	if answer == nil && err == nil {
+		//connect to DNS server
+		answer = &Answer{
+			MatchType: MatchNone,
+			Domain:    domain,
+		}
+		start := time.Now()
+		var err error
+		answer.IPs, err = directResolve(dnsConfig.servers, domain)
+		if err != nil {
+			log.Logger.Errorf("[DNS] [direct] resolve domain [%s] failed: %s", domain, err.Error())
+			return nil, err
+		}
+		answer.Duration = time.Now().Sub(start)
+	}
+	if answer != nil {
+		if len(answer.IPs) == 0 {
+			answer = nil
+		} else {
+			answer.Country = GeoLookUp(answer.IPs[0])
+		}
+	}
+	return
+}
+
+//resolve ip
+func ResolveIP(ip string) (*Answer, error) {
+	return &Answer{
+		IPs:     []string{ip},
+		Country: GeoLookUp(ip),
+	}, nil
 }
 
 func localResolve(d *DNS, domain string) (*Answer, error) {

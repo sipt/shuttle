@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 )
 
 const (
@@ -16,6 +17,7 @@ const (
 	MatchTypeDomainSuffix  = "DOMAIN-SUFFIX"
 	MatchTypeDomain        = "DOMAIN"
 	MatchTypeDomainKeyword = "DOMAIN-KEYWORD"
+	MatchNone              = "NONE"
 )
 
 type IDNSConfig interface {
@@ -26,6 +28,8 @@ type IDNSConfig interface {
 
 	GetControllerDomain() string
 	GetControllerPort() string
+
+	GetGeoIPDBFile() string
 }
 
 type DNS struct {
@@ -59,7 +63,7 @@ func (d *DNS) String() string {
 }
 
 type DNSConfig struct {
-	servers  []net.IP
+	servers  []string
 	localDNS []*DNS
 }
 
@@ -72,13 +76,19 @@ func ApplyConfig(config IDNSConfig) error {
 	if len(servers) == 0 {
 		return errors.New("[DNS] [InitDNS] servers is empty")
 	}
-	dnsConfig.servers = make([]net.IP, len(servers))
+	dnsConfig.servers = make([]string, len(servers))
 	for i, s := range servers {
-		dnsConfig.servers[i] = net.ParseIP(s)
-		if dnsConfig.servers[i] == nil {
+		dnsConfig.servers[i] = s
+		if net.ParseIP(s) == nil {
 			return fmt.Errorf("[DNS] [InitDNS] %s is not a IP address", s)
 		}
 	}
+	//Geo IP
+	err := InitGeoIP(config.GetGeoIPDBFile())
+	if err != nil {
+		return err
+	}
+
 	//Local DNS
 	inputs := config.GetLocalDNS()
 	localDNS := make([]*DNS, len(inputs))
@@ -96,14 +106,15 @@ func ApplyConfig(config IDNSConfig) error {
 		}
 		switch v[2] {
 		case DNSTypeStatic:
-			localDNS[i].IPs = []string{v[3]}
+			localDNS[i].IPs = strings.Split(v[3], ",")
 		case DNSTypeDirect:
-			localDNS[i].DNSs = []string{v[3]}
+			localDNS[i].DNSs = strings.Split(v[3], ",")
 		case DNSTypeRemote:
 		default:
 			return fmt.Errorf("resolve config file [host] not support DNSType [%s]", v[1])
 		}
 	}
 	dnsConfig.localDNS = localDNS
+	InitDNSCache()
 	return nil
 }

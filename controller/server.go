@@ -6,11 +6,20 @@ import (
 	"github.com/sipt/shuttle/controller/api"
 	"github.com/sipt/shuttle/controller/web"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
 )
 
-func StartController(inter, port string, shutdownSignal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string, level string) {
+type IControllerConfig interface {
+	GetControllerInterface() string
+	SetControllerInterface(string)
+	GetControllerPort() string
+	SetControllerPort(string)
+	GetLogLevel() string
+}
+
+func StartController(config IControllerConfig, shutdownSignal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string) {
 	//if level == "info" {
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = ioutil.Discard
@@ -19,7 +28,7 @@ func StartController(inter, port string, shutdownSignal chan bool, reloadConfigS
 	e.Use(Cors())
 	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal, upgradeSignal)
 	web.WebRoute(e)
-	e.Run(inter + ":" + port)
+	e.Run(net.JoinHostPort(config.GetControllerInterface(), config.GetControllerPort()))
 }
 
 func Cors() gin.HandlerFunc {

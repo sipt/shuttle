@@ -2,6 +2,9 @@ package dns
 
 import (
 	"container/heap"
+	"github.com/sipt/shuttle/log"
+	"net"
+	"strings"
 	"sync"
 	"time"
 )
@@ -11,11 +14,19 @@ const CacheTTL = 10 * time.Minute
 var dnsCacheManager *CacheManager
 
 func InitDNSCache() {
-	dnsCacheManager = NewCacheManager()
+	if dnsCacheManager == nil {
+		dnsCacheManager = NewCacheManager()
+	} else {
+		dnsCacheManager.Clear()
+	}
 }
 
 // resolve domain and through the DNS-Cache
 func ResolveDomainByCache(domain string) (*Answer, error) {
+	if net.ParseIP(domain) != nil {
+		return nil, nil
+	}
+
 	matched := dnsCacheManager.Range(func(data interface{}) bool {
 		answer := data.(*Answer)
 		if answer.Domain == domain {
@@ -23,16 +34,35 @@ func ResolveDomainByCache(domain string) (*Answer, error) {
 		}
 		return false
 	})
+	var answer *Answer
 	if matched != nil {
-		return matched.(*Answer), nil
+		answer = matched.(*Answer)
+		log.Logger.Infof("[DNS] [Cache] resolve [%s] -> [%s] [%s]", domain, strings.Join(answer.IPs, ","), answer.Country)
+		return answer, nil
 	}
 	//cache miss
 	answer, err := ResolveDomain(domain)
 	if err != nil {
 		return nil, err
 	}
-	dnsCacheManager.Push(answer, CacheTTL)
+	if answer != nil {
+		dnsCacheManager.Push(answer, CacheTTL)
+		log.Logger.Infof("[DNS] [Cache] resolve [%s] -> [%s] [%s]", domain, strings.Join(answer.IPs, ","), answer.Country)
+	}
 	return answer, nil
+}
+
+func ClearDNSCache() {
+	dnsCacheManager.Clear()
+}
+
+func DNSCacheList() []*Answer {
+	list := make([]*Answer, 0, 64)
+	dnsCacheManager.Range(func(data interface{}) bool {
+		list = append(list, data.(*Answer))
+		return false
+	})
+	return list
 }
 
 type CacheEntity struct {

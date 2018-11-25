@@ -1,7 +1,10 @@
 package shuttle
 
 import (
+	"github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/proxy"
+	"github.com/sipt/shuttle/rule"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -50,6 +53,13 @@ func init() {
 			}(box)
 		}
 	}()
+
+	//init traffic
+	conn.InitTrafficChannel(func(recordID int64, n int) {
+		boxChan <- &Box{recordID, RecordUp, n}
+	}, func(recordID int64, n int) {
+		boxChan <- &Box{recordID, RecordDown, n}
+	})
 }
 
 //注册推送
@@ -106,8 +116,8 @@ type Record struct {
 	ID       int64
 	Protocol string
 	Created  time.Time
-	Proxy    *Server
-	Rule     *Rule
+	Proxy    *proxy.Server
+	Rule     *rule.Rule
 	Status   string
 	Up       int
 	Down     int

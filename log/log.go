@@ -11,10 +11,15 @@ const (
 	LogModeFile    = "file"
 )
 
-func InitLogger(logMode, logPath, level string) (err error) {
+type ILogConfig interface {
+	GetLogLevel() string
+}
+
+func InitLogger(logMode, logPath string, logConfig ILogConfig) (err error) {
 	var (
 		ok        bool
 		levelFlag int
+		level     = logConfig.GetLogLevel()
 	)
 	switch logMode {
 	case LogModeOff:
