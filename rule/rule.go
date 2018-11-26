@@ -50,6 +50,7 @@ type IRuleConfig interface {
 
 func ApplyConfig(config IRuleConfig) error {
 	rules = make([]*Rule, len(config.GetRule()))
+	ipCidrMap = make(map[string]*net.IPNet, 16)
 	for i, v := range config.GetRule() {
 		if len(v) != 4 {
 			return fmt.Errorf("resolve config file [rule] %v length must be 4", v)
@@ -63,7 +64,6 @@ func ApplyConfig(config IRuleConfig) error {
 		if _, err := proxy.GetServer(v[2]); err != nil {
 			return fmt.Errorf("resolve config file [rule] not support policy[%s]", v[2])
 		}
-		ipCidrMap = make(map[string]*net.IPNet, 16)
 		if v[0] == RuleIPCIDR {
 			_, ipNet, err := net.ParseCIDR(v[1])
 			if err != nil {
@@ -131,6 +131,7 @@ func RuleFilter(req IRequest) (*Rule, error) {
 			}
 		case RuleIPCIDR:
 			if len(req.IP()) > 0 && ipCidrMap[v.Value].Contains(net.ParseIP(req.IP())) {
+				fmt.Println(v.Value, ":", req.IP(), ipCidrMap[v.Value].Contains(net.ParseIP(req.IP())))
 				return v, nil
 			}
 		case RuleGeoIP:

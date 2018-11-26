@@ -2,6 +2,7 @@ package conn
 
 import (
 	"bytes"
+	"context"
 	"net"
 	"time"
 
@@ -19,6 +20,7 @@ func DefaultDecorate(c net.Conn, network string) (IConn, error) {
 		Conn:    c,
 		ID:      id,
 		Network: network,
+		context: context.Background(),
 	}, nil
 }
 
@@ -27,6 +29,7 @@ func DefaultDecorateForTls(c net.Conn, network string, id int64) (IConn, error) 
 		Conn:    c,
 		ID:      id,
 		Network: network,
+		context: context.Background(),
 	}, nil
 }
 
@@ -35,6 +38,7 @@ type DefaultConn struct {
 	ID       int64
 	RecordID int64
 	Network  string
+	context  context.Context
 }
 
 func (c *DefaultConn) GetID() int64 {
@@ -55,6 +59,12 @@ func (c *DefaultConn) Flush() (int, error) {
 
 func (c *DefaultConn) GetNetwork() string {
 	return c.Network
+}
+func (c *DefaultConn) Context() context.Context {
+	return c.context
+}
+func (c *DefaultConn) SetContext(ctx context.Context) {
+	c.context = ctx
 }
 
 func (c *DefaultConn) Read(b []byte) (n int, err error) {

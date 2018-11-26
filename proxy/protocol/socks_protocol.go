@@ -55,7 +55,7 @@ func (s *socksProtocol) Conn(req sproxy.IRequest) (connect.IConn, error) {
 	if err != nil {
 		log.Logger.Errorf("[SocksProtocol] [Conn] Resolve domain failed [%s]: %v", s.Addr, err)
 	} else if answer != nil {
-		addr = answer.IPs[0]
+		addr = answer.GetIP()
 	}
 	dialer, err := proxy.SOCKS5(req.Network(), net.JoinHostPort(addr, s.Port), auth, nil)
 	if err != nil {

@@ -22,6 +22,15 @@ type Answer struct {
 	Duration  time.Duration
 }
 
+func (a *Answer) GetIP() string {
+	if a == nil {
+		return ""
+	} else if len(a.IPs) == 0 {
+		return ""
+	}
+	return a.IPs[0]
+}
+
 //resolve domain
 func ResolveDomain(domain string) (answer *Answer, err error) {
 LOOP:
@@ -67,7 +76,7 @@ LOOP:
 		if len(answer.IPs) == 0 {
 			answer = nil
 		} else {
-			answer.Country = GeoLookUp(answer.IPs[0])
+			answer.Country = GeoLookUp(answer.GetIP())
 		}
 	}
 	return

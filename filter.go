@@ -40,6 +40,11 @@ func FilterByReq(req IRequest) (r *rule.Rule, s *proxy.Server, err error) {
 	if err != nil {
 		return
 	}
+	if r == rule.RejectRule {
+		s, _ = proxy.GetServer(r.Policy)
+		err = ErrorReject
+		return
+	}
 	if r == nil {
 		log.Logger.Infof("[RULE] [ID:%d] [%s] rule: [%v]", req.ID(), req.Host(), rule.PolicyDirect)
 		s, err = proxy.GetServer(rule.PolicyDirect) // 没有匹配规则，直连

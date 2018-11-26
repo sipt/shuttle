@@ -102,6 +102,9 @@ func (h *HttpChannel) Transport(lc, sc connect.IConn, first *http.Request) (err 
 	)
 	if sc != nil {
 		scBuf = bufio.NewReader(sc)
+		ctx := sc.Context()
+		rule, _ = ctx.Value("rule").(*rule2.Rule)
+		server, _ = ctx.Value("server").(*proxy.Server)
 	}
 	defer func() {
 		lc.Close()
@@ -158,7 +161,7 @@ func (h *HttpChannel) Transport(lc, sc connect.IConn, first *http.Request) (err 
 		log.Logger.Debugf("[ID:%d] [HttpChannel] [reqID:%d] HttpChannel Transport c->[hreq]: %s", lc.GetID(), record.ID, record.URL)
 
 		// rule RuleFilter
-		if resp == nil && (sc == nil || hreq.URL.Host != oldHreq.URL.Host) {
+		if resp == nil && (sc == nil || (oldHreq != nil && hreq.URL.Host != oldHreq.URL.Host)) {
 			if sc != nil {
 				sc.Close()
 			}

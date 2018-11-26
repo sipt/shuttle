@@ -54,6 +54,9 @@ func (r *SocksRequest) Domain() string {
 func (r *SocksRequest) IP() string {
 	if len(r.ip) > 0 {
 		return r.ip.String()
+	} else if r.answer != nil {
+		r.ip = net.ParseIP(r.answer.GetIP())
+		return r.ip.String()
 	}
 	return ""
 }
@@ -80,16 +83,15 @@ func (r *SocksRequest) Addr() string {
 	if len(r.addr) > 0 {
 		return r.addr
 	}
-	return r.ip.String()
+	return r.IP()
 }
 
 //return [domain/ip]:[port]
 func (r *SocksRequest) Host() string {
-	if len(r.ip) > 0 {
-		return net.JoinHostPort(r.ip.String(), strconv.FormatInt(int64(r.port), 10))
-	} else {
-		return net.JoinHostPort(r.addr, strconv.FormatInt(int64(r.port), 10))
+	if len(r.IP()) > 0 {
+		return net.JoinHostPort(r.IP(), strconv.FormatInt(int64(r.port), 10))
 	}
+	return net.JoinHostPort(r.Addr(), strconv.FormatInt(int64(r.port), 10))
 }
 
 func NewHttpRequest(network string, domain string, ip string, port string, protocol string,
@@ -125,6 +127,9 @@ func (r *HttpRequest) Domain() string {
 	return r.domain
 }
 func (r *HttpRequest) IP() string {
+	if len(r.ip) == 0 && r.answer != nil {
+		r.ip = r.answer.GetIP()
+	}
 	return r.ip
 }
 func (r *HttpRequest) Port() string {
@@ -160,13 +165,8 @@ func (r *HttpRequest) Addr() string {
 
 //return [domain/ip]:[port]
 func (r *HttpRequest) Host() string {
-	if len(r.ip) > 0 {
-		return net.JoinHostPort(r.ip, r.Port())
-	} else {
-		if r.answer != nil && len(r.answer.IPs) > 0 {
-			r.ip = r.answer.IPs[0]
-			return net.JoinHostPort(r.ip, r.Port())
-		}
-		return net.JoinHostPort(r.domain, r.Port())
+	if len(r.IP()) > 0 {
+		return net.JoinHostPort(r.IP(), r.Port())
 	}
+	return net.JoinHostPort(r.Addr(), r.Port())
 }

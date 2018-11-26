@@ -15,12 +15,7 @@ type ILogConfig interface {
 	GetLogLevel() string
 }
 
-func InitLogger(logMode, logPath string, logConfig ILogConfig) (err error) {
-	var (
-		ok        bool
-		levelFlag int
-		level     = logConfig.GetLogLevel()
-	)
+func InitLogger(logMode, logPath string) (err error) {
 	switch logMode {
 	case LogModeOff:
 		Logger, err = NewSkipLogger()
@@ -28,21 +23,13 @@ func InitLogger(logMode, logPath string, logConfig ILogConfig) (err error) {
 			return errors.New("init logger failed:" + err.Error())
 		}
 	case LogModeConsole:
-		levelFlag, ok = LevelMap[level]
-		if !ok {
-			return errors.New("not support LogLevel:" + level)
-		}
-		Logger, err = NewStdLogger(levelFlag)
+		Logger, err = NewStdLogger(LogInfo)
 		if err != nil {
 			return errors.New("init logger failed:" + err.Error())
 		}
 	case LogModeFile:
-		levelFlag, ok = LevelMap[level]
-		if !ok {
-			return errors.New("not support LogLevel:" + level)
-		}
 		//multiSize: 100MB
-		Logger, err = NewFileLogger(logPath, levelFlag, 100*1000*1000)
+		Logger, err = NewFileLogger(logPath, LogInfo, 100*1000*1000)
 		if err != nil {
 			return errors.New("init logger failed:" + err.Error())
 		}
@@ -50,6 +37,15 @@ func InitLogger(logMode, logPath string, logConfig ILogConfig) (err error) {
 		return errors.New("not support LogMode:" + logMode)
 	}
 	return
+}
+
+func ApplyConfig(logConfig ILogConfig) error {
+	levelFlag, ok := LevelMap[logConfig.GetLogLevel()]
+	if !ok {
+		return errors.New("not support LogLevel:" + logConfig.GetLogLevel())
+	}
+	Logger.SetLevel(levelFlag)
+	return nil
 }
 
 var Logger ILogger = &StdLogger{Level: LogDebug}

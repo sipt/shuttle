@@ -23,6 +23,7 @@ var (
 
 	MockServer   = &Server{Name: "MOCK"}
 	FailedServer = &Server{Name: "FAILED"}
+	RejectServer = &Server{Name: "REJECT"}
 )
 
 type IProxyConfig interface {
@@ -233,6 +234,9 @@ func (s *Server) Conn(req IRequest) (conn.IConn, error) {
 }
 
 func GetServer(name string) (*Server, error) {
+	if name == "REJECT" {
+		return RejectServer, nil
+	}
 	for _, v := range groups {
 		if v.Name == name {
 			return v.Selector.Get()
@@ -243,5 +247,5 @@ func GetServer(name string) (*Server, error) {
 			return servers[i], nil
 		}
 	}
-	return nil, ErrorServerNotFound
+	return FailedServer, ErrorServerNotFound
 }

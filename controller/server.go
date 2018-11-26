@@ -1,15 +1,19 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/controller/api"
 	"github.com/sipt/shuttle/controller/web"
+	"github.com/sipt/shuttle/log"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
 )
+
+var server *http.Server
 
 type IControllerConfig interface {
 	GetControllerInterface() string
@@ -28,7 +32,17 @@ func StartController(config IControllerConfig, shutdownSignal chan bool, reloadC
 	e.Use(Cors())
 	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal, upgradeSignal)
 	web.WebRoute(e)
-	e.Run(net.JoinHostPort(config.GetControllerInterface(), config.GetControllerPort()))
+	server = &http.Server{
+		Addr:    net.JoinHostPort(config.GetControllerInterface(), config.GetControllerPort()),
+		Handler: e,
+	}
+	server.ListenAndServe()
+}
+
+func ShutdownController() error {
+	log.Logger.Infof("Stopped Controller goroutine...")
+	ctx := context.Background()
+	return server.Shutdown(ctx)
 }
 
 func Cors() gin.HandlerFunc {

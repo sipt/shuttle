@@ -47,7 +47,7 @@ func (s *ssProtocol) Conn(req sproxy.IRequest) (connect.IConn, error) {
 	if err != nil {
 		log.Logger.Errorf("[SsProtocol] [Conn] Resolve domain failed [%s]: %v", s.Addr, err)
 	} else if answer != nil {
-		addr = answer.IPs[0]
+		addr = answer.GetIP()
 	}
 	conn, err := net.DialTimeout(network, net.JoinHostPort(addr, s.Port), connect.DefaultTimeOut)
 	if err != nil {

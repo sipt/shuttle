@@ -2,6 +2,7 @@ package shuttle
 
 import (
 	"bufio"
+	"context"
 	"github.com/sipt/shuttle/config"
 	connect "github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/log"
@@ -109,7 +110,6 @@ func ProxyHTTPS(lc connect.IConn, hreq *http.Request) {
 	domain := hreq.URL.Hostname()
 	rule, server, sc, err := ConnectFilter(hreq, lc.GetID())
 	record := &Record{
-		ID:       util.NextID(),
 		Protocol: HTTPS,
 		Created:  time.Now(),
 		Status:   RecordStatusActive,
@@ -128,6 +128,7 @@ func ProxyHTTPS(lc connect.IConn, hreq *http.Request) {
 			record.Rule = rule2.FailedRule
 			record.Proxy = proxy.FailedServer
 		}
+		record.ID = util.NextID()
 		boxChan <- &Box{Op: RecordAppend, Value: record}
 		return
 	}
@@ -163,9 +164,15 @@ func ProxyHTTPS(lc connect.IConn, hreq *http.Request) {
 			return
 		}
 		lc, sc = lct, sct
+		ctx := sc.Context()
+		ctx = context.WithValue(ctx, "rule", rule)
+		ctx = context.WithValue(ctx, "server", server)
+		sc.SetContext(ctx)
 		HttpTransport(lc, sc, allowDump, nil)
 		return
 	}
+
+	record.ID = util.NextID()
 	boxChan <- &Box{Op: RecordAppend, Value: record}
 	sc.SetRecordID(record.ID)
 	direct := &DirectChannel{}

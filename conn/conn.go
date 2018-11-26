@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"context"
 	"net"
 )
 
@@ -16,6 +17,8 @@ type IConn interface {
 	SetRecordID(id int64)
 	GetNetwork() string
 	Flush() (int, error)
+	Context() context.Context
+	SetContext(context.Context)
 }
 
 func NewDefaultConn(conn net.Conn, network string) (IConn, error) {

@@ -6,6 +6,7 @@ import (
 	connect "github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/log"
 	"github.com/sipt/shuttle/pool"
+	"github.com/sipt/shuttle/proxy"
 	"github.com/sipt/shuttle/util"
 	"net"
 	"strconv"
@@ -63,47 +64,52 @@ func SocksHandle(co net.Conn) {
 			req.port = uint16(port)
 		}
 	}
-
-	//RuleFilter by Rules and DNS
-	rule, s, err := FilterByReq(req)
-	if err != nil {
-		log.Logger.Errorf("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err)
-	}
-
-	//connnet to server
-	log.Logger.Debugf("[SOCKS] [ID:%d] Start connect to Server [%s]", conn.GetID(), s.Name)
-	sc, err := s.Conn(req)
-	if err != nil {
-		if err == ErrorReject {
-			log.Logger.Debugf("[SOCKS] [ID:%d] Reject [%s]", conn.GetID(), req.target)
-		} else {
-			log.Logger.Error("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err.Error())
-		}
-		return
-	}
-	log.Logger.Debugf("[SOCKS] [ID:%d] Server [%s] Connected success", conn.GetID(), s.Name)
-	log.Logger.Debugf("[HTTP] [ClientConnID:%d] Bind to [ServerConnID:%d]", conn.GetID(), sc.GetID())
 	// 白名单判断
 	if IsPass(req.addr, req.ip.String(), strconv.Itoa(int(req.port))) {
+		s, _ := proxy.GetServer(proxy.ProxyDirect)
+		sc, err := s.Conn(req)
+		if err != nil {
+			log.Logger.Error("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err.Error())
+		}
 		direct := &DirectChannel{}
 		direct.Transport(conn, sc)
 		return
 	}
 
-	id := util.NextID()
-	sc.SetRecordID(id)
-	boxChan <- &Box{Op: RecordAppend, Value: &Record{
-		ID:       id,
+	//RuleFilter by Rules and DNS
+	rule, s, err := FilterByReq(req)
+	record := &Record{
+		ID:       util.NextID(),
 		Protocol: req.protocol,
 		Created:  time.Now(),
-		Proxy:    s,
 		Status:   RecordStatusActive,
 		URL:      req.target,
 		Rule:     rule,
-	}, ID: id}
-	direct := &DirectChannel{}
-	direct.Transport(conn, sc)
-	boxChan <- &Box{id, RecordStatus, RecordStatusCompleted}
+		Proxy:    s,
+	}
+	if err != nil {
+		if err == ErrorReject {
+			log.Logger.Errorf("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err)
+		}
+		record.Status = RecordStatusCompleted
+		boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+		conn.Close()
+	} else {
+		//connnet to server
+		log.Logger.Debugf("[SOCKS] [ID:%d] Start connect to Server [%s]", conn.GetID(), s.Name)
+		sc, err := s.Conn(req)
+		if err != nil {
+			log.Logger.Error("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err.Error())
+			return
+		}
+		log.Logger.Debugf("[SOCKS] [ID:%d] Server [%s] Connected success", conn.GetID(), s.Name)
+		log.Logger.Debugf("[HTTP] [ClientConnID:%d] Bind to [ServerConnID:%d]", conn.GetID(), sc.GetID())
+		sc.SetRecordID(record.ID)
+		boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+		direct := &DirectChannel{}
+		direct.Transport(conn, sc)
+		boxChan <- &Box{record.ID, RecordStatus, RecordStatusCompleted}
+	}
 }
 
 //socks 握手
