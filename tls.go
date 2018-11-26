@@ -42,6 +42,8 @@ func ApplyMITMConfig(config IMITMConfig) error {
 		return err
 	}
 	ca, key, err = LoadCA(caBytes, keyBytes)
+
+	MitMRules = mitm.Rules
 	return err
 }
 func GetCACert() []byte {

@@ -52,10 +52,11 @@ LOOP:
 		answer = &Answer{
 			MatchType: MatchNone,
 			Domain:    domain,
+			Type:      DNSTypeDirect,
 		}
 		start := time.Now()
 		var err error
-		answer.IPs, err = directResolve(dnsConfig.servers, domain)
+		answer.IPs, answer.Server, err = directResolve(dnsConfig.servers, domain)
 		if err != nil {
 			log.Logger.Errorf("[DNS] [direct] resolve domain [%s] failed: %s", domain, err.Error())
 			return nil, err
@@ -96,13 +97,14 @@ func localResolve(d *DNS, domain string) (*Answer, error) {
 		//connect to DNS server
 		start := time.Now()
 		var err error
-		answer.IPs, err = directResolve(d.DNSs, domain)
+		answer.IPs, answer.Server, err = directResolve(d.DNSs, domain)
 		if err != nil {
 			log.Logger.Errorf("[DNS] [direct] resolve domain [%s] failed: %s", domain, err.Error())
 			return nil, err
 		}
 		answer.Duration = time.Now().Sub(start)
 	case DNSTypeRemote:
+		return nil, nil
 	}
 	return answer, nil
 }
@@ -112,7 +114,7 @@ type _Reply struct {
 	Msg  *dns.Msg
 }
 
-func directResolve(servers []string, domain string) ([]string, error) {
+func directResolve(servers []string, domain string) ([]string, string, error) {
 	replyChan := make(chan *_Reply, 1)
 	for _, s := range servers {
 		go resolveDomain(s, "53", domain, replyChan)
@@ -132,12 +134,12 @@ func directResolve(servers []string, domain string) ([]string, error) {
 			}
 		}
 		if len(ips) == 0 {
-			return nil, fmt.Errorf("resolve domain [%s] is empty", domain)
+			return nil, "", fmt.Errorf("resolve domain [%s] is empty", domain)
 		}
-		return ips, nil
+		return ips, reply.Addr, nil
 	case <-timer.C:
 		log.Logger.Errorf("[DNS] [Local] resolve domain [%s] failed: %s", domain)
-		return nil, fmt.Errorf("resolve domain [%s] failed: %s", domain)
+		return nil, "", fmt.Errorf("resolve domain [%s] failed: %s", domain)
 	}
 }
 

@@ -28,7 +28,7 @@ func LoadConfig(filePath string) (*Config, error) {
 		return nil, fmt.Errorf("read config file failed: %v", err)
 	}
 
-	conf := &Config{}
+	conf = &Config{}
 	err = yaml.Unmarshal(data, conf)
 	if err != nil {
 		return nil, fmt.Errorf("resolve config file failed: %v", err)
