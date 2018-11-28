@@ -594,5 +594,5 @@ go get -d github.com/sipt/shuttle
 cd $GOPATH/src/github.com/sipt/shuttle/assets
 go generate # 打包HTML和GeoLite2-Country.mmdb到assets/assets.go文件
 cd $GOPATH/src/github.com/sipt/shuttle/cmd
-go build
+go build -tags release
 ```

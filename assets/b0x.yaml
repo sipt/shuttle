@@ -13,7 +13,7 @@ dest: "."
 fmt: true
 
 # build tags for the main b0x.go file
-tags: ""
+tags: "release"
 
 # updater allows you to update a b0x in a running server
 # without having to restart it

@@ -568,5 +568,5 @@ go get -d github.com/sipt/shuttle
 cd $GOPATH/src/github.com/sipt/shuttle/assets
 go generate # package html and GeoLite2-Country.mmdb resources into assets/assets.go
 cd $GOPATH/src/github.com/sipt/shuttle/cmd
-go build
+go build -tags release
 ```
