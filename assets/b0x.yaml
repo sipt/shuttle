@@ -59,7 +59,7 @@ compression:
   #
   # type: string
   # default: "DefaultCompression" # when: Compress == true && Method == ""
-  method: "BestCompression"
+  method: "DefaultCompression"
 
   # true = do it yourself (the file is written as gzip compressed file into the memory file system)
   # false = decompress files at run time (while writing file into memory file system)
@@ -79,7 +79,7 @@ compression:
 clean: false
 
 # default: ab0x.go
-output: "assets.go"
+output: "assets_release.go"
 
 # [noprefix] disables adding "a" prefix to output
 # type: bool
