@@ -78,7 +78,7 @@ func (c *DefaultConn) Write(b []byte) (n int, err error) {
 	return c.Conn.Write(b)
 }
 func (c *DefaultConn) Close() error {
-	log.Logger.Infof("[ID:%d] close connection", c.GetID())
+	log.Logger.Debugf("[ID:%d] close connection", c.GetID())
 	return c.Conn.Close()
 }
 

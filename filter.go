@@ -61,7 +61,7 @@ func FilterByReq(req IRequest) (r *rule.Rule, s *proxy.Server, err error) {
 			err = errors.New(err.Error() + ":" + r.Policy)
 			return
 		}
-		log.Logger.Infof("[RULE] [ID:%d] Get server by policy [%s] => [%s]", req.ID(), r.Policy, s.Name)
+		log.Logger.Debugf("[RULE] [ID:%d] Get server by policy [%s] => [%s]", req.ID(), r.Policy, s.Name)
 	}
 	return
 }

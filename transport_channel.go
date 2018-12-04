@@ -313,7 +313,7 @@ func ConnectFilter(hreq *http.Request, connID int64) (rule *rule2.Rule, server *
 		return
 	}
 
-	log.Logger.Infof("[HTTP] [ID:%d] Start connect to Server [%s] [%s]", connID, req.Host(), server.Name)
+	log.Logger.Debugf("[HTTP] [ID:%d] Start connect to Server [%s] [%s]", connID, req.Host(), server.Name)
 	conn, err = server.Conn(req)
 	if err != nil {
 		if err == ErrorReject {
