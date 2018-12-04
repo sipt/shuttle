@@ -14,3 +14,4 @@ func ClearDNSCache(ctx *gin.Context) {
 	dns.ClearDNSCache()
 	ctx.JSON(200, &Response{})
 }
+

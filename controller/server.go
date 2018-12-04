@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	. "github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/controller/api"
 	"github.com/sipt/shuttle/controller/web"
 	"github.com/sipt/shuttle/log"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
@@ -23,26 +23,36 @@ type IControllerConfig interface {
 	GetLogLevel() string
 }
 
-func StartController(config IControllerConfig, shutdownSignal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string) {
+func StartController(config IControllerConfig, eventChan chan *EventObj) {
 	//if level == "info" {
-	gin.SetMode(gin.ReleaseMode)
-	gin.DefaultWriter = ioutil.Discard
+	//gin.SetMode(gin.ReleaseMode)
+	//gin.DefaultWriter = ioutil.Discard
 	//}
 	e := gin.Default()
 	e.Use(Cors())
-	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal, upgradeSignal)
+	api.APIRoute(e.Group("/api"), eventChan)
 	web.WebRoute(e)
 	server = &http.Server{
 		Addr:    net.JoinHostPort(config.GetControllerInterface(), config.GetControllerPort()),
 		Handler: e,
 	}
+	log.Logger.Infof("[Controller] listen to:%s", server.Addr)
 	server.ListenAndServe()
 }
 
-func ShutdownController() error {
-	log.Logger.Infof("Stopped Controller goroutine...")
-	ctx := context.Background()
-	return server.Shutdown(ctx)
+func ShutdownController() {
+	s := server
+	server = nil
+	if s == nil {
+		return
+	}
+	s.RegisterOnShutdown(func() {
+		log.Logger.Infof("Stopped Controller goroutine...")
+	})
+	go func() {
+		ctx := context.Background()
+		s.Shutdown(ctx)
+	}()
 }
 
 func Cors() gin.HandlerFunc {

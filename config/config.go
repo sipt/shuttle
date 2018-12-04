@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/sipt/shuttle/util"
 	"github.com/sipt/yaml"
 	"io/ioutil"
 )
@@ -23,6 +24,8 @@ func CurrentConfigFile() string {
 
 // load config file
 func LoadConfig(filePath string) (*Config, error) {
+	util.RLock(filePath)
+	defer util.RUnLock(filePath)
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("read config file failed: %v", err)
@@ -42,6 +45,8 @@ func LoadConfig(filePath string) (*Config, error) {
 
 // save config file
 func SaveConfig(configFile string, config *Config) error {
+	util.Lock(configFile)
+	defer util.UnLock(configFile)
 	bytes, err := yaml.Marshal(config)
 	if err != nil {
 		return fmt.Errorf("[CONF] yaml marshal config failed : %v", err)
@@ -129,6 +134,9 @@ func (c *Config) GetGeoIPDBFile() string {
 //logger
 func (c *Config) GetLogLevel() string {
 	return c.General.LogLevel
+}
+func (c *Config) SetLogLevel(l string) {
+	c.General.LogLevel = l
 }
 
 //controller

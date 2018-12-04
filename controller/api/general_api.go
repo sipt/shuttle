@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/config"
+	. "github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/extension/network"
 	"github.com/sipt/shuttle/rule"
 	"strings"
@@ -23,17 +24,17 @@ func DisableSystemProxy(ctx *gin.Context) {
 	ctx.JSON(200, Response{})
 }
 
-func NewShutdown(shutdownSignal chan bool) func(ctx *gin.Context) {
+func NewShutdown(eventChan chan *EventObj) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		ctx.JSON(200, Response{})
-		shutdownSignal <- true
+		eventChan <- EventShutdown
 	}
 }
 
-func ReloadConfig(reloadConfigSignal chan bool) func(ctx *gin.Context) {
+func ReloadConfig(eventChan chan *EventObj) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		ctx.JSON(200, Response{})
-		reloadConfigSignal <- true
+		eventChan <- EventReloadConfig
 	}
 }
 

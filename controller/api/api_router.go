@@ -2,12 +2,16 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	. "github.com/sipt/shuttle/constant"
+	"github.com/sipt/shuttle/controller/api/conf"
 )
 
-func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string) {
+func APIRoute(router *gin.RouterGroup, eventChan chan *EventObj) {
 	//dns
 	router.GET("/dns", DNSCacheList)
 	router.DELETE("/dns", ClearDNSCache)
+	router.GET("/dns/config", conf.GetDNSConfig)
+	router.POST("/dns/config", conf.SetDNSConfig)
 
 	//records
 	router.GET("/records", GetRecords)
@@ -39,12 +43,14 @@ func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSi
 	//general
 	router.GET("/system/proxy/enable", EnableSystemProxy)
 	router.GET("/system/proxy/disable", DisableSystemProxy)
-	router.POST("/shutdown", NewShutdown(shutdownSingnal))
-	router.POST("/reload", ReloadConfig(reloadConfigSignal))
+	router.POST("/shutdown", NewShutdown(eventChan))
+	router.POST("/reload", ReloadConfig(eventChan))
 	router.GET("/mode", GetConnMode)
 	router.POST("/mode/:mode", SetConnMode)
 	router.GET("/upgrade/check", CheckUpdate)
-	router.POST("/upgrade", NewUpgrade(upgradeSignal))
+	router.POST("/upgrade", NewUpgrade(eventChan))
+	router.POST("/general/config", conf.SetGeneralConfig(eventChan))
+	router.GET("/general/config", conf.GetGeneralConfig)
 
 	//ws
 	router.GET("/ws/records", func(ctx *gin.Context) {
