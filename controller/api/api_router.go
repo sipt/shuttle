@@ -3,15 +3,12 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	. "github.com/sipt/shuttle/constant"
-	"github.com/sipt/shuttle/controller/api/conf"
 )
 
 func APIRoute(router *gin.RouterGroup, eventChan chan *EventObj) {
 	//dns
 	router.GET("/dns", DNSCacheList)
 	router.DELETE("/dns", ClearDNSCache)
-	router.GET("/dns/config", conf.GetDNSConfig)
-	router.POST("/dns/config", conf.SetDNSConfig)
 
 	//records
 	router.GET("/records", GetRecords)
@@ -30,11 +27,6 @@ func APIRoute(router *gin.RouterGroup, eventChan chan *EventObj) {
 	router.POST("/cert", GenerateCert)
 	router.GET("/cert", DownloadCert)
 
-	//MitM rules
-	router.GET("/mitm/rules", GetMitMRules)
-	router.POST("/mitm/rules", AppendMitMRules)
-	router.DELETE("/mitm/rules", DelMitMRules)
-
 	//server
 	router.GET("/servers", ServerList)
 	router.POST("/server/select", SelectServer)
@@ -49,8 +41,6 @@ func APIRoute(router *gin.RouterGroup, eventChan chan *EventObj) {
 	router.POST("/mode/:mode", SetConnMode)
 	router.GET("/upgrade/check", CheckUpdate)
 	router.POST("/upgrade", NewUpgrade(eventChan))
-	router.POST("/general/config", conf.SetGeneralConfig(eventChan))
-	router.GET("/general/config", conf.GetGeneralConfig)
 
 	//ws
 	router.GET("/ws/records", func(ctx *gin.Context) {

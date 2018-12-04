@@ -102,14 +102,14 @@ type Mitm struct {
 }
 
 type HttpMap struct {
-	ReqMap  []*ModifyMap `yaml:"Req-Map,2quoted"`
-	RespMap []*ModifyMap `yaml:"Resp-Map,2quoted"`
+	ReqMap  []*ModifyMap `yaml:"Req-Map,2quoted" json:"req_map"`
+	RespMap []*ModifyMap `yaml:"Resp-Map,2quoted" json:"resp_map"`
 }
 
 type ModifyMap struct {
-	Type   string     `yaml:"type,2quoted"`
-	UrlRex string     `yaml:"url-rex,2quoted"`
-	Items  [][]string `yaml:"items,[flow],2quoted"`
+	Type   string     `yaml:"type,2quoted" json:"type"`
+	UrlRex string     `yaml:"url-rex,2quoted" json:"url_rex"`
+	Items  [][]string `yaml:"items,[flow],2quoted" json:"items"`
 }
 
 //dns

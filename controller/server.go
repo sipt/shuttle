@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	. "github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/controller/api"
+	"github.com/sipt/shuttle/controller/api/conf"
 	"github.com/sipt/shuttle/controller/web"
 	"github.com/sipt/shuttle/log"
 	"net"
@@ -31,6 +32,7 @@ func StartController(config IControllerConfig, eventChan chan *EventObj) {
 	e := gin.Default()
 	e.Use(Cors())
 	api.APIRoute(e.Group("/api"), eventChan)
+	conf.APIRoute(e.Group("/api/config"), eventChan)
 	web.WebRoute(e)
 	server = &http.Server{
 		Addr:    net.JoinHostPort(config.GetControllerInterface(), config.GetControllerPort()),

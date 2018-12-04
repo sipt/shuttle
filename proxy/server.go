@@ -128,6 +128,9 @@ func InitServers(gs []*ServerGroup, ss []*Server) error {
 			return err
 		}
 	}
+	if len(groups) > 0 {
+		DestroyServers()
+	}
 	groups = gs
 	servers = ss
 	return nil
