@@ -1,12 +1,14 @@
 package protocol
 
 import (
-	"net"
-	"github.com/sipt/shuttle"
-	"golang.org/x/net/proxy"
-	"github.com/sipt/shuttle/log"
 	"crypto/tls"
 	"fmt"
+	connect "github.com/sipt/shuttle/conn"
+	"github.com/sipt/shuttle/dns"
+	"github.com/sipt/shuttle/log"
+	sproxy "github.com/sipt/shuttle/proxy"
+	"golang.org/x/net/proxy"
+	"net"
 )
 
 const (
@@ -14,10 +16,10 @@ const (
 )
 
 func init() {
-	shuttle.RegisterProxyProtocolCreator("socks-tls", NewSocks5TLSProtocol)
+	sproxy.RegisterProxyProtocolCreator("socks-tls", NewSocks5TLSProtocol)
 }
 
-func NewSocks5TLSProtocol(params []string) (shuttle.IProtocol, error) {
+func NewSocks5TLSProtocol(params []string) (sproxy.IProtocol, error) {
 	//[]string{"addr", "port", "skip-verify","username", "password"}
 	if len(params) != 5 && len(params) != 3 {
 		log.Logger.Errorf(`[SOCKS5 over TLS Server] init socks5 server failed params count must be 5 or 3, but: %v`, params)
@@ -38,7 +40,7 @@ func NewSocks5TLSProtocol(params []string) (shuttle.IProtocol, error) {
 //implement protocol.IServer
 //type IServer interface {
 //	//获取服务器连接
-//	Conn(request shuttle.Request) (shuttle.IConn, error)
+//	Conn(request shuttle.SocksRequest) (shuttle.IConn, error)
 //}
 type socksTLSProtocol struct {
 	Addr               string
@@ -48,34 +50,37 @@ type socksTLSProtocol struct {
 	InsecureSkipVerify bool
 }
 
-func (s *socksTLSProtocol) Conn(request *shuttle.Request) (shuttle.IConn, error) {
+func (s *socksTLSProtocol) Conn(req sproxy.IRequest) (connect.IConn, error) {
 	var auth *proxy.Auth
 	if len(s.UserName) > 0 {
 		auth = &proxy.Auth{User: s.UserName, Password: s.Password}
 	}
-	addr := s.Addr
-	ssReq := &shuttle.Request{
-		Addr: s.Addr,
-	}
-	err := shuttle.ResolveDomain(ssReq)
+
+	var addr = s.Addr
+	answer, err := dns.ResolveDomainByCache(s.Addr)
 	if err != nil {
-		log.Logger.Errorf("[SocksProtocol] [Conn] Resolve domain failed [%s]: %v", s.Addr, err)
-	} else {
-		addr = ssReq.IP.String()
+		log.Logger.Errorf("[SocksOverTlsProtocol] [Conn] Resolve domain failed [%s]: %v", s.Addr, err)
+	} else if answer != nil {
+		addr = answer.GetIP()
 	}
-	dialer, err := proxy.SOCKS5(request.Network(), net.JoinHostPort(addr, s.Port), auth, s)
+	dialer, err := proxy.SOCKS5(req.Network(), net.JoinHostPort(addr, s.Port), auth, s)
 	if err != nil {
 		return nil, err
 	}
-	conn, err := dialer.Dial(request.Network(), request.Host2())
+	addr = req.IP()
+	if addr == "" {
+		addr = req.Domain()
+	}
+	addr = net.JoinHostPort(addr, req.Port())
+	conn, err := dialer.Dial(req.Network(), addr)
 	if err != nil {
 		return nil, err
 	}
-	c, err := shuttle.DefaultDecorate(conn, request.Network())
+	c, err := connect.DefaultDecorate(conn, req.Network())
 	if err != nil {
 		return nil, err
 	}
-	return shuttle.TrafficDecorate(c)
+	return connect.TrafficDecorate(c)
 }
 
 func (s *socksTLSProtocol) Dial(network, addr string) (c net.Conn, err error) {

@@ -1,9 +1,9 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/sipt/shuttle"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/sipt/shuttle/proxy"
 )
 
 type Group struct {
@@ -18,7 +18,7 @@ type Server struct {
 }
 
 func ServerList(ctx *gin.Context) {
-	gs := shuttle.GetGroups()
+	gs := proxy.GetGroups()
 	groups := make([]*Group, len(gs))
 	var name string
 	var group *Group
@@ -29,13 +29,13 @@ func ServerList(ctx *gin.Context) {
 			SelectType: g.SelectType,
 		}
 		for j, s := range g.Servers {
-			name = s.(shuttle.IServer).GetName()
+			name = s.(proxy.IServer).GetName()
 			group.Servers[j] = &Server{
 				Name:     name,
 				Selected: g.Selector.Current().GetName() == name,
 			}
 			if g.SelectType == "rtt" {
-				if ser, ok := s.(*shuttle.Server); ok {
+				if ser, ok := s.(*proxy.Server); ok {
 					if ser.Rtt == 0 {
 						group.Servers[j].Rtt = "failed"
 					} else {
@@ -59,7 +59,7 @@ func SelectServer(ctx *gin.Context) {
 		})
 		return
 	}
-	err := shuttle.SelectServer(groupName, serverName)
+	err := proxy.SelectServer(groupName, serverName)
 	if err != nil {
 		ctx.JSON(500, Response{
 			Code: 1, Message: err.Error(),
@@ -76,7 +76,7 @@ func SelectRefresh(ctx *gin.Context) {
 		})
 		return
 	}
-	err := shuttle.SelectRefresh(groupName)
+	err := proxy.SelectRefresh(groupName)
 	if err != nil {
 		ctx.JSON(500, Response{
 			Code: 1, Message: err.Error(),

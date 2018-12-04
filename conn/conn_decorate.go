@@ -1,12 +1,14 @@
-package shuttle
+package conn
 
 import (
+	"bytes"
+	"context"
 	"net"
 	"time"
-	"bytes"
+
+	"github.com/sipt/shuttle/log"
 	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/util"
-	"github.com/sipt/shuttle/log"
 )
 
 var DefaultTimeOut = 10 * time.Second
@@ -18,6 +20,7 @@ func DefaultDecorate(c net.Conn, network string) (IConn, error) {
 		Conn:    c,
 		ID:      id,
 		Network: network,
+		context: context.Background(),
 	}, nil
 }
 
@@ -26,6 +29,7 @@ func DefaultDecorateForTls(c net.Conn, network string, id int64) (IConn, error) 
 		Conn:    c,
 		ID:      id,
 		Network: network,
+		context: context.Background(),
 	}, nil
 }
 
@@ -34,6 +38,7 @@ type DefaultConn struct {
 	ID       int64
 	RecordID int64
 	Network  string
+	context  context.Context
 }
 
 func (c *DefaultConn) GetID() int64 {
@@ -55,6 +60,12 @@ func (c *DefaultConn) Flush() (int, error) {
 func (c *DefaultConn) GetNetwork() string {
 	return c.Network
 }
+func (c *DefaultConn) Context() context.Context {
+	return c.context
+}
+func (c *DefaultConn) SetContext(ctx context.Context) {
+	c.context = ctx
+}
 
 func (c *DefaultConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
@@ -67,7 +78,7 @@ func (c *DefaultConn) Write(b []byte) (n int, err error) {
 	return c.Conn.Write(b)
 }
 func (c *DefaultConn) Close() error {
-	log.Logger.Infof("[ID:%d] close connection", c.GetID())
+	log.Logger.Debugf("[ID:%d] close connection", c.GetID())
 	return c.Conn.Close()
 }
 
@@ -166,7 +177,12 @@ func (r *RealTimeFlush) Write(b []byte) (n int, err error) {
 }
 
 //导出装饰器
-func TrafficDecorate(c IConn) (IConn, error) {
+var upload, download func(int64, int) = nil, nil
+
+func InitTrafficChannel(up, down func(int64, int)) {
+	upload, download = up, down
+}
+func TrafficDecorate(c IConn, ) (IConn, error) {
 	return &Traffic{
 		IConn: c,
 	}, nil
@@ -178,16 +194,16 @@ type Traffic struct {
 
 func (t *Traffic) Read(b []byte) (n int, err error) {
 	n, err = t.IConn.Read(b)
-	if t.GetRecordID() > 0 && n > 0 {
-		boxChan <- &Box{t.GetRecordID(), RecordDown, n}
+	if download != nil && t.GetRecordID() > 0 && n > 0 {
+		download(t.GetRecordID(), n)
 	}
 	return
 }
 
 func (t *Traffic) Write(b []byte) (n int, err error) {
 	n, err = t.IConn.Write(b)
-	if t.GetRecordID() > 0 && n > 0 {
-		boxChan <- &Box{t.GetRecordID(), RecordUp, n}
+	if upload != nil && t.GetRecordID() > 0 && n > 0 {
+		upload(t.GetRecordID(), n)
 	}
 	return
 }

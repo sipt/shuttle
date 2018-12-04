@@ -1,16 +1,29 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/controller/api"
 	"github.com/sipt/shuttle/controller/web"
+	"github.com/sipt/shuttle/log"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
 )
 
-func StartController(inter, port string, shutdownSignal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string, level string) {
+var server *http.Server
+
+type IControllerConfig interface {
+	GetControllerInterface() string
+	SetControllerInterface(string)
+	GetControllerPort() string
+	SetControllerPort(string)
+	GetLogLevel() string
+}
+
+func StartController(config IControllerConfig, shutdownSignal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string) {
 	//if level == "info" {
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = ioutil.Discard
@@ -19,7 +32,17 @@ func StartController(inter, port string, shutdownSignal chan bool, reloadConfigS
 	e.Use(Cors())
 	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal, upgradeSignal)
 	web.WebRoute(e)
-	e.Run(inter + ":" + port)
+	server = &http.Server{
+		Addr:    net.JoinHostPort(config.GetControllerInterface(), config.GetControllerPort()),
+		Handler: e,
+	}
+	server.ListenAndServe()
+}
+
+func ShutdownController() error {
+	log.Logger.Infof("Stopped Controller goroutine...")
+	ctx := context.Background()
+	return server.Shutdown(ctx)
 }
 
 func Cors() gin.HandlerFunc {

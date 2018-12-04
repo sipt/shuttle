@@ -3,15 +3,15 @@ package ssaead
 import (
 	"crypto/cipher"
 	"crypto/sha1"
+	connect "github.com/sipt/shuttle/conn"
 	"io"
 
-	"golang.org/x/crypto/hkdf"
-	"github.com/sipt/shuttle"
 	"bytes"
 	"crypto/md5"
 	"crypto/rand"
-	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/pool"
+	"golang.org/x/crypto/hkdf"
 )
 
 var aeadCiphers = make(map[string]IAEADCipher)
@@ -21,12 +21,12 @@ func registerAEADCiphers(method string, c IAEADCipher) {
 	log.Logger.Infof("[SS Ciphers] register cipher [%s]", method)
 }
 
-func GetAEADCiphers(method string) func(string, shuttle.IConn) (shuttle.IConn, error) {
+func GetAEADCiphers(method string) func(string, connect.IConn) (connect.IConn, error) {
 	c, ok := aeadCiphers[method]
 	if !ok {
 		return nil
 	}
-	return func(password string, conn shuttle.IConn) (shuttle.IConn, error) {
+	return func(password string, conn connect.IConn) (connect.IConn, error) {
 		salt := make([]byte, c.SaltSize())
 		if _, err := io.ReadFull(rand.Reader, salt); err != nil {
 			return nil, err
@@ -57,7 +57,7 @@ type IAEADCipher interface {
 }
 
 type aeadConn struct {
-	shuttle.IConn
+	connect.IConn
 	IAEADCipher
 	key        []byte
 	rNonce     []byte

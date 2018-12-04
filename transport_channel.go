@@ -2,8 +2,11 @@ package shuttle
 
 import (
 	"bufio"
+	connect "github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/log"
 	"github.com/sipt/shuttle/pool"
+	"github.com/sipt/shuttle/proxy"
+	rule2 "github.com/sipt/shuttle/rule"
 	"github.com/sipt/shuttle/util"
 	"io"
 	"net"
@@ -14,7 +17,7 @@ import (
 
 type DirectChannel struct{}
 
-func (d *DirectChannel) Transport(lc, sc IConn) {
+func (d *DirectChannel) Transport(lc, sc connect.IConn) {
 	errChan := make(chan error, 2)
 	go func() {
 		defer Recover(func() {
@@ -41,7 +44,7 @@ func (d *DirectChannel) Transport(lc, sc IConn) {
 	sc.Close()
 }
 
-func (d *DirectChannel) send(from, to IConn, errChan chan error) {
+func (d *DirectChannel) send(from, to connect.IConn, errChan chan error) {
 	var (
 		buf []byte
 		n   int
@@ -73,7 +76,7 @@ func (d *DirectChannel) send(from, to IConn, errChan chan error) {
 	}
 }
 
-func HttpTransport(lc, sc IConn, allowDump bool, first *http.Request) {
+func HttpTransport(lc, sc connect.IConn, allowDump bool, first *http.Request) {
 	h := &HttpChannel{
 		allowDump: allowDump,
 		isHttps:   first == nil,
@@ -86,19 +89,22 @@ type HttpChannel struct {
 	isHttps   bool
 }
 
-func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
+func (h *HttpChannel) Transport(lc, sc connect.IConn, first *http.Request) (err error) {
 	var (
 		oldHreq, hreq *http.Request
 		lcBuf         = bufio.NewReader(lc)
 		scBuf         *bufio.Reader
 		resp          *http.Response
-		rule          *Rule
-		server        *Server
+		rule          *rule2.Rule
+		server        *proxy.Server
 		passed        bool // inner request
 		scid          int64
 	)
 	if sc != nil {
 		scBuf = bufio.NewReader(sc)
+		ctx := sc.Context()
+		rule, _ = ctx.Value("rule").(*rule2.Rule)
+		server, _ = ctx.Value("server").(*proxy.Server)
 	}
 	defer func() {
 		lc.Close()
@@ -155,7 +161,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 		log.Logger.Debugf("[ID:%d] [HttpChannel] [reqID:%d] HttpChannel Transport c->[hreq]: %s", lc.GetID(), record.ID, record.URL)
 
 		// rule RuleFilter
-		if resp == nil && (sc == nil || hreq.URL.Host != oldHreq.URL.Host) {
+		if resp == nil && (sc == nil || (oldHreq != nil && hreq.URL.Host != oldHreq.URL.Host)) {
 			if sc != nil {
 				sc.Close()
 			}
@@ -167,13 +173,8 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 					record.Status = RecordStatusReject
 				} else {
 					record.Status = RecordStatusFailed
-					record.Rule = &Rule{
-						Type:   "FAILED",
-						Policy: "FAILED",
-					}
-					record.Proxy = &Server{
-						Name: "FAILED",
-					}
+					record.Rule = rule2.FailedRule
+					record.Proxy = proxy.FailedServer
 				}
 				record.Dumped = false
 				if !passed {
@@ -188,8 +189,8 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 			}
 			scid = sc.GetID()
 		} else if resp != nil {
-			record.Rule = mockRule
-			record.Proxy = mockServer
+			record.Rule = rule2.MockRule
+			record.Proxy = proxy.MockServer
 		}
 		if !passed {
 			boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
@@ -253,7 +254,7 @@ func (h *HttpChannel) Transport(lc, sc IConn, first *http.Request) (err error) {
 }
 
 // write response in connection
-func (h *HttpChannel) writeResponse(resp *http.Response, to IConn, recordID int64, allowDump bool) (err error) {
+func (h *HttpChannel) writeResponse(resp *http.Response, to connect.IConn, recordID int64, allowDump bool) (err error) {
 	var dumpWriter io.Writer
 	if allowDump {
 		dumpWriter = ToWriter(func(b []byte) (int, error) {
@@ -291,47 +292,32 @@ func HostName(req *http.Request) (host string) {
 	return
 }
 
-func ConnectFilter(hreq *http.Request, connID int64) (rule *Rule, server *Server, conn IConn, err error) {
-	req := &Request{}
-	req.Addr = HostName(hreq)
-	req.ConnID = connID
-	ip := net.ParseIP(req.Addr)
-	if ip == nil {
-		req.Atyp = AddrTypeDomain
-	} else if len(ip) == net.IPv4len {
-		req.Atyp = AddrTypeIPv4
-	} else {
-		req.Atyp = AddrTypeIPv6
+func ConnectFilter(hreq *http.Request, connID int64) (rule *rule2.Rule, server *proxy.Server, conn connect.IConn, err error) {
+	req := &HttpRequest{
+		network:  connect.TCP,
+		domain:   HostName(hreq),
+		connID:   connID,
+		port:     hreq.URL.Port(),
+		protocol: hreq.URL.Scheme,
 	}
-	req.Cmd = CmdTCP
-	port := hreq.URL.Port()
-	if len(port) > 0 {
-		req.Port, err = StrToUint16(port)
-		if err != nil {
-			log.Logger.Errorf("[HTTP] [ID:%d] Port to int16 failed [%d] err: %s", connID, req.Port, err)
-			return
-		}
+	if len(req.protocol) == 0 {
+		req.protocol = HTTPS
 	}
-
+	if len(net.ParseIP(req.domain)) > 0 {
+		req.ip = req.domain
+		req.domain = ""
+	}
 	rule, server, err = FilterByReq(req)
 	if err != nil {
 		log.Logger.Errorf("[HTTP] [ID:%d] ConnectToServer failed [%s] err: %s", connID, req.Host(), err)
 		return
 	}
 
-	if req.Port == 0 {
-		if hreq.URL.Scheme == HTTP {
-			req.Port = 80
-		} else if hreq.URL.Scheme == HTTPS {
-			req.Port = 443
-		}
-	}
-
-	log.Logger.Infof("[HTTP] [ID:%d] Start connect to Server [%s]", connID, server.Name)
+	log.Logger.Debugf("[HTTP] [ID:%d] Start connect to Server [%s] [%s]", connID, req.Host(), server.Name)
 	conn, err = server.Conn(req)
 	if err != nil {
 		if err == ErrorReject {
-			log.Logger.Debugf("Reject [%s]", req.Target)
+			log.Logger.Debugf("Reject [%s]", req.Host())
 		} else {
 			log.Logger.Errorf("[HTTP] [ID:%d] Connect to Server [%s] failed [%s] err: %s",
 				connID, server.Name, req.Host(), err.Error())
