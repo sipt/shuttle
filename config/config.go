@@ -81,6 +81,7 @@ type Config struct {
 	Mitm       *Mitm               `yaml:"MITM"`
 	Rule       [][]string          `yaml:"Rule,[flow],2quoted"`
 	HttpMap    *HttpMap            `yaml:"Http-Map"`
+	RttUrl     string              `yaml:"rtt-url"`
 }
 
 type General struct {
@@ -196,6 +197,12 @@ func (c *Config) GetProxyGroup() map[string][]string {
 }
 func (c *Config) SetProxyGroup(group map[string][]string) {
 	c.ProxyGroup = group
+}
+func (c *Config) SetRttUrl(rttUrl string) {
+	c.RttUrl = rttUrl
+}
+func (c *Config) GetRttUrl() string {
+	return c.RttUrl
 }
 
 //Rule

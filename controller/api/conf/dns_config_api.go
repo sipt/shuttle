@@ -8,7 +8,7 @@ import (
 
 type DNSConfig struct {
 	Servers  []string   `json:"servers"`
-	LocalDNS [][]string `json:"local-dns"`
+	LocalDNS [][]string `json:"local_dns"`
 }
 
 func GetDNSConfig(ctx *gin.Context) {

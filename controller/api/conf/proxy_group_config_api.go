@@ -1,20 +1,20 @@
 package conf
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/config"
 	"github.com/sipt/shuttle/proxy"
 	"github.com/sipt/shuttle/rule"
 )
 
-func GetProxyGroup(ctx *gin.Context) {
-	conf := config.CurrentConfig()
+func GetProxyGroups(ctx *gin.Context) {
 	ctx.JSON(200, &Response{
-		Data: conf.GetProxyGroup(),
+		Data: proxy.GetGroupExternals(),
 	})
 }
 
-func SetProxyGroup(ctx *gin.Context) {
+func SetProxyGroups(ctx *gin.Context) {
 	conf := config.CurrentConfig()
 	newConf := &config.Config{}
 	*newConf = *conf
@@ -36,7 +36,112 @@ func SetProxyGroup(ctx *gin.Context) {
 		return
 	}
 	conf.SetProxyGroup(data)
-	config.SaveConfig(config.CurrentConfigFile(), conf)
+	err = config.SaveConfig(config.CurrentConfigFile(), conf)
+	if err != nil {
+		ctx.JSON(500, &Response{
+			Code:    1,
+			Message: err.Error(),
+		})
+		return
+	}
+	ctx.JSON(200, &Response{})
+	return
+}
+
+func GetProxyGroup(ctx *gin.Context) {
+	name := ctx.Query("name")
+	if len(name) == 0 {
+		ctx.JSON(200, &Response{
+			Code:    1,
+			Message: fmt.Sprintf("name is empty"),
+		})
+		return
+	}
+	proxyConf := config.CurrentConfig().GetProxyGroup()[name]
+	if len(proxyConf) > 0 {
+		ctx.JSON(200, &Response{
+			Data: &ProxyRequest{
+				Name: name,
+				VS:   proxyConf,
+			},
+		})
+		return
+	}
+	ctx.JSON(500, &Response{
+		Code:    1,
+		Message: fmt.Sprintf("%s not found", name),
+	})
+}
+
+func AddProxyGroup(ctx *gin.Context) {
+	data := &ProxyRequest{}
+	err := ctx.BindJSON(&data)
+	if err != nil {
+		ctx.JSON(500, &Response{Code: 1, Message: err.Error()})
+		return
+	}
+	if len(data.Name) == 0 {
+		ctx.JSON(500, &Response{Code: 1, Message: "ProxyGroup Name is empty"})
+		return
+	}
+	err = proxy.AddGroup(data.Name, data.VS)
+	if err != nil {
+		ctx.JSON(500, &Response{Code: 1, Message: err.Error()})
+		return
+	}
+	conf := config.CurrentConfig()
+	conf.GetProxyGroup()[data.Name] = data.VS
+	err = config.SaveConfig(config.CurrentConfigFile(), conf)
+	if err != nil {
+		ctx.JSON(500, &Response{
+			Code:    1,
+			Message: err.Error(),
+		})
+		return
+	}
+	ctx.JSON(200, &Response{})
+	return
+}
+
+func EditProxyGroup(ctx *gin.Context) {
+	data := &ProxyRequest{}
+	err := ctx.BindJSON(&data)
+	if err != nil {
+		ctx.JSON(500, &Response{Code: 1, Message: err.Error()})
+		return
+	}
+	err = proxy.EditGroup(data.Name, data.VS)
+	if err != nil {
+		ctx.JSON(500, &Response{Code: 1, Message: err.Error()})
+		return
+	}
+	conf := config.CurrentConfig()
+	conf.GetProxyGroup()[data.Name] = data.VS
+	err = config.SaveConfig(config.CurrentConfigFile(), conf)
+	if err != nil {
+		ctx.JSON(500, &Response{
+			Code:    1,
+			Message: err.Error(),
+		})
+		return
+	}
+	ctx.JSON(200, &Response{})
+	return
+}
+
+func RemoveProxyGroup(ctx *gin.Context) {
+	name := ctx.Query("name")
+	err := proxy.RemoveGroup(name)
+	if err != nil {
+		ctx.JSON(500, &Response{
+			Code:    1,
+			Message: err.Error(),
+		})
+		return
+	}
+	conf := config.CurrentConfig()
+	delete(conf.GetProxyGroup(), name)
+	err = config.SaveConfig(config.CurrentConfigFile(), conf)
 	if err != nil {
 		ctx.JSON(500, &Response{
 			Code:    1,

@@ -1,6 +1,9 @@
 package proxy
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var ErrorUnknowType = errors.New("unknow select type")
 
@@ -8,13 +11,15 @@ type NewSelector func(group *ServerGroup) (ISelector, error)
 
 var seletors = make(map[string]NewSelector)
 
-func RegisterSelector(method string, newSelector NewSelector) error {
+func RegisterSelector(method string, newSelector NewSelector) {
 	seletors[method] = newSelector
-	return nil
 }
 
 func GetSelector(method string, group *ServerGroup) (ISelector, error) {
-	return seletors[method](group)
+	if s, ok := seletors[method]; ok {
+		return s(group)
+	}
+	return nil, fmt.Errorf("not support select_type [%s]", method)
 }
 
 func CheckSelector(method string) bool {

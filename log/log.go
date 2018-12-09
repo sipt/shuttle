@@ -16,26 +16,28 @@ type ILogConfig interface {
 }
 
 func InitLogger(logMode, logPath string) (err error) {
+	var l ILogger
 	switch logMode {
 	case LogModeOff:
-		Logger, err = NewSkipLogger()
+		l, err = NewSkipLogger()
 		if err != nil {
 			return errors.New("init logger failed:" + err.Error())
 		}
 	case LogModeConsole:
-		Logger, err = NewStdLogger(LogInfo)
+		l, err = NewStdLogger(LogInfo)
 		if err != nil {
 			return errors.New("init logger failed:" + err.Error())
 		}
 	case LogModeFile:
 		//multiSize: 100MB
-		Logger, err = NewFileLogger(logPath, LogInfo, 100*1000*1000)
+		l, err = NewFileLogger(logPath, LogInfo, 100*1000*1000)
 		if err != nil {
 			return errors.New("init logger failed:" + err.Error())
 		}
 	default:
 		return errors.New("not support LogMode:" + logMode)
 	}
+	Logger = l
 	return
 }
 
@@ -59,6 +61,7 @@ const (
 	LogDebug = 1
 	LogInfo  = 2
 	LogError = 3
+	LogOff   = 4
 )
 
 var LevelMap = map[string]int{
@@ -66,6 +69,7 @@ var LevelMap = map[string]int{
 	"debug": LogDebug,
 	"info":  LogInfo,
 	"error": LogError,
+	"off":   LogOff,
 }
 
 func Now() string {
