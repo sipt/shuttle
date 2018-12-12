@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 )
 
-const ShuttleVersion = "v5.1.0"
 const ConfigFileVersion = "v1.0.1"
 const SetAsSystemProxyAuto = "auto"
 

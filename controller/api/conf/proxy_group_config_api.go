@@ -57,13 +57,10 @@ func GetProxyGroup(ctx *gin.Context) {
 		})
 		return
 	}
-	proxyConf := config.CurrentConfig().GetProxyGroup()[name]
-	if len(proxyConf) > 0 {
+	groups := proxy.GetGroupExternals(name)
+	if len(groups) > 0 {
 		ctx.JSON(200, &Response{
-			Data: &ProxyRequest{
-				Name: name,
-				VS:   proxyConf,
-			},
+			Data: groups[0],
 		})
 		return
 	}
@@ -131,7 +128,7 @@ func EditProxyGroup(ctx *gin.Context) {
 
 func RemoveProxyGroup(ctx *gin.Context) {
 	name := ctx.Query("name")
-	err := proxy.RemoveGroup(name)
+	effects, deletes, err := proxy.RemoveGroup(name)
 	if err != nil {
 		ctx.JSON(500, &Response{
 			Code:    1,
@@ -149,6 +146,11 @@ func RemoveProxyGroup(ctx *gin.Context) {
 		})
 		return
 	}
-	ctx.JSON(200, &Response{})
+	ctx.JSON(200, &Response{
+		Data: struct {
+			Effects []string `json:"effects"`
+			Deletes []string `json:"deletes"`
+		}{effects, deletes},
+	})
 	return
 }

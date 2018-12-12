@@ -176,3 +176,22 @@ func RemoveProxy(ctx *gin.Context) {
 	})
 	return
 }
+
+func Policies(ctx *gin.Context) {
+	conf := config.CurrentConfig()
+	proxy := conf.GetProxy()
+	group := conf.GetProxyGroup()
+	policies := make([]string, 2, 2+len(proxy)+len(group))
+	policies[0] = "DIRECT"
+	policies[1] = "REJECT"
+	for k := range proxy {
+		policies = append(policies, k)
+	}
+	for k := range group {
+		policies = append(policies, k)
+	}
+	ctx.JSON(200, &Response{
+		Data: policies,
+	})
+	return
+}

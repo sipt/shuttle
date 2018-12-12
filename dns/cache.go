@@ -171,7 +171,7 @@ func (c *CacheManager) Range(f func(data interface{}) (breaked bool)) interface{
 }
 
 func (c *CacheManager) Push(data interface{}, ttl time.Duration) {
-	heap.Push(c.pool, &CacheEntity{
+	Push(c.pool, &CacheEntity{
 		data:    data,
 		expires: time.Now().Add(ttl),
 	})
@@ -183,7 +183,7 @@ func (c *CacheManager) Run() {
 		for {
 			select {
 			case <-c.timer.C:
-				heap.Pop(c.pool)
+				Pop(c.pool)
 				c.refresh()
 			case <-c.cancel:
 			}
@@ -201,7 +201,7 @@ func (c *CacheManager) refresh() {
 		entity := c.pool.Head()
 		wait = entity.expires.Sub(time.Now())
 		for wait < 0 {
-			heap.Pop(c.pool)
+			Pop(c.pool)
 			if c.pool.Head() == nil {
 				break
 			}
@@ -216,4 +216,24 @@ func (c *CacheManager) refresh() {
 }
 func (c *CacheManager) Clear() {
 	c.pool.Clear()
+}
+
+var heapLock = &sync.Mutex{}
+// Push pushes the element x onto the heap. The complexity is
+// O(log(n)) where n = h.Len().
+//
+func Push(h heap.Interface, x interface{}) {
+	heapLock.Lock()
+	defer heapLock.Unlock()
+	heap.Push(h, x)
+}
+
+// Pop removes the minimum element (according to Less) from the heap
+// and returns it. The complexity is O(log(n)) where n = h.Len().
+// It is equivalent to Remove(h, 0).
+//
+func Pop(h heap.Interface) interface{} {
+	heapLock.Lock()
+	defer heapLock.Unlock()
+	return heap.Pop(h)
 }

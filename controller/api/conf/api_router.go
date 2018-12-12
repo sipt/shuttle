@@ -34,6 +34,8 @@ func APIRoute(router *gin.RouterGroup, eventChan chan *EventObj) {
 	router.POST("/group", AddProxyGroup)
 	router.DELETE("/group", RemoveProxyGroup)
 
+	router.GET("/policies", Policies)
+
 	//general
 	router.POST("/general", SetGeneralConfig(eventChan))
 	router.GET("/general", GetGeneralConfig)

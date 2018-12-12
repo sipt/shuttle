@@ -19,11 +19,18 @@ type ProxyExternal struct {
 	Protocol string        `json:"protocol"`
 }
 
+type ProxyExternal2 struct {
+	ProxyExternal
+	SubName    string `json:"sub_name"`
+	IsSelected bool   `json:"is_selected"`
+}
+
 type GroupExternal struct {
-	Name       string           `json:"name"`
-	SelectType string           `json:"select_type"`
-	Servers    []*ProxyExternal `json:"servers"`
-	Selected   *ProxyExternal   `json:"selected"`
+	Name       string            `json:"name"`
+	SelectType string            `json:"select_type"`
+	Servers    []*ProxyExternal2 `json:"servers"`
+	Selected   *ProxyExternal2   `json:"selected"`
+	RttUrl     string            `json:"rtt_url"`
 }
 
 func GetServerExternals() []*ProxyExternal {
@@ -43,44 +50,64 @@ func GetServerExternals() []*ProxyExternal {
 		}
 	}
 	util.QuickSort2(reply, func(x, y uintptr) bool {
-		return (*ProxyExternal)(unsafe.Pointer(x)).Name > (*ProxyExternal)(unsafe.Pointer(y)).Name
+		return (*ProxyExternal)(unsafe.Pointer(x)).Name < (*ProxyExternal)(unsafe.Pointer(y)).Name
 	})
 	return reply
 }
 
-func GetGroupExternals() []*GroupExternal {
+func GetGroupExternals(names ...string) []*GroupExternal {
 	groupLock.RLock()
 	defer groupLock.RUnlock()
-	reply := make([]*GroupExternal, len(groups))
-	for i, v := range groups {
-		reply[i] = &GroupExternal{
+	reply := make([]*GroupExternal, 0, len(groups))
+	for _, v := range groups {
+		if len(names) > 0 {
+			isExist := false
+			for _, name := range names {
+				if v.Name == name {
+					isExist = true
+					break
+				}
+			}
+			if !isExist {
+				continue
+			}
+		}
+		g := &GroupExternal{
 			Name:       v.Name,
 			SelectType: v.SelectType,
+			RttUrl:     v.RttUrl,
+		}
+		if len(v.RttUrl) == 0 {
+			g.RttUrl = globalRttUrl
 		}
 		selected, _ := v.Selector.Current().GetServer()
-		reply[i].Selected = &ProxyExternal{
-			Name:     selected.Name,
-			Rtt:      selected.Rtt,
-			RttText:  Duration2Str(selected.Rtt),
-			Protocol: selected.ProxyProtocol,
+		g.Selected = &ProxyExternal2{
+			ProxyExternal: ProxyExternal{
+				Name:     selected.Name,
+				Rtt:      selected.Rtt,
+				RttText:  Duration2Str(selected.Rtt),
+				Protocol: selected.ProxyProtocol,
+			},
 		}
-		reply[i].Servers = make([]*ProxyExternal, len(v.Servers))
-		for j, v := range v.Servers {
-			p := &ProxyExternal{}
-			is := v.(IServer)
+		g.Servers = make([]*ProxyExternal2, len(v.Servers))
+		for j, x := range v.Servers {
+			p := &ProxyExternal2{}
+			is := x.(IServer)
 			p.Name = is.GetName()
 			s, _ := is.GetServer()
 			if s.Name != p.Name {
-				p.Name = fmt.Sprintf("%s(%s)", p.Name, s.Name)
+				p.SubName = s.Name
 			}
 			p.Rtt = s.Rtt
 			p.RttText = Duration2Str(s.Rtt)
 			p.Protocol = s.ProxyProtocol
-			reply[i].Servers[j] = p
+			p.IsSelected = v.Selector.Current().GetName() == p.Name
+			g.Servers[j] = p
 		}
+		reply = append(reply, g)
 	}
 	util.QuickSort2(reply, func(x, y uintptr) bool {
-		return (*ProxyExternal)(unsafe.Pointer(x)).Name > (*ProxyExternal)(unsafe.Pointer(y)).Name
+		return (*ProxyExternal2)(unsafe.Pointer(x)).Name < (*ProxyExternal2)(unsafe.Pointer(y)).Name
 	})
 	return reply
 }
@@ -118,9 +145,6 @@ func AddProxy(name string, vs []string) error {
 	for _, v := range groups {
 		if v.Name == ProxyGlobal {
 			v.Servers = append(v.Servers, s)
-			if err != nil {
-				return err
-			}
 		}
 	}
 	servers = append(servers, s)
@@ -154,6 +178,9 @@ func EditProxy(name string, vs []string) error {
 		}
 	}
 	s, err := NewServer(name, vs)
+	if err != nil {
+		return err
+	}
 	s.RttUrl = rttUrl
 	for _, v := range groups {
 		if v.Name == ProxyGlobal {
@@ -161,9 +188,6 @@ func EditProxy(name string, vs []string) error {
 				if is.(IServer).GetName() == name {
 					v.Servers[i] = s
 				}
-			}
-			if err != nil {
-				return err
 			}
 		}
 	}
@@ -252,13 +276,12 @@ func AddGroup(name string, vs []string) (err error) {
 		}
 	}
 	g.Selector, err = GetSelector(g.SelectType, g)
-
+	if err != nil {
+		return
+	}
 	for _, v := range groups {
 		if v.Name == ProxyGlobal {
 			v.Servers = append(v.Servers, g)
-			if err != nil {
-				return err
-			}
 		}
 	}
 	groups = append(groups, g)
@@ -309,37 +332,53 @@ func EditGroup(name string, vs []string) (err error) {
 		}
 	}
 	g.Selector, err = GetSelector(g.SelectType, g)
+	if err != nil {
+		return
+	}
 
-	for _, v := range groups {
-		if v.Name == ProxyGlobal {
+	for i, v := range groups {
+		if v.Name == name {
+			groups[i] = g
+		} else if v.Name == ProxyGlobal {
 			for i, is := range v.Servers {
 				if is.(IServer).GetName() == name {
 					v.Servers[i] = g
 				}
 			}
-			if err != nil {
-				return err
-			}
 		}
 	}
-	groups = append(groups, g)
 	return
 }
 
-func RemoveGroup(name string) error {
+func RemoveGroup(name string) (effects, deletes []string, err error) {
 	groupLock.Lock()
 	defer groupLock.Unlock()
-	for i, v := range groups {
-		if v.Name == ProxyGlobal {
-			v.Remove(name)
-		}
-		if v.Name == name {
+	effects = make([]string, 0, 4)
+	deletes = make([]string, 0, 4)
+	var g *ServerGroup
+	for i := len(groups) - 1; i >= 0; i-- {
+		g = groups[i]
+		if g.Name == name {
 			groups = append(groups[:i], groups[i+1:]...)
-			v.Selector.Destroy()
-			return nil
+			g.Selector.Destroy()
+			continue
+		}
+		fmt.Println("------>", name, g.Name, len(g.Servers))
+		if g.Remove(name) {
+			fmt.Println("------>", name, g.Name, len(g.Servers))
+			if g.Name == ProxyGlobal {
+				continue
+			}
+			fmt.Println("------>", name, g.Name, len(g.Servers))
+			if len(g.Servers) == 0 {
+				deletes = append(deletes, g.Name)
+				groups = append(groups[:i], groups[i+1:]...)
+			} else {
+				effects = append(effects, g.Name)
+			}
 		}
 	}
-	return fmt.Errorf("[ProxyGroup: %s] not found", name)
+	return
 }
 
 func ProxyExist(name string) (*Server, bool) {
