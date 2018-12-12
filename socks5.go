@@ -64,12 +64,13 @@ func SocksHandle(co net.Conn) {
 			req.port = uint16(port)
 		}
 	}
+
 	// 白名单判断
 	if IsPass(req.addr, req.ip.String(), strconv.Itoa(int(req.port))) {
 		s, _ := proxy.GetServer(proxy.ProxyDirect)
 		sc, err := s.Conn(req)
 		if err != nil {
-			log.Logger.Error("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err.Error())
+			log.Logger.Errorf("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err.Error())
 		}
 		direct := &DirectChannel{}
 		direct.Transport(conn, sc)
@@ -99,7 +100,7 @@ func SocksHandle(co net.Conn) {
 		log.Logger.Debugf("[SOCKS] [ID:%d] Start connect to Server [%s]", conn.GetID(), s.Name)
 		sc, err := s.Conn(req)
 		if err != nil {
-			log.Logger.Error("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err.Error())
+			log.Logger.Errorf("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err.Error())
 			return
 		}
 		log.Logger.Debugf("[SOCKS] [ID:%d] Server [%s] Connected success", conn.GetID(), s.Name)

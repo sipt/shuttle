@@ -94,7 +94,18 @@ func AddressEncoding(req sproxy.IRequest) ([]byte, error) {
 		}
 		addr = []byte(ip)
 	}
-
+	if len(addr) == 0 {
+		ip = net.ParseIP(req.IP())
+		if len(ip) == net.IPv4len {
+			atyp = shuttle.AddrTypeIPv4
+		} else {
+			atyp = shuttle.AddrTypeIPv6
+		}
+		addr = []byte(ip)
+	}
+	if len(addr) == 0 {
+		return nil, fmt.Errorf("addr error [%s]", req.Host())
+	}
 	port, err := strconv.ParseUint(req.Port(), 10, 16)
 	if err != nil {
 		return nil, err
