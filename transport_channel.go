@@ -2,17 +2,18 @@ package shuttle
 
 import (
 	"bufio"
+	"io"
+	"net"
+	"net/http"
+	"strings"
+	"time"
+
 	connect "github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/log"
 	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/proxy"
 	rule2 "github.com/sipt/shuttle/rule"
 	"github.com/sipt/shuttle/util"
-	"io"
-	"net"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type DirectChannel struct{}

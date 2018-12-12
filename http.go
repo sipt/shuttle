@@ -2,6 +2,13 @@ package shuttle
 
 import (
 	"bufio"
+	"io"
+	"net"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"context"
 	"github.com/sipt/shuttle/config"
 	connect "github.com/sipt/shuttle/conn"
@@ -9,12 +16,6 @@ import (
 	"github.com/sipt/shuttle/proxy"
 	rule2 "github.com/sipt/shuttle/rule"
 	"github.com/sipt/shuttle/util"
-	"io"
-	"net"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
