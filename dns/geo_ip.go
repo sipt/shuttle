@@ -2,15 +2,21 @@ package dns
 
 import (
 	"github.com/oschwald/geoip2-golang"
+	"github.com/sipt/shuttle/assets"
 	"github.com/sipt/shuttle/log"
 	"net"
 )
 
 var geoipDB *geoip2.Reader
 
-func InitGeoIP(dbFiled string) error {
+func InitGeoIP(dbFile string) error {
 	var err error
-	geoipDB, err = geoip2.Open(dbFiled)
+	geoipFileBytes, err := assets.ReadFile(dbFile)
+	if err != nil {
+		log.Logger.Errorf("[GeoIP] read failed [%v]", err)
+		return err
+	}
+	geoipDB, err = geoip2.FromBytes(geoipFileBytes)
 	if err != nil {
 		return err
 	}
