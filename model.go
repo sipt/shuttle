@@ -46,10 +46,7 @@ func (r *SocksRequest) Network() string {
 	return ""
 }
 func (r *SocksRequest) Domain() string {
-	if r.atyp == AddrTypeDomain {
-		return r.addr
-	}
-	return ""
+	return r.addr
 }
 func (r *SocksRequest) IP() string {
 	if len(r.ip) > 0 {
@@ -62,7 +59,7 @@ func (r *SocksRequest) IP() string {
 }
 func (r *SocksRequest) Port() string {
 	if r.port != 0 {
-		strconv.FormatInt(int64(r.port), 10)
+		return strconv.FormatInt(int64(r.port), 10)
 	}
 	return ""
 }
