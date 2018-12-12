@@ -134,11 +134,15 @@ func (r *HttpRequest) IP() string {
 }
 func (r *HttpRequest) Port() string {
 	if len(r.port) == 0 {
-		switch r.protocol {
-		case HTTP:
-			r.port = "80"
-		case HTTPS:
-			r.port = "443"
+		if r.answer != nil && len(r.answer.Port) > 0 {
+			r.port = r.answer.Port
+		} else {
+			switch r.protocol {
+			case HTTP:
+				r.port = "80"
+			case HTTPS:
+				r.port = "443"
+			}
 		}
 	}
 	return r.port

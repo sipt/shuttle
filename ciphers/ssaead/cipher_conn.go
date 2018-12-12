@@ -18,7 +18,6 @@ var aeadCiphers = make(map[string]IAEADCipher)
 
 func registerAEADCiphers(method string, c IAEADCipher) {
 	aeadCiphers[method] = c
-	log.Logger.Infof("[SS Ciphers] register cipher [%s]", method)
 }
 
 func GetAEADCiphers(method string) func(string, connect.IConn) (connect.IConn, error) {

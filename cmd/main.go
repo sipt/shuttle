@@ -3,13 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
-	"os/exec"
 	"os/signal"
-	"path/filepath"
-	"runtime"
 	"runtime/debug"
 	"strings"
 	"syscall"
@@ -30,11 +26,8 @@ import (
 )
 
 var (
-	ShutdownSignal     = make(chan bool, 1)
-	UpgradeSignal      = make(chan string, 1)
-	StopSocksSignal    = make(chan bool, 1)
-	StopHTTPSignal     = make(chan bool, 1)
-	ReloadConfigSignal = make(chan bool, 1)
+	StopSocksSignal = make(chan bool, 1)
+	StopHTTPSignal  = make(chan bool, 1)
 )
 
 func main() {
@@ -56,15 +49,14 @@ func main() {
 		return
 	}
 
+	//event listen
+	ListenEvent()
+
 	// 启动api控制
-	go controller.StartController(conf,
-		ShutdownSignal,     // shutdown program
-		ReloadConfigSignal, // reload config
-		UpgradeSignal,      // upgrade
-	)
+	go controller.StartController(conf, eventChan)
 	//go HandleUDP()
-	go HandleHTTP(conf, StopSocksSignal)
-	go HandleSocks5(conf, StopHTTPSignal)
+	go HandleHTTP(conf, StopHTTPSignal)
+	go HandleSocks5(conf, StopSocksSignal)
 
 	// Catch "Ctrl + C"
 	signalChan := make(chan os.Signal, 1)
@@ -74,43 +66,12 @@ func main() {
 		EnableSystemProxy(conf)
 	}
 	fmt.Println("success")
-	for {
-		select {
-		case fileName := <-UpgradeSignal:
-			shutdown(conf.General.SetAsSystemProxy)
-			log.Logger.Info("[Shuttle] is shutdown, for upgrade!")
-			var name string
-			if runtime.GOOS == "windows" {
-				name = "upgrade"
-			} else {
-				name = "./upgrade"
-			}
-			cmd := exec.Command(name, "-f="+fileName)
-			err = cmd.Start()
-			if err != nil {
-				ioutil.WriteFile(filepath.Join(*logPath, "logs", "error.log"), []byte(err.Error()), 0664)
-			}
-			ioutil.WriteFile(filepath.Join(*logPath, "logs", "end.log"), []byte("ending"), 0664)
-			os.Exit(0)
-		case <-ShutdownSignal:
-			log.Logger.Info("[Shuttle] is shutdown, see you later!")
-			shutdown(conf.General.SetAsSystemProxy)
-			os.Exit(0)
-			return
-		case <-signalChan:
-			log.Logger.Info("[Shuttle] is shutdown, see you later!")
-			shutdown(conf.General.SetAsSystemProxy)
-			os.Exit(0)
-			return
-		case <-ReloadConfigSignal:
-			conf, err = reloadConfig(*configPath, StopSocksSignal, StopHTTPSignal)
-			if err != nil {
-				log.Logger.Error("Reload Config failed: ", err)
-				fmt.Println(err.Error())
-				os.Exit(1)
-			}
-		}
-	}
+
+	<-signalChan
+	log.Logger.Info("[Shuttle] is shutdown, see you later!")
+	shutdown(conf.General.SetAsSystemProxy)
+	os.Exit(0)
+	return
 }
 
 //load config
@@ -160,16 +121,9 @@ func reloadConfig(configPath string, StopSocksSignal, StopHTTPSignal chan bool) 
 	if oldConf.GetControllerInterface() != conf.GetControllerInterface() ||
 		oldConf.GetControllerPort() != conf.GetControllerPort() {
 		//restart controller
-		err = controller.ShutdownController()
-		if err != nil {
-			return
-		}
+		controller.ShutdownController()
 		// 启动api控制
-		go controller.StartController(conf,
-			ShutdownSignal,     // shutdown program
-			ReloadConfigSignal, // reload config
-			UpgradeSignal,      // upgrade
-		)
+		go controller.StartController(conf, eventChan)
 	}
 
 	// http proxy

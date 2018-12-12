@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	conf "github.com/sipt/shuttle/config"
+	. "github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/extension/config"
 	"github.com/sipt/shuttle/upgrade"
 	"os"
@@ -33,7 +34,7 @@ func CheckUpdate(ctx *gin.Context) {
 	})
 }
 
-func NewUpgrade(upgradeSignal chan string) func(ctx *gin.Context) {
+func NewUpgrade(eventChan chan *EventObj) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		if status == upgrade.VersionEqual || status == upgrade.VersionGreater {
 			ctx.JSON(500, Response{
@@ -53,6 +54,6 @@ func NewUpgrade(upgradeSignal chan string) func(ctx *gin.Context) {
 		ctx.JSON(200, Response{
 			Code: 0, Message: "success",
 		})
-		upgradeSignal <- "shuttle.zip"
+		eventChan <- EventUpgrade.SetData("shuttle.zip")
 	}
 }

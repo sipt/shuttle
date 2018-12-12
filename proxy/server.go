@@ -4,7 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sipt/shuttle/conn"
-	"github.com/sipt/shuttle/log"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -24,6 +25,8 @@ var (
 	MockServer   = &Server{Name: "MOCK"}
 	FailedServer = &Server{Name: "FAILED"}
 	RejectServer = &Server{Name: "REJECT"}
+
+	globalRttUrl = "http://www.gstatic.com/generate_204"
 )
 
 type IProxyConfig interface {
@@ -31,6 +34,8 @@ type IProxyConfig interface {
 	SetProxy(map[string][]string)
 	GetProxyGroup() map[string][]string
 	SetProxyGroup(map[string][]string)
+	GetRttUrl() string
+	SetRttUrl(string)
 }
 
 type IRequest interface {
@@ -42,6 +47,11 @@ type IRequest interface {
 }
 
 func ApplyConfig(config IProxyConfig) (err error) {
+	//rtt config
+	if len(config.GetRttUrl()) > 0 {
+		globalRttUrl = config.GetRttUrl()
+	}
+
 	proxy := config.GetProxy()
 	//Servers
 	ss := make([]*Server, len(proxy)+2)
@@ -49,12 +59,23 @@ func ApplyConfig(config IProxyConfig) (err error) {
 	ss[index] = &Server{Name: ProxyDirect} // 直连
 	index ++
 	ss[index] = &Server{Name: ProxyReject} // 拒绝
+	rttUrl := ""
 	for k, v := range proxy {
 		index ++
 		if len(v) < 2 {
 			return fmt.Errorf("resolve config file [proxy] [%s] failed", k)
 		}
+		{ //rtt Url check
+			last := v[len(v)-1]
+			if len(last) > len("http://") {
+				if strings.HasPrefix(last, "http://") || strings.HasPrefix(last, "https://") {
+					rttUrl = last
+					v = v[:len(v)-1]
+				}
+			}
+		}
 		ss[index], err = NewServer(k, v)
+		ss[index].RttUrl = rttUrl
 		if err != nil {
 			return
 		}
@@ -87,6 +108,15 @@ func ApplyConfig(config IProxyConfig) (err error) {
 			return fmt.Errorf("resolve config file [proxy_group] [%s] failed", v.Name)
 		}
 		v.SelectType = cs[0]
+		{ //rtt Url check
+			last := cs[len(cs)-1]
+			if len(last) > len("http://") {
+				if strings.HasPrefix(last, "http://") || strings.HasPrefix(last, "https://") {
+					v.RttUrl = last
+					cs = cs[:len(cs)-1]
+				}
+			}
+		}
 		v.Servers = make([]interface{}, len(cs)-1)
 		for i := range v.Servers {
 			v.Servers[i] = getServer(cs[i+1])
@@ -128,6 +158,9 @@ func InitServers(gs []*ServerGroup, ss []*Server) error {
 			return err
 		}
 	}
+	if len(groups) > 0 {
+		DestroyServers()
+	}
 	groups = gs
 	servers = ss
 	return nil
@@ -161,12 +194,12 @@ var proxyProtocolCreator = make(map[string]NewProtocol)
 
 func RegisterProxyProtocolCreator(name string, p NewProtocol) {
 	proxyProtocolCreator[name] = p
-	log.Logger.Infof("Support Proxy Protocol: [%s]", name)
 }
 
 type IServer interface {
 	GetName() string
 	GetServer() (*Server, error)
+	GetRttRrl() string
 }
 
 type NewProtocol func([]string) (IProtocol, error)
@@ -181,14 +214,51 @@ type ServerGroup struct {
 	Name       string
 	SelectType string
 	Selector   ISelector
+	RttUrl     string
+	sync.RWMutex
 }
 
 func (s *ServerGroup) GetName() string {
+	s.RLock()
+	defer s.RUnlock()
 	return s.Name
 }
 
 func (s *ServerGroup) GetServer() (*Server, error) {
+	s.RLock()
+	defer s.RUnlock()
 	return s.Selector.Get()
+}
+
+func (s *ServerGroup) GetRttRrl() string {
+	s.RLock()
+	defer s.RUnlock()
+	if len(s.RttUrl) > 0 {
+		return s.RttUrl
+	}
+	return globalRttUrl
+}
+
+func (s *ServerGroup) Remove(name string) (isExist bool) {
+	s.Lock()
+	defer s.Unlock()
+	isExist = false
+	for i, v := range s.Servers {
+		is, _ := (v).(IServer)
+		if is.GetName() == name {
+			s.Servers = append(s.Servers[:i], s.Servers[i+1:]...)
+			isExist = true
+			break
+		}
+	}
+	if isExist {
+		if len(s.Servers) > 0 {
+			_ = s.Selector.Reset(s)
+		} else {
+			s.Selector.Destroy()
+		}
+	}
+	return
 }
 
 //创建Server
@@ -213,6 +283,7 @@ type Server struct {
 	Name          string
 	Rtt           time.Duration
 	ProxyProtocol string
+	RttUrl        string
 	IProtocol     `json:"-"`
 }
 
@@ -221,6 +292,12 @@ func (s *Server) GetName() string {
 }
 func (s *Server) GetServer() (*Server, error) {
 	return s, nil
+}
+func (s *Server) GetRttRrl() string {
+	if len(s.RttUrl) > 0 {
+		return s.RttUrl
+	}
+	return globalRttUrl
 }
 
 func (s *Server) Conn(req IRequest) (conn.IConn, error) {

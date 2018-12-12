@@ -2,11 +2,11 @@ package config
 
 import (
 	"fmt"
+	"github.com/sipt/shuttle/util"
 	"github.com/sipt/yaml"
 	"io/ioutil"
 )
 
-const ShuttleVersion = "v5.1.0"
 const ConfigFileVersion = "v1.0.1"
 const SetAsSystemProxyAuto = "auto"
 
@@ -23,6 +23,8 @@ func CurrentConfigFile() string {
 
 // load config file
 func LoadConfig(filePath string) (*Config, error) {
+	util.RLock(filePath)
+	defer util.RUnLock(filePath)
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("read config file failed: %v", err)
@@ -42,6 +44,8 @@ func LoadConfig(filePath string) (*Config, error) {
 
 // save config file
 func SaveConfig(configFile string, config *Config) error {
+	util.Lock(configFile)
+	defer util.UnLock(configFile)
 	bytes, err := yaml.Marshal(config)
 	if err != nil {
 		return fmt.Errorf("[CONF] yaml marshal config failed : %v", err)
@@ -76,6 +80,7 @@ type Config struct {
 	Mitm       *Mitm               `yaml:"MITM"`
 	Rule       [][]string          `yaml:"Rule,[flow],2quoted"`
 	HttpMap    *HttpMap            `yaml:"Http-Map"`
+	RttUrl     string              `yaml:"rtt-url"`
 }
 
 type General struct {
@@ -97,14 +102,14 @@ type Mitm struct {
 }
 
 type HttpMap struct {
-	ReqMap  []*ModifyMap `yaml:"Req-Map,2quoted"`
-	RespMap []*ModifyMap `yaml:"Resp-Map,2quoted"`
+	ReqMap  []*ModifyMap `yaml:"Req-Map,2quoted" json:"req_map"`
+	RespMap []*ModifyMap `yaml:"Resp-Map,2quoted" json:"resp_map"`
 }
 
 type ModifyMap struct {
-	Type   string     `yaml:"type,2quoted"`
-	UrlRex string     `yaml:"url-rex,2quoted"`
-	Items  [][]string `yaml:"items,[flow],2quoted"`
+	Type   string     `yaml:"type,2quoted" json:"type"`
+	UrlRex string     `yaml:"url-rex,2quoted" json:"url_rex"`
+	Items  [][]string `yaml:"items,[flow],2quoted" json:"items"`
 }
 
 //dns
@@ -129,6 +134,9 @@ func (c *Config) GetGeoIPDBFile() string {
 //logger
 func (c *Config) GetLogLevel() string {
 	return c.General.LogLevel
+}
+func (c *Config) SetLogLevel(l string) {
+	c.General.LogLevel = l
 }
 
 //controller
@@ -188,6 +196,12 @@ func (c *Config) GetProxyGroup() map[string][]string {
 }
 func (c *Config) SetProxyGroup(group map[string][]string) {
 	c.ProxyGroup = group
+}
+func (c *Config) SetRttUrl(rttUrl string) {
+	c.RttUrl = rttUrl
+}
+func (c *Config) GetRttUrl() string {
+	return c.RttUrl
 }
 
 //Rule

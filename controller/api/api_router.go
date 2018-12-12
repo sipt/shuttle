@@ -2,9 +2,10 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	. "github.com/sipt/shuttle/constant"
 )
 
-func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string) {
+func APIRoute(router *gin.RouterGroup, eventChan chan *EventObj) {
 	//dns
 	router.GET("/dns", DNSCacheList)
 	router.DELETE("/dns", ClearDNSCache)
@@ -26,11 +27,6 @@ func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSi
 	router.POST("/cert", GenerateCert)
 	router.GET("/cert", DownloadCert)
 
-	//MitM rules
-	router.GET("/mitm/rules", GetMitMRules)
-	router.POST("/mitm/rules", AppendMitMRules)
-	router.DELETE("/mitm/rules", DelMitMRules)
-
 	//server
 	router.GET("/servers", ServerList)
 	router.POST("/server/select", SelectServer)
@@ -39,12 +35,12 @@ func APIRoute(router *gin.RouterGroup, shutdownSingnal chan bool, reloadConfigSi
 	//general
 	router.GET("/system/proxy/enable", EnableSystemProxy)
 	router.GET("/system/proxy/disable", DisableSystemProxy)
-	router.POST("/shutdown", NewShutdown(shutdownSingnal))
-	router.POST("/reload", ReloadConfig(reloadConfigSignal))
+	router.POST("/shutdown", NewShutdown(eventChan))
+	router.POST("/reload", ReloadConfig(eventChan))
 	router.GET("/mode", GetConnMode)
 	router.POST("/mode/:mode", SetConnMode)
 	router.GET("/upgrade/check", CheckUpdate)
-	router.POST("/upgrade", NewUpgrade(upgradeSignal))
+	router.POST("/upgrade", NewUpgrade(eventChan))
 
 	//ws
 	router.GET("/ws/records", func(ctx *gin.Context) {

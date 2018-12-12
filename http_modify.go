@@ -42,23 +42,33 @@ func ApplyHTTPModifyConfig(config IHttpModifyConfig) (err error) {
 	httpMap := config.GetHTTPMap()
 	if httpMap != nil {
 		if len(httpMap.ReqMap) > 0 {
-			reqPolicies = make([]*ModifyPolicy, len(httpMap.ReqMap))
+			reqps := make([]*ModifyPolicy, len(httpMap.ReqMap))
 			for i, v := range httpMap.ReqMap {
-				reqPolicies[i] = &ModifyPolicy{
+				switch v.Type {
+				case ModifyMock, ModifyUpdate:
+				default:
+					return fmt.Errorf("resolve config file [Http-Map] [Req-Map] not support [%s]", v.Type)
+				}
+				reqps[i] = &ModifyPolicy{
 					Type:   v.Type,
 					UrlRex: v.UrlRex,
 				}
-				reqPolicies[i].rex, err = regexp.Compile(v.UrlRex)
+				reqps[i].rex, err = regexp.Compile(v.UrlRex)
 				if err != nil {
-					return fmt.Errorf("resolve config file [Http-Map] [%s] failed: %v", err)
+					return fmt.Errorf("resolve config file [Http-Map] [%s] failed: %v", v.UrlRex, err)
 				}
 				if len(v.Items) > 0 {
-					reqPolicies[i].MVs = make([]*ModifyValue, len(v.Items))
+					reqps[i].MVs = make([]*ModifyValue, len(v.Items))
 					for j, e := range v.Items {
 						if len(e) != 3 {
 							return fmt.Errorf("resolve config file [Http-Map] failed: %v, item's count must be 3", e)
 						}
-						reqPolicies[i].MVs[j] = &ModifyValue{
+						switch e[0] {
+						case ModifyTypeURL, ModifyTypeHeader, ModifyTypeStatus, ModifyTypeBody:
+						default:
+							return fmt.Errorf("resolve config file [Http-Map] [Req-Map] not support [%s]", v.Type)
+						}
+						reqps[i].MVs[j] = &ModifyValue{
 							Type:  e[0],
 							Key:   e[1],
 							Value: e[2],
@@ -66,25 +76,37 @@ func ApplyHTTPModifyConfig(config IHttpModifyConfig) (err error) {
 					}
 				}
 			}
+			reqPolicies = reqps
 		}
+
 		if len(httpMap.ReqMap) > 0 {
-			respPolicies = make([]*ModifyPolicy, len(httpMap.RespMap))
+			respps := make([]*ModifyPolicy, len(httpMap.RespMap))
 			for i, v := range httpMap.RespMap {
-				respPolicies[i] = &ModifyPolicy{
+				switch v.Type {
+				case ModifyMock, ModifyUpdate:
+				default:
+					return fmt.Errorf("resolve config file [Http-Map] [Resp-Map] not support [%s]", v.Type)
+				}
+				respps[i] = &ModifyPolicy{
 					Type:   v.Type,
 					UrlRex: v.UrlRex,
 				}
-				respPolicies[i].rex, err = regexp.Compile(v.UrlRex)
+				respps[i].rex, err = regexp.Compile(v.UrlRex)
 				if err != nil {
 					return fmt.Errorf("resolve config file [Http-Map] [%s] failed: %v", err)
 				}
 				if len(v.Items) > 0 {
-					respPolicies[i].MVs = make([]*ModifyValue, len(v.Items))
+					respps[i].MVs = make([]*ModifyValue, len(v.Items))
 					for j, e := range v.Items {
 						if len(e) != 3 {
 							return fmt.Errorf("resolve config file [Http-Map] failed: %v, item's count must be 3", e)
 						}
-						respPolicies[i].MVs[j] = &ModifyValue{
+						switch e[0] {
+						case ModifyTypeHeader, ModifyTypeStatus, ModifyTypeBody:
+						default:
+							return fmt.Errorf("resolve config file [Http-Map] [Req-Map] not support [%s]", v.Type)
+						}
+						respps[i].MVs[j] = &ModifyValue{
 							Type:  e[0],
 							Key:   e[1],
 							Value: e[2],
@@ -92,8 +114,10 @@ func ApplyHTTPModifyConfig(config IHttpModifyConfig) (err error) {
 					}
 				}
 			}
+			respPolicies = respps
 		}
 	}
+
 	return
 }
 

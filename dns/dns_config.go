@@ -91,8 +91,17 @@ func ApplyConfig(config IDNSConfig) error {
 
 	//Local DNS
 	inputs := config.GetLocalDNS()
-	localDNS := make([]*DNS, len(inputs))
-	for i, v := range inputs {
+	localDNS := make([]*DNS, len(inputs)+1)
+	localDNS[0] = &DNS{
+		MatchType: MatchTypeDomain,
+		Domain:    config.GetControllerDomain(),
+		Type:      DNSTypeStatic,
+		Port:      config.GetControllerPort(),
+		IPs:       []string{"127.0.0.1"},
+	}
+	var i int
+	for j, v := range inputs {
+		i = j + 1
 		if len(v) != 4 {
 			return fmt.Errorf("resolve config file [host] %v length must be 4", v)
 		}

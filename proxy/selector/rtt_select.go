@@ -1,10 +1,8 @@
 package selector
 
 import (
-	"github.com/sipt/shuttle"
 	"github.com/sipt/shuttle/log"
 	"github.com/sipt/shuttle/proxy"
-	"io"
 	"sync/atomic"
 	"time"
 )
@@ -71,7 +69,7 @@ func (r *rttSelector) autoTest() {
 		}
 	}
 	r.timer.Stop()
-	log.Logger.Debug("[RTT-Selector] start testing ...")
+	log.Logger.Debug("[Rtt-Selector] start testing ...")
 	var is proxy.IServer
 	var s *proxy.Server
 	var err error
@@ -82,55 +80,28 @@ func (r *rttSelector) autoTest() {
 		if err != nil {
 			continue
 		}
-		go urlTest(s, c)
+		go urlTest(s, r.group.GetRttRrl(), c)
 	}
 	s = <-c
-	log.Logger.Infof("[RTT-Select] rtt select server: [%s]", s.Name)
+	log.Logger.Infof("[Rtt-Select] rtt select server: [%s]", s.Name)
 	r.selected = s
 	r.timer.Reset(timerDulation)
 	atomic.CompareAndSwapUint32(&r.status, 1, 0)
 }
 
-func urlTest(s *proxy.Server, c chan *proxy.Server) {
-	var closer func()
-	conn, err := s.Conn(shuttle.NewHttpRequest("tcp", "www.gstatic.com", "", "80",
-		"HTTP", "", 0, nil))
+func urlTest(s *proxy.Server, rttUrl string, c chan *proxy.Server) {
+	rtt, err := proxy.TestRTT(s, rttUrl)
 	if err != nil {
-		log.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
+		s.Rtt = -1
+		log.Logger.Debugf("[Rtt-Select] [%s]  url test result: <failed> %v", s.Name, err)
 		return
 	}
-	defer conn.Close()
-	start := time.Now()
-	_, err = conn.Write([]byte("GET /generate_204 HTTP/1.1\r\nHost: www.gstatic.com\r\n\r\n"))
-	if err != nil {
-		log.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
-		return
+	s.Rtt = rtt
+	select {
+	case c <- s:
+	default:
 	}
-	buf := make([]byte, 128)
-	_, err = conn.Read(buf)
-	if err != nil {
-		if err != io.EOF {
-			log.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
-		}
-		return
-	}
-	if err == nil && string(buf[9:12]) == "204" {
-		s.Rtt = time.Now().Sub(start)
-		select {
-		case c <- s:
-		default:
-		}
-	} else {
-		s.Rtt = 0
-	}
-	if err != nil {
-		log.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
-	} else {
-		log.Logger.Debugf("[RTT-Select] [%s]  RTT:[%dms]", s.Name, s.Rtt.Nanoseconds()/1000000)
-	}
-	if closer != nil {
-		closer()
-	}
+	log.Logger.Debugf("[Rtt-Select] [%s]  Rtt:[%dms]", s.Name, s.Rtt.Nanoseconds()/1000000)
 }
 func (r *rttSelector) Current() proxy.IServer {
 	return r.selected

@@ -49,13 +49,13 @@ type IRuleConfig interface {
 }
 
 func ApplyConfig(config IRuleConfig) error {
-	rules = make([]*Rule, len(config.GetRule()))
+	rs := make([]*Rule, len(config.GetRule()))
 	ipCidrMap = make(map[string]*net.IPNet, 16)
 	for i, v := range config.GetRule() {
 		if len(v) != 4 {
 			return fmt.Errorf("resolve config file [rule] %v length must be 4", v)
 		}
-		rules[i] = &Rule{
+		rs[i] = &Rule{
 			Type:    v[0],
 			Value:   v[1],
 			Policy:  v[2],
@@ -72,6 +72,7 @@ func ApplyConfig(config IRuleConfig) error {
 			ipCidrMap[v[1]] = ipNet
 		}
 	}
+	rules = rs
 	return nil
 }
 

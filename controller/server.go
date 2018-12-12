@@ -3,14 +3,15 @@ package controller
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/assets"
+	. "github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/controller/api"
+	"github.com/sipt/shuttle/controller/api/conf"
 	"github.com/sipt/shuttle/log"
 )
 
@@ -43,32 +44,49 @@ type IControllerConfig interface {
 	GetLogLevel() string
 }
 
-func StartController(config IControllerConfig, shutdownSignal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string) {
+func StartController(config IControllerConfig, eventChan chan *EventObj) {
 	//if level == "info" {
-	gin.SetMode(gin.ReleaseMode)
-	gin.DefaultWriter = ioutil.Discard
+	//gin.SetMode(gin.ReleaseMode)
+	//gin.DefaultWriter = ioutil.Discard
 	//}
 	e := gin.Default()
 	e.Use(Cors())
-	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal, upgradeSignal)
+	api.APIRoute(e.Group("/api"), eventChan)
+	conf.APIRoute(e.Group("/api/config"), eventChan)
 	e.GET("/", index)
+	//config
+	e.GET("/general", index)
+	e.GET("/proxy", index)
+	e.GET("/mitm", index)
+	e.GET("/dns-local", index)
+	e.GET("/http-map", index)
+	e.GET("/rules", index)
+	//dashboard
 	e.GET("/records", index)
 	e.GET("/dns-cache", index)
-	e.GET("/servers", index)
-	e.GET("/mitm", index)
-	e.GET("/general", index)
 	e.Use(staticHandler("/", assets.HTTP))
+
 	server = &http.Server{
 		Addr:    net.JoinHostPort(config.GetControllerInterface(), config.GetControllerPort()),
 		Handler: e,
 	}
+	log.Logger.Infof("[Controller] listen to:%s", server.Addr)
 	server.ListenAndServe()
 }
 
-func ShutdownController() error {
-	log.Logger.Infof("Stopped Controller goroutine...")
-	ctx := context.Background()
-	return server.Shutdown(ctx)
+func ShutdownController() {
+	s := server
+	server = nil
+	if s == nil {
+		return
+	}
+	s.RegisterOnShutdown(func() {
+		log.Logger.Infof("Stopped Controller goroutine...")
+	})
+	go func() {
+		ctx := context.Background()
+		s.Shutdown(ctx)
+	}()
 }
 
 func Cors() gin.HandlerFunc {
