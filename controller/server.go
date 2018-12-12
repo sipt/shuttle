@@ -1,25 +1,92 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/sipt/shuttle/controller/api"
-	"strings"
+	"context"
 	"fmt"
+	"net"
 	"net/http"
-	"github.com/sipt/shuttle/controller/web"
-	"io/ioutil"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/sipt/shuttle/assets"
+	. "github.com/sipt/shuttle/constant"
+	"github.com/sipt/shuttle/controller/api"
+	"github.com/sipt/shuttle/controller/api/conf"
+	"github.com/sipt/shuttle/log"
 )
 
-func StartController(inter, port string, shutdownSignal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string, level string) {
-	if level == "info" {
-		gin.SetMode(gin.ReleaseMode)
-		gin.DefaultWriter = ioutil.Discard
+func staticHandler(urlPrefix string, fs http.FileSystem) gin.HandlerFunc {
+	fileserver := http.FileServer(fs)
+	if urlPrefix != "" {
+		fileserver = http.StripPrefix(urlPrefix, fileserver)
 	}
+	return func(c *gin.Context) {
+		fileserver.ServeHTTP(c.Writer, c.Request)
+		c.Abort()
+	}
+}
+
+func index(ctx *gin.Context) {
+	b, err := assets.ReadFile("index.html")
+	if err != nil {
+		panic(err)
+	}
+	ctx.Data(200, "text/html; charset=utf-8", b)
+}
+
+var server *http.Server
+
+type IControllerConfig interface {
+	GetControllerInterface() string
+	SetControllerInterface(string)
+	GetControllerPort() string
+	SetControllerPort(string)
+	GetLogLevel() string
+}
+
+func StartController(config IControllerConfig, eventChan chan *EventObj) {
+	//if level == "info" {
+	//gin.SetMode(gin.ReleaseMode)
+	//gin.DefaultWriter = ioutil.Discard
+	//}
 	e := gin.Default()
 	e.Use(Cors())
-	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal, upgradeSignal)
-	web.WebRoute(e)
-	e.Run(inter + ":" + port)
+	api.APIRoute(e.Group("/api"), eventChan)
+	conf.APIRoute(e.Group("/api/config"), eventChan)
+	e.GET("/", index)
+	//config
+	e.GET("/general", index)
+	e.GET("/proxy", index)
+	e.GET("/mitm", index)
+	e.GET("/dns-local", index)
+	e.GET("/http-map", index)
+	e.GET("/rules", index)
+	//dashboard
+	e.GET("/records", index)
+	e.GET("/dns-cache", index)
+	e.Use(staticHandler("/", assets.HTTP))
+
+	server = &http.Server{
+		Addr:    net.JoinHostPort(config.GetControllerInterface(), config.GetControllerPort()),
+		Handler: e,
+	}
+	log.Logger.Infof("[Controller] listen to:%s", server.Addr)
+	server.ListenAndServe()
+}
+
+func ShutdownController() {
+	s := server
+	server = nil
+	if s == nil {
+		return
+	}
+	s.RegisterOnShutdown(func() {
+		log.Logger.Infof("Stopped Controller goroutine...")
+	})
+	go func() {
+		ctx := context.Background()
+		s.Shutdown(ctx)
+	}()
 }
 
 func Cors() gin.HandlerFunc {

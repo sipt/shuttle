@@ -2,7 +2,8 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sipt/shuttle"
+	conf "github.com/sipt/shuttle/config"
+	. "github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/extension/config"
 	"github.com/sipt/shuttle/upgrade"
 	"os"
@@ -15,7 +16,7 @@ var status string
 
 func CheckUpdate(ctx *gin.Context) {
 	var err error
-	latest, url, status, err = upgrade.CheckUpgrade(shuttle.ShuttleVersion)
+	latest, url, status, err = upgrade.CheckUpgrade(conf.ShuttleVersion)
 	if err != nil {
 		ctx.JSON(500, Response{
 			Code: 1, Message: err.Error(),
@@ -25,7 +26,7 @@ func CheckUpdate(ctx *gin.Context) {
 	ctx.JSON(200, Response{
 		Code: 0,
 		Data: map[string]string{
-			"Current": shuttle.ShuttleVersion,
+			"Current": conf.ShuttleVersion,
 			"Latest":  latest,
 			"URL":     url,
 			"Status":  status,
@@ -33,7 +34,7 @@ func CheckUpdate(ctx *gin.Context) {
 	})
 }
 
-func NewUpgrade(upgradeSignal chan string) func(ctx *gin.Context) {
+func NewUpgrade(eventChan chan *EventObj) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		if status == upgrade.VersionEqual || status == upgrade.VersionGreater {
 			ctx.JSON(500, Response{
@@ -53,6 +54,6 @@ func NewUpgrade(upgradeSignal chan string) func(ctx *gin.Context) {
 		ctx.JSON(200, Response{
 			Code: 0, Message: "success",
 		})
-		upgradeSignal <- "shuttle.zip"
+		eventChan <- EventUpgrade.SetData("shuttle.zip")
 	}
 }

@@ -2,15 +2,17 @@ package shuttle
 
 import (
 	"bytes"
-	"github.com/sipt/shuttle/extension/config"
+	"fmt"
+	"github.com/sipt/shuttle/config"
 	"github.com/sipt/shuttle/log"
 	"github.com/sipt/shuttle/pool"
+	"github.com/sipt/shuttle/proxy"
+	"github.com/sipt/shuttle/rule"
 	"github.com/sipt/shuttle/util"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -31,34 +33,106 @@ const (
 
 var reqPolicies []*ModifyPolicy
 var respPolicies []*ModifyPolicy
-var bodyFilePath = filepath.Join(".", BodyFileDir)
 
-func InitHttpModify(req []*ModifyPolicy, resp []*ModifyPolicy) {
-	reqPolicies = req
-	respPolicies = resp
-	bodyFilePath = filepath.Join(config.ShuttleHomeDir, BodyFileDir)
+type IHttpModifyConfig interface {
+	GetHTTPMap() *config.HttpMap
 }
 
-func ClearHttpModify() {
-	reqPolicies = nil
-	respPolicies = nil
-}
+func ApplyHTTPModifyConfig(config IHttpModifyConfig) (err error) {
+	httpMap := config.GetHTTPMap()
+	if httpMap != nil {
+		if len(httpMap.ReqMap) > 0 {
+			reqps := make([]*ModifyPolicy, len(httpMap.ReqMap))
+			for i, v := range httpMap.ReqMap {
+				switch v.Type {
+				case ModifyMock, ModifyUpdate:
+				default:
+					return fmt.Errorf("resolve config file [Http-Map] [Req-Map] not support [%s]", v.Type)
+				}
+				reqps[i] = &ModifyPolicy{
+					Type:   v.Type,
+					UrlRex: v.UrlRex,
+				}
+				reqps[i].rex, err = regexp.Compile(v.UrlRex)
+				if err != nil {
+					return fmt.Errorf("resolve config file [Http-Map] [%s] failed: %v", v.UrlRex, err)
+				}
+				if len(v.Items) > 0 {
+					reqps[i].MVs = make([]*ModifyValue, len(v.Items))
+					for j, e := range v.Items {
+						if len(e) != 3 {
+							return fmt.Errorf("resolve config file [Http-Map] failed: %v, item's count must be 3", e)
+						}
+						switch e[0] {
+						case ModifyTypeURL, ModifyTypeHeader, ModifyTypeStatus, ModifyTypeBody:
+						default:
+							return fmt.Errorf("resolve config file [Http-Map] [Req-Map] not support [%s]", v.Type)
+						}
+						reqps[i].MVs[j] = &ModifyValue{
+							Type:  e[0],
+							Key:   e[1],
+							Value: e[2],
+						}
+					}
+				}
+			}
+			reqPolicies = reqps
+		}
 
-func RequestModifyOrMock(req *Request, hreq *http.Request, isHttps bool) (respBuf []byte, err error) {
-	//request update
-	resp := RequestModify(hreq, isHttps)
-	req.Addr = hreq.URL.Hostname()
-	req.IP = net.ParseIP(req.Addr)
-	if port := hreq.URL.Port(); len(port) > 0 {
-		req.Port, err = StrToUint16(port)
-		if err != nil {
-			log.Logger.Error("http port error:" + port)
-			return
+		if len(httpMap.ReqMap) > 0 {
+			respps := make([]*ModifyPolicy, len(httpMap.RespMap))
+			for i, v := range httpMap.RespMap {
+				switch v.Type {
+				case ModifyMock, ModifyUpdate:
+				default:
+					return fmt.Errorf("resolve config file [Http-Map] [Resp-Map] not support [%s]", v.Type)
+				}
+				respps[i] = &ModifyPolicy{
+					Type:   v.Type,
+					UrlRex: v.UrlRex,
+				}
+				respps[i].rex, err = regexp.Compile(v.UrlRex)
+				if err != nil {
+					return fmt.Errorf("resolve config file [Http-Map] [%s] failed: %v", err)
+				}
+				if len(v.Items) > 0 {
+					respps[i].MVs = make([]*ModifyValue, len(v.Items))
+					for j, e := range v.Items {
+						if len(e) != 3 {
+							return fmt.Errorf("resolve config file [Http-Map] failed: %v, item's count must be 3", e)
+						}
+						switch e[0] {
+						case ModifyTypeHeader, ModifyTypeStatus, ModifyTypeBody:
+						default:
+							return fmt.Errorf("resolve config file [Http-Map] [Req-Map] not support [%s]", v.Type)
+						}
+						respps[i].MVs[j] = &ModifyValue{
+							Type:  e[0],
+							Key:   e[1],
+							Value: e[2],
+						}
+					}
+				}
+			}
+			respPolicies = respps
 		}
 	}
-	req.Target = hreq.URL.String()
-	if strings.HasPrefix(req.Target, "//") {
-		req.Target = req.Target[2:]
+
+	return
+}
+
+func RequestModifyOrMock(req *HttpRequest, hreq *http.Request, isHttps bool) (respBuf []byte, err error) {
+	//request update
+	resp := RequestModify(hreq, isHttps)
+	req.domain = hreq.URL.Hostname()
+	if net.ParseIP(req.domain) != nil {
+		req.ip = req.domain
+		req.domain = ""
+	}
+	req.port = hreq.URL.Port()
+	req.target = hreq.URL.String()
+	if strings.HasPrefix(req.target, "//") {
+		req.target = req.target[2:]
 	}
 	if resp != nil { // response mock ?
 		buffer := &bytes.Buffer{}
@@ -73,13 +147,13 @@ func RequestModifyOrMock(req *Request, hreq *http.Request, isHttps bool) (respBu
 			Op: RecordAppend,
 			Value: &Record{
 				ID:       id,
-				Protocol: req.Protocol,
+				Protocol: req.protocol,
 				Created:  time.Now(),
-				Proxy:    &Server{Name: "MOCK"},
+				Proxy:    proxy.MockServer,
 				Status:   RecordStatusCompleted,
 				Dumped:   allowDump,
-				URL:      req.Target,
-				Rule:     &Rule{},
+				URL:      req.target,
+				Rule:     &rule.Rule{},
 			},
 		}
 		if allowDump {
@@ -136,7 +210,7 @@ func modifyMock(v *ModifyPolicy, req *http.Request, _ bool) *http.Response {
 			log.Logger.Debugf("[Http Modify] [Mock] response set Header [%s:%s]", e.Key, e.Value)
 			resp.Header.Set(e.Key, e.Value)
 		case ModifyTypeBody:
-			file, err := os.Open(filepath.Join(bodyFilePath, e.Value))
+			file, err := os.Open(e.Value)
 			if err != nil {
 				log.Logger.Errorf("[HTTP MODIFY] open mock file failed: %v", err)
 				return nil

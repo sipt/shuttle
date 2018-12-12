@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
-	"io"
 	"bytes"
+	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle"
+	"github.com/sipt/shuttle/config"
+	"io"
 )
 
 func DownloadCert(ctx *gin.Context) {
@@ -28,7 +29,19 @@ func DownloadCert(ctx *gin.Context) {
 }
 func GenerateCert(ctx *gin.Context) {
 	var response Response
-	err := shuttle.GenerateCA()
+	mitm, err := shuttle.GenerateCA()
+	if err != nil {
+		response.Code = 1
+		response.Message = err.Error()
+		ctx.JSON(500, response)
+		return
+	}
+	conf := config.CurrentConfig()
+	if conf.Mitm != nil {
+		mitm.Rules = conf.Mitm.Rules
+	}
+	conf.Mitm = mitm
+	err = config.SaveConfig(config.CurrentConfigFile(), conf)
 	if err != nil {
 		response.Code = 1
 		response.Message = err.Error()
@@ -38,28 +51,4 @@ func GenerateCert(ctx *gin.Context) {
 	ctx.JSON(200, response)
 }
 
-func GetMitMRules(ctx *gin.Context) {
-	var response Response
-	response.Data = shuttle.GetMitMRules()
-	ctx.JSON(200, response)
-}
 
-func AppendMitMRules(ctx *gin.Context) {
-	d := ctx.Query("domain")
-	if len(d) > 0 {
-		shuttle.AppendMitMRules(d)
-	}
-	var response Response
-	response.Data = shuttle.GetMitMRules()
-	ctx.JSON(200, response)
-}
-
-func DelMitMRules(ctx *gin.Context) {
-	d := ctx.Query("domain")
-	if len(d) > 0 {
-		shuttle.RemoveMitMRules(d)
-	}
-	var response Response
-	response.Data = shuttle.GetMitMRules()
-	ctx.JSON(200, response)
-}

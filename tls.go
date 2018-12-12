@@ -11,6 +11,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/sipt/shuttle/config"
+	connect "github.com/sipt/shuttle/conn"
 	"math/big"
 	"reflect"
 	"time"
@@ -21,7 +23,13 @@ var ca *x509.Certificate
 var caBytes []byte
 var key *rsa.PrivateKey
 
-func InitCert(mitm *Mitm) error {
+type IMITMConfig interface {
+	GetMITM() *config.Mitm
+	SetMITM(*config.Mitm)
+}
+
+func ApplyMITMConfig(config IMITMConfig) error {
+	mitm := config.GetMITM()
 	if mitm == nil {
 		return nil
 	}
@@ -34,6 +42,8 @@ func InitCert(mitm *Mitm) error {
 		return err
 	}
 	ca, key, err = LoadCA(caBytes, keyBytes)
+
+	MitMRules = mitm.Rules
 	return err
 }
 func GetCACert() []byte {
@@ -46,11 +56,10 @@ func GetCACert() []byte {
 	return bak
 }
 
-func GenerateCA() error {
-	var err error
+func GenerateCA() (mitm *config.Mitm, err error) {
 	key, err = rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return err
+		return
 	}
 	names := pkix.Name{
 		Organization: []string{"Shuttle"},
@@ -81,31 +90,31 @@ func GenerateCA() error {
 
 	caBytes, err = x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
 	if err != nil {
-		return err
+		return
 	}
 	ca, err = x509.ParseCertificate(caBytes)
 	if err != nil {
-		return err
+		return
 	}
 
 	// Generate cert
 	certBuffer := bytes.Buffer{}
-	if err := pem.Encode(&certBuffer, &pem.Block{Type: "CERTIFICATE", Bytes: caBytes}); err != nil {
-		return err
+	if err = pem.Encode(&certBuffer, &pem.Block{Type: "CERTIFICATE", Bytes: caBytes}); err != nil {
+		return
 	}
 
 	// Generate key
 	keyBuffer := bytes.Buffer{}
-	if err := pem.Encode(&keyBuffer, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}); err != nil {
-		return err
+	if err = pem.Encode(&keyBuffer, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}); err != nil {
+		return
 	}
-	//Save privateKey and CA to config file
-	SetMimt(&Mitm{
+
+	mitm = &config.Mitm{
 		CA:    base64.RawStdEncoding.EncodeToString(certBuffer.Bytes()),
 		Key:   base64.RawStdEncoding.EncodeToString(keyBuffer.Bytes()),
 		Rules: MitMRules,
-	})
-	return nil
+	}
+	return
 }
 
 func LoadCA(caPem, keyPem []byte) (*x509.Certificate, *rsa.PrivateKey, error) {
@@ -134,7 +143,7 @@ func makeCert(cert *x509.Certificate) ([]byte, error) {
 	return derBytes, nil
 }
 
-func Mimt(lc, sc IConn) (IConn, IConn, error) {
+func Mimt(lc, sc connect.IConn) (connect.IConn, connect.IConn, error) {
 	if ca == nil {
 		return nil, nil, errors.New("please first generate CA")
 	}
@@ -156,7 +165,7 @@ func Mimt(lc, sc IConn) (IConn, IConn, error) {
 		ptr := (uintptr)(unsafe.Pointer(scTls))
 		cert = (*(*[]*x509.Certificate)(unsafe.Pointer(ptr + filed.Offset)))[0]
 	}
-	sc, err = DefaultDecorateForTls(scTls, TCP, scID)
+	sc, err = connect.DefaultDecorateForTls(scTls, connect.TCP, scID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -175,6 +184,6 @@ func Mimt(lc, sc IConn) (IConn, IConn, error) {
 		},
 	}
 	lcTls := tls.Server(lc, conf)
-	lc, err = DefaultDecorateForTls(lcTls, TCP, lcID)
+	lc, err = connect.DefaultDecorateForTls(lcTls, connect.TCP, lcID)
 	return lc, sc, err
 }

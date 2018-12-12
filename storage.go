@@ -1,7 +1,10 @@
 package shuttle
 
 import (
+	"github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/proxy"
+	"github.com/sipt/shuttle/rule"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -50,6 +53,13 @@ func init() {
 			}(box)
 		}
 	}()
+
+	//init traffic
+	conn.InitTrafficChannel(func(recordID int64, n int) {
+		boxChan <- &Box{recordID, RecordUp, n}
+	}, func(recordID int64, n int) {
+		boxChan <- &Box{recordID, RecordDown, n}
+	})
 }
 
 //注册推送
@@ -106,8 +116,8 @@ type Record struct {
 	ID       int64
 	Protocol string
 	Created  time.Time
-	Proxy    *Server
-	Rule     *Rule
+	Proxy    *proxy.Server
+	Rule     *rule.Rule
 	Status   string
 	Up       int
 	Down     int
@@ -156,9 +166,9 @@ func (l *LinkedList) List() []Record {
 func (l *LinkedList) Append(r *Record) {
 	l.Lock()
 	if r.Proxy == nil || r.Rule == nil {
-		log.Logger.Debugf("[Storage] ID:[%d] Policy:[nil] URL:[%s]", r.ID, r.URL)
+		log.Logger.Infof("[Storage] ID:[%d] Policy:[nil] URL:[%s]", r.ID, r.URL)
 	} else {
-		log.Logger.Debugf("[Storage] ID:[%d] Policy:[%s(%s,%s)] URL:[%s]", r.ID, r.Proxy.Name, r.Rule.Type, r.Rule.Value, r.URL)
+		log.Logger.Infof("[Storage] ID:[%d] Policy:[%s(%s,%s)] URL:[%s]", r.ID, r.Proxy.Name, r.Rule.Type, r.Rule.Value, r.URL)
 	}
 	if l.head == nil {
 		l.head = &node{record: r}
