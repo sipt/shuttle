@@ -54,11 +54,16 @@ func StartController(config IControllerConfig, eventChan chan *EventObj) {
 	api.APIRoute(e.Group("/api"), eventChan)
 	conf.APIRoute(e.Group("/api/config"), eventChan)
 	e.GET("/", index)
+	//config
+	e.GET("/general", index)
+	e.GET("/proxy", index)
+	e.GET("/mitm", index)
+	e.GET("/dns-local", index)
+	e.GET("/http-map", index)
+	e.GET("/rules", index)
+	//dashboard
 	e.GET("/records", index)
 	e.GET("/dns-cache", index)
-	e.GET("/servers", index)
-	e.GET("/mitm", index)
-	e.GET("/general", index)
 	e.Use(staticHandler("/", assets.HTTP))
 
 	server = &http.Server{
