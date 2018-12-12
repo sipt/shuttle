@@ -1,3 +1,3 @@
 package config
 
-const ShuttleVersion = "v6.0.0"
+const ShuttleVersion = "v0.6.0"
