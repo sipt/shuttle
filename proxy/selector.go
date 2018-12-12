@@ -1,4 +1,8 @@
-package shuttle
+package proxy
+
+import "errors"
+
+var ErrorUnknowType = errors.New("unknow select type")
 
 type NewSelector func(group *ServerGroup) (ISelector, error)
 
@@ -7,6 +11,10 @@ var seletors = make(map[string]NewSelector)
 func RegisterSelector(method string, newSelector NewSelector) error {
 	seletors[method] = newSelector
 	return nil
+}
+
+func GetSelector(method string, group *ServerGroup) (ISelector, error) {
+	return seletors[method](group)
 }
 
 func CheckSelector(method string) bool {

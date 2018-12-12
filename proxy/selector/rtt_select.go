@@ -2,10 +2,11 @@ package selector
 
 import (
 	"github.com/sipt/shuttle"
-	"time"
-	"sync/atomic"
-	"io"
 	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/proxy"
+	"io"
+	"sync/atomic"
+	"time"
 )
 
 const (
@@ -13,11 +14,11 @@ const (
 )
 
 func init() {
-	shuttle.RegisterSelector("rtt", func(group *shuttle.ServerGroup) (shuttle.ISelector, error) {
+	proxy.RegisterSelector("rtt", func(group *proxy.ServerGroup) (proxy.ISelector, error) {
 		s := &rttSelector{
 			group:    group,
 			timer:    time.NewTimer(timerDulation),
-			selected: group.Servers[0].(shuttle.IServer),
+			selected: group.Servers[0].(proxy.IServer),
 			cancel:   make(chan bool, 1),
 		}
 		go func() {
@@ -37,14 +38,14 @@ func init() {
 }
 
 type rttSelector struct {
-	group    *shuttle.ServerGroup
-	selected shuttle.IServer
+	group    *proxy.ServerGroup
+	selected proxy.IServer
 	status   uint32
 	timer    *time.Timer
 	cancel   chan bool
 }
 
-func (r *rttSelector) Get() (*shuttle.Server, error) {
+func (r *rttSelector) Get() (*proxy.Server, error) {
 	return r.selected.GetServer()
 }
 func (r *rttSelector) Select(name string) error {
@@ -54,9 +55,9 @@ func (r *rttSelector) Refresh() error {
 	r.autoTest()
 	return nil
 }
-func (r *rttSelector) Reset(group *shuttle.ServerGroup) error {
+func (r *rttSelector) Reset(group *proxy.ServerGroup) error {
 	r.group = group
-	r.selected = r.group.Servers[0].(shuttle.IServer)
+	r.selected = r.group.Servers[0].(proxy.IServer)
 	go r.autoTest()
 	return nil
 }
@@ -71,12 +72,12 @@ func (r *rttSelector) autoTest() {
 	}
 	r.timer.Stop()
 	log.Logger.Debug("[RTT-Selector] start testing ...")
-	var is shuttle.IServer
-	var s *shuttle.Server
+	var is proxy.IServer
+	var s *proxy.Server
 	var err error
-	c := make(chan *shuttle.Server, 1)
+	c := make(chan *proxy.Server, 1)
 	for _, v := range r.group.Servers {
-		is = v.(shuttle.IServer)
+		is = v.(proxy.IServer)
 		s, err = is.GetServer()
 		if err != nil {
 			continue
@@ -90,14 +91,10 @@ func (r *rttSelector) autoTest() {
 	atomic.CompareAndSwapUint32(&r.status, 1, 0)
 }
 
-func urlTest(s *shuttle.Server, c chan *shuttle.Server) {
+func urlTest(s *proxy.Server, c chan *proxy.Server) {
 	var closer func()
-	conn, err := s.Conn(&shuttle.Request{
-		Cmd:  shuttle.CmdTCP,
-		Atyp: shuttle.AddrTypeDomain,
-		Addr: "www.gstatic.com",
-		Port: 80,
-	})
+	conn, err := s.Conn(shuttle.NewHttpRequest("tcp", "www.gstatic.com", "", "80",
+		"HTTP", "", 0, nil))
 	if err != nil {
 		log.Logger.Debugf("[RTT-Select] [%s]  url test result: <failed> %v", s.Name, err)
 		return
@@ -135,6 +132,6 @@ func urlTest(s *shuttle.Server, c chan *shuttle.Server) {
 		closer()
 	}
 }
-func (r *rttSelector) Current() shuttle.IServer {
+func (r *rttSelector) Current() proxy.IServer {
 	return r.selected
 }

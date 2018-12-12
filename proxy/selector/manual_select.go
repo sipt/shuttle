@@ -1,12 +1,12 @@
 package selector
 
 import (
-	"github.com/sipt/shuttle"
 	"fmt"
+	"github.com/sipt/shuttle/proxy"
 )
 
 func init() {
-	shuttle.RegisterSelector("select", func(group *shuttle.ServerGroup) (shuttle.ISelector, error) {
+	proxy.RegisterSelector("select", func(group *proxy.ServerGroup) (proxy.ISelector, error) {
 		s := &manualSelector{
 			group: group,
 		}
@@ -16,20 +16,20 @@ func init() {
 }
 
 type manualSelector struct {
-	group    *shuttle.ServerGroup
-	selected shuttle.IServer
+	group    *proxy.ServerGroup
+	selected proxy.IServer
 }
 
-func (m *manualSelector) Get() (*shuttle.Server, error) {
+func (m *manualSelector) Get() (*proxy.Server, error) {
 	return m.selected.GetServer()
 }
 func (m *manualSelector) Select(name string) error {
 	var (
-		n  shuttle.IServer
+		n  proxy.IServer
 		ok bool
 	)
 	for _, v := range m.group.Servers {
-		n, ok = v.(shuttle.IServer)
+		n, ok = v.(proxy.IServer)
 		if ok && n.GetName() == name {
 			m.selected = n
 			return nil
@@ -38,15 +38,15 @@ func (m *manualSelector) Select(name string) error {
 	return fmt.Errorf("server[%s] is not exist", name)
 }
 func (m *manualSelector) Refresh() error {
-	m.selected = m.group.Servers[0].(shuttle.IServer)
+	m.selected = m.group.Servers[0].(proxy.IServer)
 	return nil
 }
-func (m *manualSelector) Reset(group *shuttle.ServerGroup) error {
+func (m *manualSelector) Reset(group *proxy.ServerGroup) error {
 	m.group = group
-	m.selected = m.group.Servers[0].(shuttle.IServer)
+	m.selected = m.group.Servers[0].(proxy.IServer)
 	return nil
 }
 func (m *manualSelector) Destroy() {}
-func (m *manualSelector) Current() shuttle.IServer {
+func (m *manualSelector) Current() proxy.IServer {
 	return m.selected
 }

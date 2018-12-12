@@ -1,14 +1,17 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/assets"
 	"github.com/sipt/shuttle/controller/api"
+	"github.com/sipt/shuttle/log"
 )
 
 func staticHandler(urlPrefix string, fs http.FileSystem) gin.HandlerFunc {
@@ -30,15 +33,24 @@ func index(ctx *gin.Context) {
 	ctx.Data(200, "text/html; charset=utf-8", b)
 }
 
-func StartController(inter, port string, shutdownSignal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string, level string) {
-	if level == "info" {
-		gin.SetMode(gin.ReleaseMode)
-		gin.DefaultWriter = ioutil.Discard
-	}
+var server *http.Server
+
+type IControllerConfig interface {
+	GetControllerInterface() string
+	SetControllerInterface(string)
+	GetControllerPort() string
+	SetControllerPort(string)
+	GetLogLevel() string
+}
+
+func StartController(config IControllerConfig, shutdownSignal chan bool, reloadConfigSignal chan bool, upgradeSignal chan string) {
+	//if level == "info" {
+	gin.SetMode(gin.ReleaseMode)
+	gin.DefaultWriter = ioutil.Discard
+	//}
 	e := gin.Default()
 	e.Use(Cors())
 	api.APIRoute(e.Group("/api"), shutdownSignal, reloadConfigSignal, upgradeSignal)
-
 	e.GET("/", index)
 	e.GET("/records", index)
 	e.GET("/dns-cache", index)
@@ -46,8 +58,17 @@ func StartController(inter, port string, shutdownSignal chan bool, reloadConfigS
 	e.GET("/mitm", index)
 	e.GET("/general", index)
 	e.Use(staticHandler("/", assets.HTTP))
+	server = &http.Server{
+		Addr:    net.JoinHostPort(config.GetControllerInterface(), config.GetControllerPort()),
+		Handler: e,
+	}
+	server.ListenAndServe()
+}
 
-	e.Run(inter + ":" + port)
+func ShutdownController() error {
+	log.Logger.Infof("Stopped Controller goroutine...")
+	ctx := context.Background()
+	return server.Shutdown(ctx)
 }
 
 func Cors() gin.HandlerFunc {

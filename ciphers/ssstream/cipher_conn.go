@@ -1,13 +1,13 @@
 package ssstream
 
 import (
-	"github.com/sipt/shuttle"
-	"github.com/sipt/shuttle/pool"
 	"crypto/cipher"
-	"io"
-	"crypto/rand"
 	"crypto/md5"
+	"crypto/rand"
+	connect "github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/pool"
+	"io"
 )
 
 var streamCiphers = make(map[string]IStreamCipher)
@@ -17,12 +17,12 @@ func registerStreamCiphers(method string, c IStreamCipher) {
 	log.Logger.Infof("[SS Ciphers] register cipher [%s]", method)
 }
 
-func GetStreamCiphers(method string) func(string, shuttle.IConn) (shuttle.IConn, error) {
+func GetStreamCiphers(method string) func(string, connect.IConn) (connect.IConn, error) {
 	c, ok := streamCiphers[method]
 	if !ok {
 		return nil
 	}
-	return func(password string, conn shuttle.IConn) (shuttle.IConn, error) {
+	return func(password string, conn connect.IConn) (connect.IConn, error) {
 		iv := make([]byte, c.IVLen())
 		if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 			return nil, err
@@ -47,7 +47,7 @@ type IStreamCipher interface {
 }
 
 type streamConn struct {
-	shuttle.IConn
+	connect.IConn
 	IStreamCipher
 	key       []byte
 	Encrypter cipher.Stream
