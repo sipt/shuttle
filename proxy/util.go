@@ -27,7 +27,6 @@ func Duration2Str(d time.Duration) string {
 }
 
 func TestRTT(s IServer, testURL string) (rtt time.Duration, err error) {
-	fmt.Printf("test rtt: [%s] use [%s]\n", s.GetName(), testURL)
 	var server *Server
 	server, err = s.GetServer()
 	if err != nil {

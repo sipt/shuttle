@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sipt/shuttle/conn"
-	"github.com/sipt/shuttle/log"
 	"strings"
 	"sync"
 	"time"
@@ -195,7 +194,6 @@ var proxyProtocolCreator = make(map[string]NewProtocol)
 
 func RegisterProxyProtocolCreator(name string, p NewProtocol) {
 	proxyProtocolCreator[name] = p
-	log.Logger.Infof("Support Proxy Protocol: [%s]", name)
 }
 
 type IServer interface {

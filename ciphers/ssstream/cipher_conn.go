@@ -14,7 +14,6 @@ var streamCiphers = make(map[string]IStreamCipher)
 
 func registerStreamCiphers(method string, c IStreamCipher) {
 	streamCiphers[method] = c
-	log.Logger.Infof("[SS Ciphers] register cipher [%s]", method)
 }
 
 func GetStreamCiphers(method string) func(string, connect.IConn) (connect.IConn, error) {
