@@ -7,8 +7,6 @@ import (
 	"github.com/sipt/shuttle/controller"
 	"github.com/sipt/shuttle/log"
 	"os"
-	"os/exec"
-	"runtime"
 )
 
 var eventChan chan *EventObj
@@ -43,23 +41,6 @@ func dealEvent(c chan *EventObj) {
 		case EventRestartController.Type:
 			controller.ShutdownController()
 			go controller.StartController(config.CurrentConfig(), eventChan)
-		case EventUpgrade.Type:
-			//todo
-			fileName := t.GetData().(string)
-			shutdown(config.CurrentConfig().General.SetAsSystemProxy)
-			log.Logger.Info("[Shuttle] is shutdown, for upgrade!")
-			var name string
-			if runtime.GOOS == "windows" {
-				name = "upgrade"
-			} else {
-				name = "./upgrade"
-			}
-			cmd := exec.Command(name, "-f="+fileName)
-			err := cmd.Start()
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-			os.Exit(0)
 		}
 	}
 }

@@ -40,7 +40,8 @@ func APIRoute(router *gin.RouterGroup, eventChan chan *EventObj) {
 	router.GET("/mode", GetConnMode)
 	router.POST("/mode/:mode", SetConnMode)
 	router.GET("/upgrade/check", CheckUpdate)
-	router.POST("/upgrade", NewUpgrade(eventChan))
+	//deprecated
+	//router.POST("/upgrade", NewUpgrade(eventChan))
 
 	//ws
 	router.GET("/ws/records", func(ctx *gin.Context) {

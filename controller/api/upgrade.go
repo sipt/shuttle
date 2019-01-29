@@ -3,11 +3,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	conf "github.com/sipt/shuttle/config"
-	. "github.com/sipt/shuttle/constant"
-	"github.com/sipt/shuttle/extension/config"
 	"github.com/sipt/shuttle/upgrade"
-	"os"
-	"path/filepath"
 )
 
 var latest string
@@ -32,28 +28,4 @@ func CheckUpdate(ctx *gin.Context) {
 			"Status":  status,
 		},
 	})
-}
-
-func NewUpgrade(eventChan chan *EventObj) func(ctx *gin.Context) {
-	return func(ctx *gin.Context) {
-		if status == upgrade.VersionEqual || status == upgrade.VersionGreater {
-			ctx.JSON(500, Response{
-				Code: 1, Message: "You're up-to-date!",
-			})
-			return
-		}
-		path := filepath.Join(config.HomeDir, "Downloads", "shuttle.zip")
-		os.Remove(path)
-		err := upgrade.DownloadFile(path, url)
-		if err != nil {
-			ctx.JSON(500, Response{
-				Code: 1, Message: err.Error(),
-			})
-			return
-		}
-		ctx.JSON(200, Response{
-			Code: 0, Message: "success",
-		})
-		eventChan <- EventUpgrade.SetData("shuttle.zip")
-	}
 }
