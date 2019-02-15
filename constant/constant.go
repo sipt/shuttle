@@ -6,7 +6,7 @@ var (
 	EventRestartHttpProxy  = &EventObj{Type: 2}
 	EventRestartSocksProxy = &EventObj{Type: 3}
 	EventRestartController = &EventObj{Type: 4}
-	EventUpgrade           = &EventObj{Type: 5}
+	//EventUpgrade           = &EventObj{Type: 5}
 )
 
 type EventObj struct {
