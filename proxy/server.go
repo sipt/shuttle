@@ -199,7 +199,7 @@ func RegisterProxyProtocolCreator(name string, p NewProtocol) {
 type IServer interface {
 	GetName() string
 	GetServer() (*Server, error)
-	GetRttRrl() string
+	GetRttUrl() string
 }
 
 type NewProtocol func([]string) (IProtocol, error)
@@ -230,7 +230,7 @@ func (s *ServerGroup) GetServer() (*Server, error) {
 	return s.Selector.Get()
 }
 
-func (s *ServerGroup) GetRttRrl() string {
+func (s *ServerGroup) GetRttUrl() string {
 	s.RLock()
 	defer s.RUnlock()
 	if len(s.RttUrl) > 0 {
@@ -293,7 +293,7 @@ func (s *Server) GetName() string {
 func (s *Server) GetServer() (*Server, error) {
 	return s, nil
 }
-func (s *Server) GetRttRrl() string {
+func (s *Server) GetRttUrl() string {
 	if len(s.RttUrl) > 0 {
 		return s.RttUrl
 	}
