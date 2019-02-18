@@ -85,3 +85,19 @@ func SelectRefresh(ctx *gin.Context) {
 	}
 	ctx.JSON(200, Response{})
 }
+func TestServerRtt(ctx *gin.Context) {
+	name := ctx.Query("name")
+	var err error
+	if len(name) == 0 {
+		proxy.TestAllServerRtt()
+	} else {
+		err = proxy.TestServerRtt(name)
+	}
+	if err != nil {
+		ctx.JSON(500, Response{
+			Code: 1, Message: err.Error(),
+		})
+	} else {
+		ctx.JSON(200, Response{})
+	}
+}
