@@ -110,3 +110,37 @@ func (m *memoryStorage) Clear(keys ...string) {
 		}
 	}
 }
+
+func (m *memoryStorage) Update(key string, id int64, op int, v interface{}) {
+	m.Lock()
+	l, ok := m.pool[key]
+	if !ok {
+		m.Unlock()
+		return
+	}
+	l.RLock()
+	m.Unlock()
+	for n := l.Front(); n != nil; n = n.Next() {
+		r := n.Value.(*Record)
+		switch op {
+		case RecordStatus:
+			r.Status = v.(string)
+		case RecordUp:
+			r.Up += v.(int)
+		case RecordDown:
+			r.Down += v.(int)
+		}
+	}
+	l.RUnlock()
+}
+
+//获取单条记录
+func (m *memoryStorage) GetRecord(key string, id int64) *Record {
+	rs := m.Get(key)
+	for _, v := range rs {
+		if v.ID == id {
+			return &v
+		}
+	}
+	return nil
+}
