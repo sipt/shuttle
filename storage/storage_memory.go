@@ -2,6 +2,7 @@ package storage
 
 import (
 	"container/list"
+	"fmt"
 	"sync"
 )
 
@@ -78,19 +79,21 @@ func (m *memoryStorage) Count(key string) int {
 func (m *memoryStorage) Get(key string) []Record {
 	m.RLock()
 	l, ok := m.pool[key]
-	m.RUnlock()
-	if ok {
-		l.RLock()
-		defer l.RUnlock()
-		reply := make([]Record, 0, l.Len())
-		node := l.Front()
-		for node != nil {
-			reply = append(reply, *(node.Value.(*Record)))
-			node = node.Next()
-		}
-		return reply
+	fmt.Println("=========>", key, ok)
+	if !ok {
+		m.RUnlock()
+		return nil
 	}
-	return nil
+	l.RLock()
+	defer l.RUnlock()
+	m.RUnlock()
+	fmt.Println("=========>", key, ok, l.Len())
+	reply := make([]Record, 0, l.Len())
+	for node := l.Front(); node != nil; node = node.Next() {
+		reply = append(reply, *(node.Value.(*Record)))
+	}
+	fmt.Println("=========>", key, reply)
+	return reply
 }
 
 // 设置每个Key的上限记录数

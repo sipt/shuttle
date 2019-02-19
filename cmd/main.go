@@ -105,6 +105,7 @@ func loadConfig(configPath string) (conf *config.Config, err error) {
 	if err = storage.ApplyConfig(conf); err != nil {
 		return
 	}
+	storage.Prepare()
 	//init HttpMap
 	if err = shuttle.ApplyHTTPModifyConfig(conf); err != nil {
 		return

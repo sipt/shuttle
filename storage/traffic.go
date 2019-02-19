@@ -7,14 +7,10 @@ import (
 )
 
 var (
-	traffic *Traffic
-)
-
-func InitSpeed() {
 	traffic = &Traffic{
 		Cancel: make(chan bool, 1),
 	}
-}
+)
 
 type Traffic struct {
 	sync.RWMutex

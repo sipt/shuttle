@@ -29,7 +29,15 @@ func ApplyConfig(config IStorageConfig) error {
 		e = DefaultEngine
 	}
 	cap = config.GetStorageCap()
+	if cap <= 0 {
+		cap = DefaultStorageCap
+	}
 	return Use(e)
+}
+
+func Prepare() {
+	Run()
+	StartTrafficStatistics()
 }
 
 type Record struct {
