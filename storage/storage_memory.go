@@ -8,8 +8,8 @@ import (
 const EngineMemory = "memory"
 
 func init() {
-	Register(EngineMemory, func() IStorage {
-		return NewMemoryStorage(DefaultMaxLength)
+	Register(EngineMemory, func(cap int) IStorage {
+		return NewMemoryStorage(cap)
 	})
 }
 

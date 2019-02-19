@@ -8,12 +8,18 @@ import (
 	"github.com/sipt/shuttle/rule"
 )
 
-const DefaultMaxLength = 500
+const DefaultStorageCap = 500
 const DefaultEngine = EngineMemory
+
+var cap = DefaultStorageCap
 
 type IStorageConfig interface {
 	GetStorageEngine() string
-	SetStorageEngine(key string)
+	SetStorageEngine(engine string)
+	GetStorageCap() int
+	SetStorageCap(cap int)
+	GetStorageOptions() []string
+	SetStorageOptions(options []string)
 }
 
 func ApplyConfig(config IStorageConfig) error {
@@ -21,6 +27,7 @@ func ApplyConfig(config IStorageConfig) error {
 	if e = config.GetStorageEngine(); len(e) <= 0 {
 		e = DefaultEngine
 	}
+	cap = config.GetStorageCap()
 	return Use(e)
 }
 
@@ -52,7 +59,7 @@ type IStorage interface {
 	Clear(keys ...string)
 }
 
-type NewStorage func() IStorage
+type NewStorage func(cap int) IStorage
 
 var storages = make(map[string]NewStorage)
 var Storage IStorage
@@ -66,6 +73,6 @@ func Use(key string) error {
 	if !ok {
 		return fmt.Errorf("storage is not support [%s]", key)
 	}
-	Storage = f()
+	Storage = f(cap)
 	return nil
 }
