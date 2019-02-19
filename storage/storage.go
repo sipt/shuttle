@@ -8,7 +8,21 @@ import (
 	"github.com/sipt/shuttle/rule"
 )
 
-const DefualtMaxLength = 500
+const DefaultMaxLength = 500
+const DefaultEngine = EngineMemory
+
+type IStorageConfig interface {
+	GetStorageEngine() string
+	SetStorageEngine(key string)
+}
+
+func ApplyConfig(config IStorageConfig) error {
+	var e string
+	if e = config.GetStorageEngine(); len(e) <= 0 {
+		e = DefaultEngine
+	}
+	return Use(e)
+}
 
 type Record struct {
 	ID       int64
@@ -38,18 +52,20 @@ type IStorage interface {
 	Clear(keys ...string)
 }
 
-var storages = make(map[string]IStorage)
+type NewStorage func() IStorage
+
+var storages = make(map[string]NewStorage)
 var Storage IStorage
 
-func Register(key string, storage IStorage) {
-	storages[key] = storage
+func Register(key string, f NewStorage) {
+	storages[key] = f
 }
 
 func Use(key string) error {
-	var ok bool
-	Storage, ok = storages[key]
+	f, ok := storages[key]
 	if !ok {
 		return fmt.Errorf("storage is not support [%s]", key)
 	}
+	Storage = f()
 	return nil
 }

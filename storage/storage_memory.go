@@ -5,8 +5,12 @@ import (
 	"sync"
 )
 
+const EngineMemory = "memory"
+
 func init() {
-	Register("memory", NewMemoryStorage(DefualtMaxLength))
+	Register(EngineMemory, func() IStorage {
+		return NewMemoryStorage(DefaultMaxLength)
+	})
 }
 
 func NewMemoryStorage(maxLength int) IStorage {

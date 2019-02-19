@@ -29,6 +29,14 @@ func TestMemoryStorage(t *testing.T) {
 		t.Errorf("[%s] not in [%s, %s]", ks[1], key1, key2)
 	}
 
+	s.Put(key1, Record{ID: 3})
+	s.Put(key1, Record{ID: 4})
+	s.Put(key1, Record{ID: 5})
+	s.Put(key1, Record{ID: 6})
+	s.Put(key1, Record{ID: 7})
+	assert.EqualValues(t, len(s.Get(key1)), 6)
+	assert.EqualValues(t, s.Get(key1)[0].ID, 2)
+
 	s.Clear(key1)
 	assert.Equal(t, len(s.Get(key1)), 0)
 
