@@ -347,11 +347,12 @@ func TestServerRtt(name string) (err error) {
 			s.Rtt, err = TestRTT(s, s.RttUrl)
 			if err != nil {
 				log.Logger.Errorf("[Proxy] [Rtt-Tester] [name: %s] [url: %s] test failed: %v", s.Name, s.RttUrl, err)
+				err = fmt.Errorf("test proxy [%s] failed", name)
 			}
-			err = fmt.Errorf("test proxy [%s] failed", name)
 			return
 		}
 	}
+	return
 }
 
 func TestAllServerRtt() {
@@ -363,13 +364,14 @@ func TestAllServerRtt() {
 		default:
 		}
 		reqPool <- true
-		go func() {
+		go func(s *Server) {
 			defer func() { <-reqPool }()
 			var err error
 			s.Rtt, err = TestRTT(s, s.RttUrl)
 			if err != nil {
 				log.Logger.Errorf("[Proxy] [Rtt-Tester] [name: %s] [url: %s] test failed: %v", s.Name, s.RttUrl, err)
+				s.Rtt = -1
 			}
-		}()
+		}(s)
 	}
 }
