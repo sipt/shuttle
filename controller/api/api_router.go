@@ -13,6 +13,7 @@ func APIRoute(router *gin.RouterGroup, eventChan chan *EventObj) {
 	//records
 	router.GET("/records", GetRecords)
 	router.DELETE("/records", ClearRecords)
+	router.GET("/clients", GetClients)
 
 	//dump
 	dump := router.Group("/dump")

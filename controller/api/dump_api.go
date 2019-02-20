@@ -1,18 +1,19 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
-	"fmt"
-	"github.com/apaxa-go/helper/strconvh"
-	"github.com/sipt/shuttle"
-	"bytes"
-	"net/http"
 	"bufio"
-	"encoding/base64"
+	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"encoding/base64"
+	"fmt"
+	"github.com/apaxa-go/helper/strconvh"
+	"github.com/gin-gonic/gin"
+	"github.com/sipt/shuttle"
 	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/storage"
 	"io"
+	"net/http"
 )
 
 func SetAllowDump(ctx *gin.Context) {
@@ -69,14 +70,22 @@ func DumpRequest(ctx *gin.Context) {
 		ctx.JSON(500, response)
 		return
 	}
-	r := shuttle.GetRecord(id)
+
+	clientID := ctx.Query("client_id")
+	if len(clientID) == 0 {
+		response.Code = 1
+		response.Message = "client_id is empty!"
+		ctx.JSON(500, response)
+		return
+	}
+	r := storage.GetRecord(clientID, id)
 	if r == nil {
 		response.Code = 1
 		response.Message = idStr + " not exist"
 		ctx.JSON(500, response)
 		return
 	}
-	if r.Status != shuttle.RecordStatusCompleted {
+	if r.Status != storage.RecordStatusCompleted {
 		response.Code = 1
 		response.Message = idStr + " not Completed"
 		ctx.JSON(500, response)
@@ -204,6 +213,14 @@ func DumpLarge(ctx *gin.Context) {
 		ctx.JSON(500, response)
 		return
 	}
+
+	clientID := ctx.Query("client_id")
+	if len(clientID) == 0 {
+		response.Code = 1
+		response.Message = "client_id is empty!"
+		ctx.JSON(500, response)
+		return
+	}
 	idStr := ctx.Param("conn_id")
 	id, err := strconvh.ParseInt64(idStr)
 	if err != nil {
@@ -212,14 +229,14 @@ func DumpLarge(ctx *gin.Context) {
 		ctx.JSON(500, response)
 		return
 	}
-	r := shuttle.GetRecord(id)
+	r := storage.GetRecord(clientID, id)
 	if r == nil {
 		response.Code = 1
 		response.Message = idStr + " not exist"
 		ctx.JSON(500, response)
 		return
 	}
-	if r.Status != shuttle.RecordStatusCompleted {
+	if r.Status != storage.RecordStatusCompleted {
 		response.Code = 1
 		response.Message = idStr + " not Completed"
 		ctx.JSON(500, response)

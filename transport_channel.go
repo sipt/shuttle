@@ -2,6 +2,7 @@ package shuttle
 
 import (
 	"bufio"
+	"github.com/sipt/shuttle/storage"
 	"io"
 	"net"
 	"net/http"
@@ -104,6 +105,7 @@ func (h *HttpChannel) Transport(lc, sc connect.IConn, first *http.Request) (err 
 		server        *proxy.Server
 		passed        bool // inner request
 		scid          int64
+		clientID      = lc.RemoteIP().String()
 	)
 	if sc != nil {
 		scBuf = bufio.NewReader(sc)
@@ -136,10 +138,10 @@ func (h *HttpChannel) Transport(lc, sc connect.IConn, first *http.Request) (err 
 		resp = RequestModify(hreq, h.isHttps)
 		passed = IsPass(hreq.URL.Hostname(), hreq.URL.Hostname(), hreq.URL.Port())
 		// Record
-		record := &Record{
+		record := &storage.Record{
 			ID:      util.NextID(),
 			URL:     hreq.URL.String(),
-			Status:  RecordStatusActive,
+			Status:  storage.RecordStatusActive,
 			Created: time.Now(),
 			Dumped:  h.allowDump && !passed,
 			Rule:    rule,
@@ -179,15 +181,15 @@ func (h *HttpChannel) Transport(lc, sc connect.IConn, first *http.Request) (err 
 			record.Proxy = server
 			if err != nil {
 				if err == ErrorReject {
-					record.Status = RecordStatusReject
+					record.Status = storage.RecordStatusReject
 				} else {
-					record.Status = RecordStatusFailed
+					record.Status = storage.RecordStatusFailed
 					record.Rule = rule2.FailedRule
 					record.Proxy = proxy.FailedServer
 				}
 				record.Dumped = false
 				if !passed {
-					boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+					storage.Bus <- &storage.Box{ClientID: clientID, Op: storage.RecordAppend, Value: record, ID: record.ID}
 				}
 				return
 			}
@@ -202,7 +204,7 @@ func (h *HttpChannel) Transport(lc, sc connect.IConn, first *http.Request) (err 
 			record.Proxy = proxy.MockServer
 		}
 		if !passed {
-			boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+			storage.Bus <- &storage.Box{ClientID: clientID, Op: storage.RecordAppend, Value: record, ID: record.ID}
 		}
 		if sc != nil {
 			log.Logger.Debugf("[ID:%d] [HttpChannel] [reqID:%d] HttpChannel Transport send record to boxChan", scid, record.ID)
@@ -264,7 +266,10 @@ func (h *HttpChannel) Transport(lc, sc connect.IConn, first *http.Request) (err 
 
 // write response in connection
 func (h *HttpChannel) writeResponse(resp *http.Response, to connect.IConn, recordID int64, allowDump bool) (err error) {
-	var dumpWriter io.Writer
+	var (
+		dumpWriter io.Writer
+		clientID   = to.RemoteIP().String()
+	)
 	if allowDump {
 		dumpWriter = ToWriter(func(b []byte) (int, error) {
 			return dump.WriteResponse(recordID, b)
@@ -284,9 +289,9 @@ func (h *HttpChannel) writeResponse(resp *http.Response, to connect.IConn, recor
 		}()
 	}
 	if err == nil || err == io.EOF {
-		boxChan <- &Box{recordID, RecordStatus, RecordStatusCompleted}
+		storage.Bus <- &storage.Box{ClientID: clientID, ID: recordID, Op: storage.RecordStatus, Value: storage.RecordStatusCompleted}
 	} else {
-		boxChan <- &Box{recordID, RecordStatus, RecordStatusReject}
+		storage.Bus <- &storage.Box{ClientID: clientID, ID: recordID, Op: storage.RecordStatus, Value: storage.RecordStatusReject}
 	}
 	return
 }

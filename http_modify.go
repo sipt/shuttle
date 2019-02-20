@@ -8,6 +8,7 @@ import (
 	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/proxy"
 	"github.com/sipt/shuttle/rule"
+	"github.com/sipt/shuttle/storage"
 	"github.com/sipt/shuttle/util"
 	"net"
 	"net/http"
@@ -143,14 +144,15 @@ func RequestModifyOrMock(req *HttpRequest, hreq *http.Request, isHttps bool) (re
 		respBuf = buffer.Bytes()
 		//mock record to storage
 		id := util.NextID()
-		boxChan <- &Box{
-			Op: RecordAppend,
-			Value: &Record{
+		//todo fix cleintID
+		storage.Bus <- &storage.Box{
+			Op: storage.RecordAppend,
+			Value: &storage.Record{
 				ID:       id,
 				Protocol: req.protocol,
 				Created:  time.Now(),
 				Proxy:    proxy.MockServer,
-				Status:   RecordStatusCompleted,
+				Status:   storage.RecordStatusCompleted,
 				Dumped:   allowDump,
 				URL:      req.target,
 				Rule:     &rule.Rule{},

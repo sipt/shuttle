@@ -2,6 +2,7 @@ package shuttle
 
 import (
 	"bufio"
+	"github.com/sipt/shuttle/storage"
 	"io"
 	"net"
 	"net/http"
@@ -106,6 +107,7 @@ func ProxyHTTP(lc connect.IConn, hreq *http.Request) {
 	HttpTransport(lc, nil, allowDump, hreq)
 }
 func ProxyHTTPS(lc connect.IConn, hreq *http.Request) {
+	clientID := lc.RemoteIP().String()
 	// Handshake
 	_, err := lc.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n"))
 	if err != nil {
@@ -115,10 +117,10 @@ func ProxyHTTPS(lc connect.IConn, hreq *http.Request) {
 	}
 	domain := hreq.URL.Hostname()
 	rule, server, sc, err := ConnectFilter(hreq, lc.GetID())
-	record := &Record{
+	record := &storage.Record{
 		Protocol: HTTPS,
 		Created:  time.Now(),
-		Status:   RecordStatusActive,
+		Status:   storage.RecordStatusActive,
 		URL:      hreq.URL.String(),
 		Proxy:    server,
 		Rule:     rule,
@@ -128,14 +130,14 @@ func ProxyHTTPS(lc connect.IConn, hreq *http.Request) {
 	}
 	if err != nil {
 		if err == ErrorReject {
-			record.Status = RecordStatusReject
+			record.Status = storage.RecordStatusReject
 		} else {
-			record.Status = RecordStatusFailed
+			record.Status = storage.RecordStatusFailed
 			record.Rule = rule2.FailedRule
 			record.Proxy = proxy.FailedServer
 		}
 		record.ID = util.NextID()
-		boxChan <- &Box{Op: RecordAppend, Value: record}
+		storage.Bus <- &storage.Box{ClientID: clientID, Op: storage.RecordAppend, Value: record}
 		return
 	}
 	// MitM
@@ -163,8 +165,8 @@ func ProxyHTTPS(lc connect.IConn, hreq *http.Request) {
 		lct, sct, err := Mimt(lc, sc)
 		if err != nil {
 			log.Logger.Error("[HTTPS] [ID:%d] MitM failed: %s", lc.GetID(), err.Error())
-			record.Status = RecordStatusFailed
-			boxChan <- &Box{Op: RecordAppend, Value: record}
+			record.Status = storage.RecordStatusFailed
+			storage.Bus <- &storage.Box{ClientID: clientID, Op: storage.RecordAppend, Value: record}
 			lc.Close()
 			sc.Close()
 			return
@@ -179,11 +181,12 @@ func ProxyHTTPS(lc connect.IConn, hreq *http.Request) {
 	}
 
 	record.ID = util.NextID()
-	boxChan <- &Box{Op: RecordAppend, Value: record}
+	storage.Bus <- &storage.Box{ClientID: clientID, Op: storage.RecordAppend, Value: record}
 	sc.SetRecordID(record.ID)
 	direct := &DirectChannel{}
 	direct.Transport(lc, sc)
-	boxChan <- &Box{record.ID, RecordStatus, RecordStatusCompleted}
+	storage.Bus <- &storage.Box{
+		ClientID: clientID, ID: record.ID, Op: storage.RecordStatus, Value: storage.RecordStatusCompleted}
 }
 
 func ProxyHTTP2() {

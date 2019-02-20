@@ -11,6 +11,7 @@ import (
 	"github.com/sipt/shuttle/log"
 	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/proxy"
+	"github.com/sipt/shuttle/storage"
 	"github.com/sipt/shuttle/util"
 )
 
@@ -37,6 +38,8 @@ func SocksHandle(co net.Conn) {
 		log.Logger.Errorf("shuttle.IConn wrap net.Conn failed: %v", err)
 		return
 	}
+	clientID := conn.RemoteIP().String()
+
 	//register to connection pool
 	connect.GetPool(conn.RemoteAddr().String()).Put(conn, nil)
 
@@ -83,11 +86,11 @@ func SocksHandle(co net.Conn) {
 
 	//RuleFilter by Rules and DNS
 	rule, s, err := FilterByReq(req)
-	record := &Record{
+	record := &storage.Record{
 		ID:       util.NextID(),
 		Protocol: req.protocol,
 		Created:  time.Now(),
-		Status:   RecordStatusActive,
+		Status:   storage.RecordStatusActive,
 		URL:      req.target,
 		Rule:     rule,
 		Proxy:    s,
@@ -96,8 +99,8 @@ func SocksHandle(co net.Conn) {
 		if err == ErrorReject {
 			log.Logger.Errorf("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err)
 		}
-		record.Status = RecordStatusCompleted
-		boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+		record.Status = storage.RecordStatusCompleted
+		storage.Bus <- &storage.Box{ClientID: clientID, Op: storage.RecordAppend, Value: record, ID: record.ID}
 		conn.Close()
 	} else {
 		//connnet to server
@@ -114,10 +117,12 @@ func SocksHandle(co net.Conn) {
 		log.Logger.Debugf("[SOCKS] [ID:%d] Server [%s] Connected success", conn.GetID(), s.Name)
 		log.Logger.Debugf("[HTTP] [ClientConnID:%d] Bind to [ServerConnID:%d]", conn.GetID(), sc.GetID())
 		sc.SetRecordID(record.ID)
-		boxChan <- &Box{Op: RecordAppend, Value: record, ID: record.ID}
+		storage.Bus <- &storage.Box{ClientID: clientID, Op: storage.RecordAppend, Value: record, ID: record.ID}
 		direct := &DirectChannel{}
 		direct.Transport(conn, sc)
-		boxChan <- &Box{record.ID, RecordStatus, RecordStatusCompleted}
+		storage.Bus <- &storage.Box{
+			ClientID: clientID, ID: record.ID, Op: storage.RecordStatus, Value: storage.RecordStatusCompleted,
+		}
 	}
 }
 
