@@ -15,6 +15,7 @@ require (
 	github.com/oschwald/geoip2-golang v1.2.1
 	github.com/oschwald/maxminddb-golang v1.3.0 // indirect
 	github.com/sipt/yaml v0.0.0-20181127084323-eeedbff8afd4
+	github.com/stretchr/testify v1.2.2
 	github.com/ugorji/go/codec v0.0.0-20190128213124-ee1426cffec0 // indirect
 	golang.org/x/crypto v0.0.0-20181126163421-e657309f52e7
 	golang.org/x/net v0.0.0-20181114220301-adae6a3d119a

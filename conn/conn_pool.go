@@ -3,9 +3,48 @@ package conn
 import (
 	"container/list"
 	"net"
+	"strconv"
 	"sync"
 	"time"
 )
+
+func Init() {
+	connMap = &ConnMap{
+		m: make(map[string]IConnPool),
+	}
+}
+
+func GetPool(key string) IConnPool {
+	return connMap.Get(key)
+}
+
+func RemovePool(key string) {
+	connMap.Remove(key)
+}
+
+var connMap *ConnMap
+
+type ConnMap struct {
+	m map[string]IConnPool
+	sync.RWMutex
+}
+
+func (c *ConnMap) Get(key string) IConnPool {
+	c.Lock()
+	defer c.Unlock()
+	if p, ok := c.m[key]; ok {
+		return p
+	} else {
+		p = NewPool()
+		c.m[key] = p
+		return p
+	}
+}
+func (c *ConnMap) Remove(key string) {
+	c.Lock()
+	defer c.Unlock()
+	delete(c.m, key)
+}
 
 type Address struct {
 	IPAddr net.IP
@@ -26,10 +65,11 @@ type Connection struct {
 }
 
 type IConnPool interface {
-	Put(connection Connection, keys ...string)
+	Put(lc, sc IConn, keys ...string)
 	Close(clientConnID, serverConnID int64, keys ...string)
 	List(keys ...string) []Connection
 	Clear(keys ...string)
+	Replace(clientConnID int64, sc IConn, keys ...string)
 }
 
 const defaultPoolKey = "_GLOBAL"
@@ -49,7 +89,7 @@ type Pool struct {
 	sync.RWMutex
 }
 
-func (p *Pool) Put(connection Connection, keys ...string) {
+func (p *Pool) Put(lc, sc IConn, keys ...string) {
 	p.Lock()
 	var key = defaultPoolKey
 	if len(keys) > 0 {
@@ -62,7 +102,12 @@ func (p *Pool) Put(connection Connection, keys ...string) {
 	}
 	l.Lock()
 	p.Unlock()
-	l.PushBack(&connection)
+	l.PushBack(&Connection{
+		ClientConn: lc,
+		ClientLine: ParseConnLine(lc),
+		ServerConn: sc,
+		ServerLine: ParseConnLine(sc),
+	})
 	l.Unlock()
 }
 
@@ -153,4 +198,43 @@ func (p *Pool) Clear(keys ...string) {
 		}
 		p.Unlock()
 	}
+}
+
+func (p *Pool) Replace(clientConnID int64, sc IConn, keys ...string) {
+	p.RLock()
+	key := defaultPoolKey
+	if len(keys) > 0 && len(keys[0]) > 0 {
+		key = keys[0]
+	}
+	conns, ok := p.connMap[key]
+	if !ok {
+		return
+	}
+	conns.Lock()
+	defer conns.Unlock()
+	p.RUnlock()
+	for n := conns.Front(); n != nil; n = n.Next() {
+		c := n.Value.(*Connection)
+		if c.ClientConn.GetID() == clientConnID {
+			c.ServerConn = sc
+			c.ServerLine = ParseConnLine(sc)
+		}
+	}
+}
+
+func ParseConnLine(c IConn) *ConnLine {
+	cl := &ConnLine{
+		Local: &Address{},
+	}
+	host, port, err := net.SplitHostPort(c.LocalAddr().String())
+	if err != nil {
+		cl.Local.IPAddr = net.ParseIP(host)
+		cl.Local.Port, _ = strconv.Atoi(port)
+	}
+	host, port, err = net.SplitHostPort(c.RemoteAddr().String())
+	if err != nil {
+		cl.Local.IPAddr = net.ParseIP(host)
+		cl.Local.Port, _ = strconv.Atoi(port)
+	}
+	return cl
 }
