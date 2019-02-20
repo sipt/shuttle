@@ -3,14 +3,15 @@ package shuttle
 import (
 	"encoding/binary"
 	"errors"
+	"net"
+	"strconv"
+	"time"
+
 	connect "github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/log"
 	"github.com/sipt/shuttle/pool"
 	"github.com/sipt/shuttle/proxy"
 	"github.com/sipt/shuttle/util"
-	"net"
-	"strconv"
-	"time"
 )
 
 const (
@@ -36,6 +37,9 @@ func SocksHandle(co net.Conn) {
 		log.Logger.Errorf("shuttle.IConn wrap net.Conn failed: %v", err)
 		return
 	}
+	//register to connection pool
+	connect.GetPool(conn.RemoteAddr().String()).Put(conn, nil)
+
 	log.Logger.Debugf("[SOCKS] [ID:%d] shuttle.IConn wrap net.Conn success ", conn.GetID())
 	log.Logger.Debugf("[SOCKS] [ID:%d] start handShake", conn.GetID())
 	err = handShake(conn)
@@ -103,6 +107,10 @@ func SocksHandle(co net.Conn) {
 			log.Logger.Errorf("[SOCKS] [ID:%d] ConnectToServer failed [%s] err: %s", conn.GetID(), req.Host(), err.Error())
 			return
 		}
+
+		//replace serverConn
+		connect.GetPool(conn.RemoteAddr().String()).Replace(conn.GetID(), sc)
+
 		log.Logger.Debugf("[SOCKS] [ID:%d] Server [%s] Connected success", conn.GetID(), s.Name)
 		log.Logger.Debugf("[HTTP] [ClientConnID:%d] Bind to [ServerConnID:%d]", conn.GetID(), sc.GetID())
 		sc.SetRecordID(record.ID)

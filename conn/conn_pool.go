@@ -223,6 +223,9 @@ func (p *Pool) Replace(clientConnID int64, sc IConn, keys ...string) {
 }
 
 func ParseConnLine(c IConn) *ConnLine {
+	if c == nil {
+		return nil
+	}
 	cl := &ConnLine{
 		Local: &Address{},
 	}
