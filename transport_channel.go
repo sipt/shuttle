@@ -85,7 +85,7 @@ func HttpTransport(lc, sc connect.IConn, allowDump bool, first *http.Request) {
 	}
 	if sc != nil {
 		//replace serverConn
-		connect.GetPool(lc.RemoteAddr().String()).Replace(lc.GetID(), sc)
+		connect.GetPool(lc.RemoteIP().String()).Replace(lc.GetID(), sc)
 	}
 	h.Transport(lc, sc, first)
 }
@@ -175,7 +175,7 @@ func (h *HttpChannel) Transport(lc, sc connect.IConn, first *http.Request) (err 
 			rule, server, sc, err = ConnectFilter(hreq, lc.GetID())
 
 			//replace serverConn
-			connect.GetPool(lc.RemoteAddr().String()).Replace(lc.GetID(), sc)
+			connect.GetPool(lc.RemoteIP().String()).Replace(lc.GetID(), sc)
 
 			record.Rule = rule
 			record.Proxy = server

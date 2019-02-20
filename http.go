@@ -78,7 +78,7 @@ func HandleHTTP(co net.Conn) {
 	}
 
 	//register to connection pool
-	connect.GetPool(conn.RemoteAddr().String()).Put(conn, nil)
+	connect.GetPool(conn.(connect.IConn).RemoteIP().String()).Put(conn, nil)
 
 	log.Logger.Debugf("[HTTP] [ID:%d] shuttle.IConn wrap net.Conn success", conn.GetID())
 	log.Logger.Debugf("[HTTP] [ID:%d] start read http request", conn.GetID())

@@ -14,6 +14,10 @@ func Init() {
 	}
 }
 
+func GetClients() []string {
+	return connMap.Clients()
+}
+
 func GetPool(key string) IConnPool {
 	return connMap.Get(key)
 }
@@ -46,6 +50,16 @@ func (c *ConnMap) Remove(key string) {
 	delete(c.m, key)
 }
 
+func (c *ConnMap) Clients() []string {
+	c.RLock()
+	defer c.RUnlock()
+	clients := make([]string, 0, len(c.m))
+	for k := range c.m {
+		clients = append(clients, k)
+	}
+	return clients
+}
+
 type Address struct {
 	IPAddr net.IP
 	Port   int
@@ -57,9 +71,9 @@ type ConnLine struct {
 }
 
 type Connection struct {
-	ClientConn IConn
+	ClientConn IConn `json:"-"`
 	ClientLine *ConnLine
-	ServerConn IConn
+	ServerConn IConn `json:"-"`
 	ServerLine *ConnLine
 	CreateAt   time.Time
 }
@@ -227,17 +241,18 @@ func ParseConnLine(c IConn) *ConnLine {
 		return nil
 	}
 	cl := &ConnLine{
-		Local: &Address{},
+		Local:  &Address{},
+		Remote: &Address{},
 	}
 	host, port, err := net.SplitHostPort(c.LocalAddr().String())
-	if err != nil {
+	if err == nil {
 		cl.Local.IPAddr = net.ParseIP(host)
 		cl.Local.Port, _ = strconv.Atoi(port)
 	}
 	host, port, err = net.SplitHostPort(c.RemoteAddr().String())
-	if err != nil {
-		cl.Local.IPAddr = net.ParseIP(host)
-		cl.Local.Port, _ = strconv.Atoi(port)
+	if err == nil {
+		cl.Remote.IPAddr = net.ParseIP(host)
+		cl.Remote.Port, _ = strconv.Atoi(port)
 	}
 	return cl
 }

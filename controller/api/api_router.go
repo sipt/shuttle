@@ -44,6 +44,10 @@ func APIRoute(router *gin.RouterGroup, eventChan chan *EventObj) {
 	//deprecated
 	//router.POST("/upgrade", NewUpgrade(eventChan))
 
+	//conn
+	router.GET("/conn/clients", ConnClients)
+	router.GET("/conn/client/conns", ConnList)
+
 	//ws
 	router.GET("/ws/records", func(ctx *gin.Context) {
 		WsHandler(ctx.Writer, ctx.Request)

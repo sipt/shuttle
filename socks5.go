@@ -41,7 +41,7 @@ func SocksHandle(co net.Conn) {
 	clientID := conn.RemoteIP().String()
 
 	//register to connection pool
-	connect.GetPool(conn.RemoteAddr().String()).Put(conn, nil)
+	connect.GetPool(clientID).Put(conn, nil)
 
 	log.Logger.Debugf("[SOCKS] [ID:%d] shuttle.IConn wrap net.Conn success ", conn.GetID())
 	log.Logger.Debugf("[SOCKS] [ID:%d] start handShake", conn.GetID())
@@ -112,7 +112,7 @@ func SocksHandle(co net.Conn) {
 		}
 
 		//replace serverConn
-		connect.GetPool(conn.RemoteAddr().String()).Replace(conn.GetID(), sc)
+		connect.GetPool(clientID).Replace(conn.GetID(), sc)
 
 		log.Logger.Debugf("[SOCKS] [ID:%d] Server [%s] Connected success", conn.GetID(), s.Name)
 		log.Logger.Debugf("[HTTP] [ClientConnID:%d] Bind to [ServerConnID:%d]", conn.GetID(), sc.GetID())
