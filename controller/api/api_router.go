@@ -32,6 +32,7 @@ func APIRoute(router *gin.RouterGroup, eventChan chan *EventObj) {
 	router.GET("/servers", ServerList)
 	router.POST("/server/select", SelectServer)
 	router.POST("/server/select/refresh", SelectRefresh)
+	router.GET("/servers/test", TestServerRtt)
 
 	//general
 	router.GET("/system/proxy/enable", EnableSystemProxy)

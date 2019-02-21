@@ -80,7 +80,7 @@ func (r *rttSelector) autoTest() {
 		if err != nil {
 			continue
 		}
-		go urlTest(s, r.group.GetRttRrl(), c)
+		go urlTest(s, r.group.GetRttUrl(), c)
 	}
 	s = <-c
 	log.Logger.Infof("[Rtt-Select] rtt select server: [%s]", s.Name)

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sipt/shuttle/conn"
+	"github.com/sipt/shuttle/log"
 	"strings"
 	"sync"
 	"time"
@@ -73,6 +74,9 @@ func ApplyConfig(config IProxyConfig) (err error) {
 					v = v[:len(v)-1]
 				}
 			}
+			if len(rttUrl) == 0 {
+				rttUrl = globalRttUrl
+			}
 		}
 		ss[index], err = NewServer(k, v)
 		ss[index].RttUrl = rttUrl
@@ -88,9 +92,13 @@ func ApplyConfig(config IProxyConfig) (err error) {
 		gs[index] = &ServerGroup{Name: k}
 		index ++
 	}
-	getServer := func(name string) interface{} {
+	getServer := func(name, rttUrl string) interface{} {
 		for i := range ss {
 			if ss[i].Name == name {
+				// rtt组的rttURL 替换 server本身的rttURL
+				if len(rttUrl) > 0 {
+					ss[i].RttUrl = rttUrl
+				}
 				return ss[i]
 			}
 		}
@@ -119,7 +127,7 @@ func ApplyConfig(config IProxyConfig) (err error) {
 		}
 		v.Servers = make([]interface{}, len(cs)-1)
 		for i := range v.Servers {
-			v.Servers[i] = getServer(cs[i+1])
+			v.Servers[i] = getServer(cs[i+1], v.RttUrl)
 			if v.Servers[i] == nil {
 				return fmt.Errorf("resolve config file [proxy_group] [%s] [%s] not found", v.Name, cs[i+1])
 			}
@@ -199,7 +207,7 @@ func RegisterProxyProtocolCreator(name string, p NewProtocol) {
 type IServer interface {
 	GetName() string
 	GetServer() (*Server, error)
-	GetRttRrl() string
+	GetRttUrl() string
 }
 
 type NewProtocol func([]string) (IProtocol, error)
@@ -230,7 +238,7 @@ func (s *ServerGroup) GetServer() (*Server, error) {
 	return s.Selector.Get()
 }
 
-func (s *ServerGroup) GetRttRrl() string {
+func (s *ServerGroup) GetRttUrl() string {
 	s.RLock()
 	defer s.RUnlock()
 	if len(s.RttUrl) > 0 {
@@ -293,7 +301,7 @@ func (s *Server) GetName() string {
 func (s *Server) GetServer() (*Server, error) {
 	return s, nil
 }
-func (s *Server) GetRttRrl() string {
+func (s *Server) GetRttUrl() string {
 	if len(s.RttUrl) > 0 {
 		return s.RttUrl
 	}
@@ -325,4 +333,45 @@ func GetServer(name string) (*Server, error) {
 		}
 	}
 	return FailedServer, ErrorServerNotFound
+}
+
+func TestServerRtt(name string) (err error) {
+	for _, s := range servers {
+		if s.Name == name {
+			switch s.Name {
+			case ProxyDirect, ProxyReject:
+				err = fmt.Errorf("not support test [%s]", name)
+				return
+			default:
+			}
+			s.Rtt, err = TestRTT(s, s.RttUrl)
+			if err != nil {
+				log.Logger.Errorf("[Proxy] [Rtt-Tester] [name: %s] [url: %s] test failed: %v", s.Name, s.RttUrl, err)
+				err = fmt.Errorf("test proxy [%s] failed", name)
+			}
+			return
+		}
+	}
+	return
+}
+
+func TestAllServerRtt() {
+	reqPool := make(chan bool, 64)
+	for _, s := range servers {
+		switch s.Name {
+		case ProxyDirect, ProxyReject:
+			continue
+		default:
+		}
+		reqPool <- true
+		go func(s *Server) {
+			defer func() { <-reqPool }()
+			var err error
+			s.Rtt, err = TestRTT(s, s.RttUrl)
+			if err != nil {
+				log.Logger.Errorf("[Proxy] [Rtt-Tester] [name: %s] [url: %s] test failed: %v", s.Name, s.RttUrl, err)
+				s.Rtt = -1
+			}
+		}(s)
+	}
 }
