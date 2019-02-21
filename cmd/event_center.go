@@ -1,12 +1,13 @@
-package main
+package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/sipt/shuttle/config"
 	. "github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/controller"
 	"github.com/sipt/shuttle/log"
-	"os"
 )
 
 var eventChan chan *EventObj

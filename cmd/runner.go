@@ -1,7 +1,6 @@
-package main
+package cmd
 
 import (
-	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -11,16 +10,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sipt/shuttle/conn"
-	"github.com/sipt/shuttle/storage"
 	"github.com/sipt/shuttle"
+
 	"github.com/sipt/shuttle/config"
 	"github.com/sipt/shuttle/controller"
 	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/extension/network"
 	"github.com/sipt/shuttle/log"
-	"github.com/sipt/shuttle/proxy"
-	"github.com/sipt/shuttle/rule"
 
 	_ "github.com/sipt/shuttle/ciphers"
 	_ "github.com/sipt/shuttle/proxy/protocol"
@@ -32,21 +28,17 @@ var (
 	StopHTTPSignal  = make(chan bool, 1)
 )
 
-func main() {
-	configPath := flag.String("c", "shuttle.yaml", "configuration file path")
-	logMode := flag.String("l", "file", "logMode: off | console | file")
-	logPath := flag.String("lp", "logs", "logs path")
-	flag.Parse()
+func Run(logMode, logPath, configPath string) {
 	var (
 		conf *config.Config
 		err  error
 	)
 	//init Logger
-	if err = log.InitLogger(*logMode, *logPath); err != nil {
+	if err = log.InitLogger(logMode, logPath); err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-	if conf, err = loadConfig(*configPath); err != nil {
+	if conf, err = loadConfig(configPath); err != nil {
 		fmt.Println(err.Error())
 		return
 	}
@@ -73,83 +65,6 @@ func main() {
 	log.Logger.Info("[Shuttle] is shutdown, see you later!")
 	shutdown(conf.General.SetAsSystemProxy)
 	os.Exit(0)
-	return
-}
-
-//load config
-func loadConfig(configPath string) (conf *config.Config, err error) {
-	//init Config
-	conf, err = config.LoadConfig(configPath)
-	if err != nil {
-		return
-	}
-	//init Config Value
-	shuttle.InitConfigValue(conf)
-	//init DNS & GeoIP
-	if err = dns.ApplyConfig(conf); err != nil {
-		return
-	}
-	//init Logger
-	if err = log.ApplyConfig(conf); err != nil {
-		return
-	}
-	//init Proxy & ProxyGroup
-	if err = proxy.ApplyConfig(conf); err != nil {
-		return
-	}
-	//init Rule
-	if err = rule.ApplyConfig(conf); err != nil {
-		return
-	}
-	//init Record-Storage
-	if err = storage.ApplyConfig(conf); err != nil {
-		return
-	}
-	storage.Prepare()
-	//init HttpMap
-	if err = shuttle.ApplyHTTPModifyConfig(conf); err != nil {
-		return
-	}
-	//init MITM
-	if err = shuttle.ApplyMITMConfig(conf); err != nil {
-		return
-	}
-	//init conn
-	conn.Init()
-	return
-}
-
-//reload config
-func reloadConfig(configPath string, StopSocksSignal, StopHTTPSignal chan bool) (conf *config.Config, err error) {
-	oldConf := config.CurrentConfig()
-	conf, err = loadConfig(configPath)
-	if err != nil {
-		return
-	}
-	// controller
-	if oldConf.GetControllerInterface() != conf.GetControllerInterface() ||
-		oldConf.GetControllerPort() != conf.GetControllerPort() {
-		//restart controller
-		controller.ShutdownController()
-		// 启动api控制
-		go controller.StartController(conf, eventChan)
-	}
-
-	// http proxy
-	if oldConf.GetHTTPInterface() != conf.GetHTTPInterface() ||
-		oldConf.GetHTTPPort() != conf.GetHTTPPort() {
-		//restart http proxy
-		StopHTTPSignal <- true
-		go HandleHTTP(conf, StopHTTPSignal)
-	}
-
-	// socks5 proxy
-	if oldConf.GetSOCKSInterface() != conf.GetSOCKSInterface() ||
-		oldConf.GetSOCKSPort() != conf.GetSOCKSPort() {
-		//restart http proxy
-		StopSocksSignal <- true
-		go HandleSocks5(conf, StopSocksSignal)
-	}
 	return
 }
 
