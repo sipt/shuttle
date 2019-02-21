@@ -65,6 +65,7 @@ github.com/sipt/yaml v0.0.0-20181127084323-eeedbff8afd4/go.mod h1:tGOuP/oK1OIkFW
 github.com/sipt/yaml v2.1.0+incompatible h1:9gMyHKKX5nAPPl6K48nROwxUh/5t69pOhfwwySxeVk0=
 github.com/sipt/yaml v2.1.0+incompatible/go.mod h1:SMrs5QuqagKMVQywWx0GexG0vZQ9TPaMqmaNRuNGD5M=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
+github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"context"
+
 	"github.com/sipt/shuttle/config"
 	connect "github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/log"
@@ -75,6 +76,10 @@ func HandleHTTP(co net.Conn) {
 		log.Logger.Errorf("[HTTP] shuttle.IConn wrap net.Conn failed: %v", err)
 		return
 	}
+
+	//register to connection pool
+	connect.GetPool(conn.(connect.IConn).RemoteIP().String()).Put(conn, nil)
+
 	log.Logger.Debugf("[HTTP] [ID:%d] shuttle.IConn wrap net.Conn success", conn.GetID())
 	log.Logger.Debugf("[HTTP] [ID:%d] start read http request", conn.GetID())
 	//prepare request

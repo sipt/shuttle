@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/storage"
-
 	"github.com/sipt/shuttle"
 	"github.com/sipt/shuttle/config"
 	"github.com/sipt/shuttle/controller"
@@ -114,6 +114,8 @@ func loadConfig(configPath string) (conf *config.Config, err error) {
 	if err = shuttle.ApplyMITMConfig(conf); err != nil {
 		return
 	}
+	//init conn
+	conn.Init()
 	return
 }
 

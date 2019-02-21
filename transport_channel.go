@@ -83,6 +83,10 @@ func HttpTransport(lc, sc connect.IConn, allowDump bool, first *http.Request) {
 		allowDump: allowDump,
 		isHttps:   first == nil,
 	}
+	if sc != nil {
+		//replace serverConn
+		connect.GetPool(lc.RemoteIP().String()).Replace(lc.GetID(), sc)
+	}
 	h.Transport(lc, sc, first)
 }
 
@@ -169,6 +173,10 @@ func (h *HttpChannel) Transport(lc, sc connect.IConn, first *http.Request) (err 
 				sc.Close()
 			}
 			rule, server, sc, err = ConnectFilter(hreq, lc.GetID())
+
+			//replace serverConn
+			connect.GetPool(lc.RemoteIP().String()).Replace(lc.GetID(), sc)
+
 			record.Rule = rule
 			record.Proxy = server
 			if err != nil {
