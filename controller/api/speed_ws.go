@@ -1,11 +1,11 @@
 package api
 
 import (
-	"net/http"
-	"github.com/sipt/shuttle"
-	"github.com/sipt/shuttle/log"
-	"time"
 	"fmt"
+	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/storage"
+	"net/http"
+	"time"
 )
 
 func WsSpeedHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,8 +16,8 @@ func WsSpeedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	ticker := time.NewTicker(time.Second)
 	for {
-		up, down := shuttle.CurrentSpeed()
-		conn.WriteJSON(struct {
+		up, down := storage.GetSpeed()
+		_ = conn.WriteJSON(struct {
 			UpSpeed   string `json:"up_speed"`
 			DownSpeed string `json:"down_speed"`
 		}{

@@ -81,6 +81,13 @@ func (c *DefaultConn) Close() error {
 	log.Logger.Debugf("[ID:%d] close connection", c.GetID())
 	return c.Conn.Close()
 }
+func (c *DefaultConn) RemoteIP() net.IP {
+	host, _, err := net.SplitHostPort(c.RemoteAddr().String())
+	if err != nil {
+		return nil
+	}
+	return net.ParseIP(host)
+}
 
 //超时装饰
 func TimerDecorate(c IConn, rto, wto time.Duration) (IConn, error) {

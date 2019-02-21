@@ -2,9 +2,10 @@ package config
 
 import (
 	"fmt"
+	"io/ioutil"
+
 	"github.com/sipt/shuttle/util"
 	"github.com/sipt/yaml"
-	"io/ioutil"
 )
 
 const ConfigFileVersion = "v1.0.1"
@@ -74,6 +75,7 @@ func downloadConfig(url string) error {
 type Config struct {
 	Ver        string              `yaml:"ver"`
 	General    *General            `yaml:"General"`
+	Storage    *Storage            `yaml:"storage"`
 	Proxy      map[string][]string `yaml:"Proxy,[flow],2quoted"`
 	ProxyGroup map[string][]string `yaml:"Proxy-Group,[flow],2quoted"`
 	LocalDNSs  [][]string          `yaml:"Local-DNS,[flow],2quoted"`
@@ -81,6 +83,12 @@ type Config struct {
 	Rule       [][]string          `yaml:"Rule,[flow],2quoted"`
 	HttpMap    *HttpMap            `yaml:"Http-Map"`
 	RttUrl     string              `yaml:"rtt-url"`
+}
+
+type Storage struct {
+	Engine   string   `yaml:"engine"`
+	Capacity int      `yaml:"capacity"`
+	Options  []string `yaml:"options"`
 }
 
 type General struct {
@@ -226,4 +234,42 @@ func (c *Config) GetMITM() *Mitm {
 }
 func (c *Config) SetMITM(mitm *Mitm) {
 	c.Mitm = mitm
+}
+
+//Record-Storage
+func (c *Config) GetStorageEngine() string {
+	if c.Storage != nil {
+		return c.Storage.Engine
+	}
+	return ""
+}
+func (c *Config) SetStorageEngine(engine string) {
+	if c.Storage == nil {
+		c.Storage = &Storage{}
+	}
+	c.Storage.Engine = engine
+}
+func (c *Config) GetStorageCap() int {
+	if c.Storage != nil {
+		return c.Storage.Capacity
+	}
+	return 0
+}
+func (c *Config) SetStorageCap(cap int) {
+	if c.Storage == nil {
+		c.Storage = &Storage{}
+	}
+	c.Storage.Capacity = cap
+}
+func (c *Config) GetStorageOptions() []string {
+	if c.Storage != nil {
+		return c.Storage.Options
+	}
+	return nil
+}
+func (c *Config) SetStorageOptions(options []string) {
+	if c.Storage == nil {
+		c.Storage = &Storage{}
+	}
+	c.Storage.Options = options
 }

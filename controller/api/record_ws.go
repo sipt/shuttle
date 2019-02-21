@@ -2,12 +2,12 @@ package api
 
 import (
 	"github.com/gorilla/websocket"
-	"time"
+	"github.com/sipt/shuttle/log"
+	"github.com/sipt/shuttle/storage"
+	"github.com/sipt/shuttle/util"
 	"net/http"
 	"sync"
-	"github.com/sipt/shuttle/util"
-	"github.com/sipt/shuttle/log"
-	"github.com/sipt/shuttle"
+	"time"
 )
 
 func init() {
@@ -16,7 +16,7 @@ func init() {
 		buffer: make([]interface{}, 0, 8),
 	}
 	go pushTimeBuffer.Run()
-	shuttle.RegisterPusher(func(v interface{}) {
+	storage.RegisterPusher(func(v interface{}) {
 		pushTimeBuffer.Push(v)
 	})
 }

@@ -19,6 +19,7 @@ type IConn interface {
 	Flush() (int, error)
 	Context() context.Context
 	SetContext(context.Context)
+	RemoteIP() net.IP
 }
 
 func NewDefaultConn(conn net.Conn, network string) (IConn, error) {

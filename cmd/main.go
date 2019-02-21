@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sipt/shuttle/storage"
+
 	"github.com/sipt/shuttle"
 	"github.com/sipt/shuttle/config"
 	"github.com/sipt/shuttle/controller"
@@ -99,6 +101,11 @@ func loadConfig(configPath string) (conf *config.Config, err error) {
 	if err = rule.ApplyConfig(conf); err != nil {
 		return
 	}
+	//init Record-Storage
+	if err = storage.ApplyConfig(conf); err != nil {
+		return
+	}
+	storage.Prepare()
 	//init HttpMap
 	if err = shuttle.ApplyHTTPModifyConfig(conf); err != nil {
 		return
