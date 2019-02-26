@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/sipt/shuttle"
-
 	"github.com/sipt/shuttle/config"
 	"github.com/sipt/shuttle/controller"
 	"github.com/sipt/shuttle/dns"
@@ -62,13 +61,13 @@ func Run(logMode, logPath, configPath string) {
 	fmt.Println("success")
 
 	<-signalChan
-	log.Logger.Info("[Shuttle] is shutdown, see you later!")
-	shutdown(conf.General.SetAsSystemProxy)
+	log.Logger.Info("[Shuttle] is Shutdown, see you later!")
+	Shutdown(conf.General.SetAsSystemProxy)
 	os.Exit(0)
 	return
 }
 
-func shutdown(setAsSystemProxy string) {
+func Shutdown(setAsSystemProxy string) {
 	controller.ShutdownController()
 	StopSocksSignal <- true
 	StopHTTPSignal <- true

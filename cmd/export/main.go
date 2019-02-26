@@ -23,5 +23,15 @@ func Run(confStr string) int {
 	return 0
 }
 
+//export Shutdown
+func Shutdown() {
+	cmd.Shutdown("manual")
+}
+
+//export ReloadConfig
+func ReloadConfig(configPath string) int {
+	return cmd.ReloadConfig(configPath)
+}
+
 func main() {
 }

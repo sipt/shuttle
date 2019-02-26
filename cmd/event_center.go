@@ -22,8 +22,8 @@ func dealEvent(c chan *EventObj) {
 		t := <-c
 		switch t.Type {
 		case EventShutdown.Type:
-			log.Logger.Info("[Shuttle] is shutdown, see you later!")
-			shutdown(config.CurrentConfig().General.SetAsSystemProxy)
+			log.Logger.Info("[Shuttle] is Shutdown, see you later!")
+			Shutdown(config.CurrentConfig().General.SetAsSystemProxy)
 			os.Exit(0)
 			return
 		case EventReloadConfig.Type:
@@ -44,4 +44,12 @@ func dealEvent(c chan *EventObj) {
 			go controller.StartController(config.CurrentConfig(), eventChan)
 		}
 	}
+}
+
+func ReloadConfig(configPath string) int {
+	_, err := reloadConfig(configPath, StopSocksSignal, StopHTTPSignal)
+	if err != nil {
+		return 1
+	}
+	return 0
 }
