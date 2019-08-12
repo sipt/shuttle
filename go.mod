@@ -9,5 +9,5 @@ require (
 	github.com/sipt/yaml v2.1.0+incompatible
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0
-	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa // indirect
+	golang.org/x/sys v0.0.0-20190812172437-4e8604ab3aff // indirect
 )

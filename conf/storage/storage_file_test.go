@@ -1,10 +1,11 @@
-package conf
+package storage
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFileStorage(t *testing.T) {
@@ -27,15 +28,18 @@ func TestFileStorage(t *testing.T) {
 	// test notify
 	testData2 := []byte(`{"data": "test_data_2"}`)
 	ctx, cancel := context.WithCancel(context.Background())
+	end := make(chan bool, 1)
 	err = s.RegisterNotify(ctx, func() {
 		data, err := s.Load()
 		assert.NoError(t, err)
 		assert.EqualValues(t, string(data), testData2)
+		end <- true
 	})
 	assert.NoError(t, err)
 
 	err = s.Save(testData2)
 	assert.NoError(t, err)
+	<-end
 	cancel() // end notify
 
 	// rm test file

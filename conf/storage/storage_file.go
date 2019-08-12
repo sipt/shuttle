@@ -1,18 +1,23 @@
-package conf
+package storage
 
 import (
 	"context"
-	"github.com/fsnotify/fsnotify"
-	"github.com/sirupsen/logrus"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"sync"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+)
+
+const (
+	KeyFile = "file"
 )
 
 func init() {
-	RegisterStorage("file", newFileStorage)
+	RegisterStorage(KeyFile, newFileStorage)
 }
 
 func newFileStorage(params map[string]string) (IStorage, error) {
@@ -60,6 +65,9 @@ func (f *fileStorage) Save(data []byte) error {
 
 // RegisterNotify
 func (f *fileStorage) RegisterNotify(ctx context.Context, notify func()) error {
+	if notify == nil {
+		return nil
+	}
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return errors.Wrapf(err, "[RegisterNotify] failed: %s", f.filePath)
@@ -71,10 +79,12 @@ func (f *fileStorage) RegisterNotify(ctx context.Context, notify func()) error {
 		for {
 			select {
 			case event, ok := <-watcher.Events:
+				log.Infof("modified file: %s", event.String(), ok)
 				if !ok {
 					return
 				}
 				if event.Op&fsnotify.Write == fsnotify.Write {
+					notify()
 					log.Infof("modified file: %s", event.Name)
 				}
 			case err, ok := <-watcher.Errors:
@@ -92,5 +102,6 @@ func (f *fileStorage) RegisterNotify(ctx context.Context, notify func()) error {
 	if err != nil {
 		return errors.Wrapf(err, "[RegisterNotify] watcher file failed: %s", f.filePath)
 	}
+	fmt.Println("register notify success: ", f.filePath)
 	return nil
 }
