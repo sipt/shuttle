@@ -54,6 +54,7 @@ func newRttGroup(ctx context.Context, name string, params map[string]string) (gr
 			return
 		}
 	}
+	rtt.reset = make(chan bool)
 	return rtt, nil
 }
 
@@ -64,6 +65,7 @@ type rttGroup struct {
 	current  IServerX
 	testUrl  string
 	interval time.Duration
+	reset    chan bool
 	*sync.RWMutex
 }
 
@@ -105,15 +107,23 @@ func (r *rttGroup) Server() server.IServer {
 func (r *rttGroup) Select(name string) error {
 	return nil
 }
+func (r *rttGroup) Reset() {
+	r.reset <- true
+}
 
 func (r *rttGroup) autoSelectByRTT() {
 	r.testAllRTT()
-	ticker := time.NewTicker(r.interval)
+	timer := time.NewTimer(r.interval)
 	for {
 		select {
-		case <-ticker.C:
+		case <-timer.C:
 			r.testAllRTT()
+		case <-r.reset:
+			timer.Stop()
+			r.testAllRTT()
+			timer.Reset(r.interval)
 		case <-r.ctx.Done():
+			timer.Stop()
 			return
 		}
 	}

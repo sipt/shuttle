@@ -64,6 +64,7 @@ func Get(ctx context.Context, typ string, name string, params map[string]string)
 type IGroup interface {
 	Append(servers []IServerX)
 	Select(name string) error
+	Reset()
 	IServerX
 }
 

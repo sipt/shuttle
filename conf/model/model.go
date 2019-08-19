@@ -32,6 +32,7 @@ type Config struct {
 	Rule []struct {
 		Typ    string            `toml:"typ"`
 		Value  string            `toml:"value"`
+		Proxy  string            `toml:"proxy"`
 		Params map[string]string `toml:"params"`
 	} `toml:"rule"`
 
