@@ -14,6 +14,16 @@ type Config struct {
 		Params map[string]string `toml:"params"`
 	} `toml:"listener"`
 
+	DNS struct {
+		IncludeSystem bool     `json:"include_system"`
+		Servers       []string `toml:"servers"`
+		Mapping       []struct {
+			Domain string   `json:"domain"`
+			IP     []string `json:"ip"`
+			Server []string `json:"server"`
+		} `json:"mapping"`
+	} `toml:"dns"`
+
 	Server map[string]struct {
 		Typ    string            `toml:"typ"`
 		Addr   string            `toml:"addr"`
