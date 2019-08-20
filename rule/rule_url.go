@@ -1,6 +1,7 @@
 package rule
 
 import (
+	"context"
 	"regexp"
 
 	"github.com/pkg/errors"
@@ -19,10 +20,10 @@ func urlRegexHandle(rule *Rule, next Handle) (Handle, error) {
 		return nil, errors.Errorf("rule:[%s, %s, %s, %v], regex:[%s] invalid",
 			rule.Typ, rule.Value, rule.Proxy, rule.Params, rule.Value)
 	}
-	return func(info Info) *Rule {
+	return func(ctx context.Context, info Info) *Rule {
 		if reg.MatchString(info.URI()) {
 			return rule
 		}
-		return next(info)
+		return next(ctx, info)
 	}, nil
 }

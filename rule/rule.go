@@ -1,6 +1,7 @@
 package rule
 
 import (
+	"context"
 	"fmt"
 	"net"
 
@@ -10,7 +11,8 @@ import (
 
 func ApplyConfig(config *model.Config, proxyName map[string]bool, fallback Handle) (handle Handle, err error) {
 	handle = fallback
-	for _, v := range config.Rule {
+	for i := len(config.Rule); i >= 0; i-- {
+		v := config.Rule[i]
 		rule := &Rule{
 			Typ:    v.Typ,
 			Value:  v.Value,
@@ -47,7 +49,7 @@ type Rule struct {
 	Params map[string]string
 }
 
-type Handle func(Info) *Rule
+type Handle func(ctx context.Context, info Info) *Rule
 type NewFunc func(rule *Rule, handle Handle) (Handle, error)
 
 var creator = make(map[string]NewFunc)
