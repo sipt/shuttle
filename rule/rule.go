@@ -11,7 +11,7 @@ import (
 
 func ApplyConfig(config *model.Config, proxyName map[string]bool, fallback Handle) (handle Handle, err error) {
 	handle = fallback
-	for i := len(config.Rule); i >= 0; i-- {
+	for i := len(config.Rule) - 1; i >= 0; i-- {
 		v := config.Rule[i]
 		rule := &Rule{
 			Typ:    v.Typ,

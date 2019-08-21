@@ -5,10 +5,10 @@ import (
 	"net"
 	"strings"
 
+	"github.com/miekg/dns"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-
 	"github.com/sipt/shuttle/conf/model"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -20,13 +20,16 @@ const (
 type Handle func(ctx context.Context, domain string) *DNS
 
 func ApplyConfig(config *model.Config, fallback Handle) (handle Handle, err error) {
+	servers := config.DNS.Servers
 	if config.DNS.IncludeSystem {
 		// TODO Read File: hosts
 	}
 	handle = fallback
-	for i := len(config.DNS.Mapping); i >= 0; i-- {
+	handle, _ = newGeneralHandle(servers, handle)
+	handle, _ = newCacheHandle(handle)
+	for i := len(config.DNS.Mapping) - 1; i >= 0; i-- {
 		v := config.DNS.Mapping[i]
-		handle, err = NewMappingHandle(v.Domain, v.IP, v.Server, handle)
+		handle, err = newMappingHandle(v.Domain, v.IP, v.Server, handle)
 		if err != nil {
 			return
 		}
@@ -34,7 +37,30 @@ func ApplyConfig(config *model.Config, fallback Handle) (handle Handle, err erro
 	return
 }
 
-func NewMappingHandle(mappingDomain string, server []string, ip []string, next Handle) (Handle, error) {
+func newGeneralHandle(servers []string, next Handle) (Handle, error) {
+	serverIP := make([]net.IP, len(servers))
+	for i, v := range servers {
+		serverIP[i] = net.ParseIP(v)
+		if len(serverIP[i]) == 0 {
+			return nil, errors.Errorf("[DNS.Servers] parse DNS server[%s] failed", v)
+		}
+	}
+	return func(ctx context.Context, domain string) *DNS {
+		reply := &DNS{
+			Typ:    TypDynamic,
+			Domain: domain,
+		}
+		var err error
+		reply.IP, reply.CurrentServer, err = ResolveDomain(ctx, domain, serverIP...)
+		if err != nil {
+			logrus.WithError(err).WithField("domain", domain).Error("lookup ip failed")
+			next(ctx, domain)
+		}
+		return reply
+	}, nil
+}
+
+func newMappingHandle(mappingDomain string, server []string, ip []string, next Handle) (Handle, error) {
 	if len(server) == 0 && len(ip) == 0 {
 		return nil, errors.Errorf("DNS.Mapping[domain:%s, server:%v, ip:%v], server and ip is empty", mappingDomain, server, ip)
 	}
@@ -61,7 +87,7 @@ func NewMappingHandle(mappingDomain string, server []string, ip []string, next H
 				CurrentCountry: GeoLookUp(netIP[0]),
 			}
 			var err error
-			reply.IP, err = ResolveDomain(ctx, domain, netIP...)
+			reply.IP, reply.CurrentServer, err = ResolveDomain(ctx, domain, netIP...)
 			if err != nil {
 				logrus.WithError(err).WithField("domain", domain).Error("lookup ip failed")
 			}
@@ -100,10 +126,16 @@ type DNS struct {
 	Domain         string
 	IP             []net.IP
 	Server         []net.IP
+	CurrentServer  net.IP
 	CurrentIP      net.IP
 	CurrentCountry string
 }
 
-func ResolveDomain(ctx context.Context, domain string, server ...net.IP) ([]net.IP, error) {
-	return nil, nil
+func (d *DNS) IsNil() bool {
+	return len(d.Domain) == 0
+}
+
+func ResolveDomain(ctx context.Context, domain string, servers ...net.IP) (ips []net.IP, server net.IP, err error) {
+	dns.A{}
+	return nil, nil, nil
 }
