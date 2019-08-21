@@ -6,6 +6,7 @@ type Config struct {
 	} `toml:"general"`
 
 	Listener []struct {
+		Name string `toml:"name"`
 		// Typ: eg. [http, https, socks]
 		Typ string `toml:"typ"`
 		// Addr: e.g. [":8080", "[::1]:8080", "192.168.1.23:8080"]
@@ -15,13 +16,14 @@ type Config struct {
 	} `toml:"listener"`
 
 	DNS struct {
-		IncludeSystem bool     `json:"include_system"`
+		IncludeSystem bool     `toml:"include_system"`
 		Servers       []string `toml:"servers"`
+		TimeoutSec    int      `toml:"timeout_sec"`
 		Mapping       []struct {
-			Domain string   `json:"domain"`
-			IP     []string `json:"ip"`
-			Server []string `json:"server"`
-		} `json:"mapping"`
+			Domain string   `toml:"domain"`
+			IP     []string `toml:"ip"`
+			Server []string `toml:"server"`
+		} `toml:"mapping"`
 	} `toml:"dns"`
 
 	Server map[string]struct {

@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+var (
+	clearCacheExpiredInterval = 10 * time.Minute
+)
+
 func NewCache() ICache {
 	return &cache{
 		m:       make(map[string]*DNS),
@@ -19,6 +23,7 @@ type ICache interface {
 	Set(key string, value DNS)
 	List() (reply []DNS)
 	Clear()
+	ClearExpired()
 }
 
 type cache struct {
@@ -71,8 +76,39 @@ func (c *cache) List() (reply []DNS) {
 	return
 }
 
+func (c *cache) ClearExpired() {
+	c.RLock()
+	queue := make([]int, 0, 8)
+	for i, v := range c.l {
+		if v.ExpireAt.Sub(time.Now()).Minutes() > 30 {
+			queue = append(queue, i)
+		}
+	}
+	c.RUnlock()
+	c.Lock()
+	for i := len(queue) - 1; i >= 0; i-- {
+		if c.l[i].ExpireAt.Sub(time.Now()).Minutes() > 30 {
+			delete(c.m, c.l[i].Domain)
+			if i+1 == len(c.l) {
+				c.l = c.l[:i]
+			} else {
+				c.l = append(c.l[:i], c.l[i+1:]...)
+			}
+		}
+	}
+	c.Unlock()
+}
+
 func newCacheHandle(next Handle) (Handle, error) {
 	cache := NewCache()
+	go func() {
+		timer := time.NewTimer(clearCacheExpiredInterval)
+		for {
+			<-timer.C
+			cache.ClearExpired()
+			timer.Reset(clearCacheExpiredInterval)
+		}
+	}()
 	return func(ctx context.Context, domain string) *DNS {
 		dns := cache.Get(domain)
 		dnsPtr := &dns

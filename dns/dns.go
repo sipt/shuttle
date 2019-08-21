@@ -19,11 +19,17 @@ const (
 	TypSystem  = "system"
 	TypStatic  = "static"
 	TypDynamic = "dynamic"
+
+	dnsTimeout = time.Minute * 10
 )
 
 type Handle func(ctx context.Context, domain string) *DNS
 
 func ApplyConfig(config *model.Config, fallback Handle) (handle Handle, err error) {
+	timeout := dnsTimeout
+	if config.DNS.TimeoutSec != 0 {
+		timeout = time.Second * time.Duration(config.DNS.TimeoutSec)
+	}
 	err = InitGeoIP()
 	if err != nil {
 		return
@@ -33,11 +39,11 @@ func ApplyConfig(config *model.Config, fallback Handle) (handle Handle, err erro
 		// TODO Read File: hosts
 	}
 	handle = fallback
-	handle, _ = newGeneralHandle(servers, handle)
+	handle, _ = newGeneralHandle(servers, timeout, handle)
 	handle, _ = newCacheHandle(handle)
 	for i := len(config.DNS.Mapping) - 1; i >= 0; i-- {
 		v := config.DNS.Mapping[i]
-		handle, err = newMappingHandle(v.Domain, v.IP, v.Server, handle)
+		handle, err = newMappingHandle(v.Domain, v.IP, v.Server, timeout, handle)
 		if err != nil {
 			return
 		}
@@ -45,7 +51,7 @@ func ApplyConfig(config *model.Config, fallback Handle) (handle Handle, err erro
 	return
 }
 
-func newGeneralHandle(servers []string, next Handle) (Handle, error) {
+func newGeneralHandle(servers []string, timeout time.Duration, next Handle) (Handle, error) {
 	serverAddrs := make([]*DnsServer, len(servers))
 	var err error
 	for i, v := range servers {
@@ -63,6 +69,7 @@ func newGeneralHandle(servers []string, next Handle) (Handle, error) {
 		reply.IP, reply.CurrentServer, err = ResolveDomain(ctx, domain, serverAddrs...)
 		reply.CurrentIP = SelectIP(reply.IP)
 		reply.CurrentCountry = GeoLookUp(reply.CurrentIP)
+		reply.ExpireAt = time.Now().Add(timeout)
 		if err != nil {
 			logrus.WithError(err).WithField("domain", domain).Error("lookup ip failed")
 			next(ctx, domain)
@@ -79,7 +86,7 @@ var SelectIP = func(ips []net.IP) net.IP {
 	return nil
 }
 
-func newMappingHandle(mappingDomain string, servers []string, ips []string, next Handle) (Handle, error) {
+func newMappingHandle(mappingDomain string, servers []string, ips []string, timeout time.Duration, next Handle) (Handle, error) {
 	if len(servers) == 0 && len(ips) == 0 {
 		return nil, errors.Errorf("DNS.Mapping[domain:%s, server:%v, ip:%v], server and ip is empty", mappingDomain, servers, ips)
 	}
@@ -108,7 +115,9 @@ func newMappingHandle(mappingDomain string, servers []string, ips []string, next
 			reply.IP, reply.CurrentServer, err = ResolveDomain(ctx, domain, serverAddrs...)
 			if err != nil {
 				logrus.WithError(err).WithField("domain", domain).Error("lookup ip failed")
+				return next(ctx, domain)
 			}
+			reply.ExpireAt = time.Now().Add(timeout)
 			return reply
 		}, nil
 	} else {
