@@ -3,6 +3,7 @@ package dns
 import (
 	"context"
 	"sync"
+	"time"
 )
 
 func NewCache() ICache {
@@ -36,7 +37,11 @@ func (c *cache) Clear() {
 func (c *cache) Get(key string) DNS {
 	c.RLock()
 	defer c.RUnlock()
-	return *c.m[key]
+	d, ok := c.m[key]
+	if ok {
+		return *d
+	}
+	return DNS{}
 }
 
 func (c *cache) Set(key string, value DNS) {
@@ -74,6 +79,11 @@ func newCacheHandle(next Handle) (Handle, error) {
 		if dnsPtr.IsNil() {
 			dnsPtr = next(ctx, domain)
 			cache.Set(domain, *dnsPtr)
+		} else if dnsPtr.ExpireAt.Before(time.Now()) {
+			go func() {
+				dnsPtr = next(ctx, domain)
+				cache.Set(domain, *dnsPtr)
+			}()
 		}
 		return dnsPtr
 	}, nil

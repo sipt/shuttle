@@ -4,6 +4,8 @@ import (
 	"context"
 	"net"
 
+	"github.com/sipt/shuttle/global"
+
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/dns"
 )
@@ -25,12 +27,12 @@ func ipCidrHandle(rule *Rule, next Handle) (Handle, error) {
 	}
 	return func(ctx context.Context, info Info) *Rule {
 		if len(info.IP()) == 0 {
-			ip, err := dns.ResolveDomain(ctx, info.Domain())
-			if err != nil || len(ip) == 0 || len(ip[0]) == 0 {
+			dns := global.GetDnsHandle()(ctx, info.Domain())
+			if dns == nil || len(dns.CurrentIP) == 0 {
 				info.SetIP([]byte{})
 				return next(ctx, info)
 			}
-			info.SetIP(ip[0])
+			info.SetIP(dns.CurrentIP)
 		} else if len(info.IP()) > 0 {
 			cidr.Contains(info.IP())
 		}
@@ -40,15 +42,26 @@ func ipCidrHandle(rule *Rule, next Handle) (Handle, error) {
 
 func geoIPHandle(rule *Rule, next Handle) (Handle, error) {
 	return func(ctx context.Context, info Info) *Rule {
-		if info.IP() == nil {
-			ip, err := dns.ResolveDomain(ctx, info.Domain())
-			if err != nil || len(ip) == 0 || len(ip[0]) == 0 {
-				info.SetIP([]byte{})
-				return next(ctx, info)
+		if len(info.CountryCode()) > 0 {
+			if info.CountryCode() == rule.Value {
+				return rule
 			}
-			info.SetIP(ip[0])
-		} else if len(info.IP()) > 0 {
-			if dns.GeoLookUp(info.IP()) == rule.Value {
+		} else {
+			if info.IP() == nil {
+				answer := global.GetDnsHandle()(ctx, info.Domain())
+				if answer == nil || len(answer.CurrentIP) == 0 {
+					info.SetIP([]byte{})
+					return next(ctx, info)
+				}
+				info.SetIP(answer.CurrentIP)
+			}
+			if len(info.IP()) > 0 {
+				info.SetCountryCode(dns.GeoLookUp(info.IP()))
+				if info.CountryCode() == rule.Value {
+					return rule
+				}
+			}
+			if len(info.CountryCode()) > 0 && info.CountryCode() == rule.Value {
 				return rule
 			}
 		}

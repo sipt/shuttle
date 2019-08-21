@@ -3,23 +3,27 @@ package dns
 import (
 	"net"
 
+	"github.com/pkg/errors"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/oschwald/geoip2-golang"
 	"github.com/sipt/shuttle/assets"
 )
 
+var fileName = "GeoLite2-Country.mmdb"
+
 var geoipDB *geoip2.Reader
 
-func InitGeoIP(dbFile string) error {
+func InitGeoIP() error {
 	var err error
-	geoipFileBytes, err := assets.ReadFile(dbFile)
+	geoipFileBytes, err := assets.ReadFile(fileName)
 	if err != nil {
-		return err
+		return errors.Errorf("reade geo file [%s] failed: %s", fileName, err.Error())
 	}
 	geoipDB, err = geoip2.FromBytes(geoipFileBytes)
 	if err != nil {
-		return err
+		return errors.Errorf("reade geo file [%s] failed: %s", fileName, err.Error())
 	}
 	return nil
 }

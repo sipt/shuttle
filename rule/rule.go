@@ -36,9 +36,11 @@ type Info interface {
 	Domain() string
 	URI() string
 	IP() net.IP
+	CountryCode() string
 	Port() int
 	SetIP(net.IP)
 	SetPort(int)
+	SetCountryCode(string)
 }
 
 type Rule struct {
