@@ -5,6 +5,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
+github.com/kbinani/win v0.3.0 h1:SK3RHdefkmMBfWzAu0H8K2y6aAejro7QL/JJzAbRNEI=
+github.com/kbinani/win v0.3.0/go.mod h1:pCfU0a2Kv8a92CEv0T26ALQkMIjD/JQy6XKuzBndCW4=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/miekg/dns v1.1.16 h1:iMEQ/IVHxPTtx2Q07JP/k4CKRvSjiAZjZ0hnhgYEDmE=
 github.com/miekg/dns v1.1.16/go.mod h1:YNV562EiewvSmpCB6/W4c6yqjK7Z+M/aIS1JHsIVeg8=

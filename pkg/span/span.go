@@ -4,9 +4,18 @@ import (
 	"context"
 )
 
-var key = &struct{}{}
+var tagKey = "tag"
+var spanKey = "span"
 
-func Extract(ctx context.Context) (context.Context, ISpan) {
+func ExtractTag(ctx context.Context) (context.Context, ISpan) {
+	return Extract(ctx, tagKey)
+}
+
+func ExtractSpan(ctx context.Context) (context.Context, ISpan) {
+	return Extract(ctx, spanKey)
+}
+
+func Extract(ctx context.Context, key interface{}) (context.Context, ISpan) {
 	span := ctx.Value(key)
 	if span == nil {
 		var m ISpan = &mapSpan{values: make(map[string]interface{})}

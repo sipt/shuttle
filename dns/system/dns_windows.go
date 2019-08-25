@@ -3,9 +3,11 @@
 package dns
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/kbinani/win"
 	"unsafe"
+
+	"github.com/kbinani/win"
 )
 
 func GetNetworkParams() []string {
@@ -13,10 +15,10 @@ func GetNetworkParams() []string {
 	bufLen := uint32(unsafe.Sizeof(fixedInfo))
 	reply := win.GetNetworkParams(&fixedInfo, &bufLen)
 	fmt.Println("call syscall3: ", reply)
-	server := &fixedInfo.DnsServerList
-	for server != nil {
-		fmt.Println(server.IpAddress.String, server.IpAddress.String)
-		server = server.Next
+	data, err := json.Marshal(fixedInfo)
+	if err != nil {
+		panic(err)
 	}
+	fmt.Println(string(data))
 	return nil
 }

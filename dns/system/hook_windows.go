@@ -5,4 +5,6 @@
 
 package dns
 
-var testHookHostsPath = "${SystemRoot}/System32/drivers/etc/hosts"
+import "os"
+
+var testHookHostsPath = os.Getenv("SystemRoot") + "/System32/drivers/etc/hosts"

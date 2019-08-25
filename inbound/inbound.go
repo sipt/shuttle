@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/sipt/shuttle/listener"
+
 	"github.com/sipt/shuttle/conf/model"
 )
 
@@ -15,11 +17,10 @@ const (
 )
 
 func ApplyConfig(config *model.Config) ([]Inbound, error) {
-	for _, v := range config.Listener {
-	}
+	return nil, nil
 }
 
-type NewFunc func(name, addr, port string, params map[string]string) (Inbound, error)
+type NewFunc func(addr string, params map[string]string) (listen func(listener.HandleFunc) error, err error)
 
 var creator = make(map[string]NewFunc)
 
@@ -29,12 +30,12 @@ func Register(key string, f NewFunc) {
 }
 
 // Get: get inbound by key
-func Get(typ, name, addr, port string, params map[string]string) (Inbound, error) {
+func Get(typ, addr string, params map[string]string) (func(listener.HandleFunc) error, error) {
 	f, ok := creator[typ]
 	if !ok {
 		return nil, fmt.Errorf("inbound not support: %s", typ)
 	}
-	return f(name, addr, port, params)
+	return f(addr, params)
 }
 
 type Inbound interface {
