@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/global"
 	"github.com/sipt/shuttle/group"
@@ -82,14 +84,23 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 		proxyName[v.Name()] = true
 	}
 	defaultRule := &rule.Rule{
-		Typ:   "fallback",
+		Typ:   "FINAL",
 		Proxy: server.Direct,
+	}
+	dnsHandle, err := dns.ApplyConfig(config, func(ctx context.Context, domain string) *dns.DNS { return nil })
+	if err != nil {
+		return errors.Wrapf(err, "[dns.ApplyConfig] failed")
 	}
 	ruleHandle, err := rule.ApplyConfig(config, proxyName, func(ctx context.Context, info rule.Info) *rule.Rule {
 		return defaultRule
-	})
-	dnsHandle, err := dns.ApplyConfig(config, func(ctx context.Context, domain string) *dns.DNS { return nil })
+	}, dnsHandle)
+	if err != nil {
+		return errors.Wrapf(err, "[rule.ApplyConfig] failed")
+	}
 	profile, err := global.NewProfile(config, dnsHandle, ruleHandle, groups, servers)
+	if err != nil {
+		return errors.Wrapf(err, "create profile failed")
+	}
 	global.AddProfile(config.Info.Name, profile)
 	global.AddNamespace("default", ctx, profile)
 	return nil

@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/sipt/shuttle/dns"
+
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conf/model"
 )
 
-func ApplyConfig(config *model.Config, proxyName map[string]bool, fallback Handle) (handle Handle, err error) {
+func ApplyConfig(config *model.Config, proxyName map[string]bool, fallback Handle, dnsHandle dns.Handle) (handle Handle, err error) {
 	handle = fallback
 	for i := len(config.Rule) - 1; i >= 0; i-- {
 		v := config.Rule[i]
@@ -25,7 +27,7 @@ func ApplyConfig(config *model.Config, proxyName map[string]bool, fallback Handl
 				rule.Typ, rule.Value, rule.Proxy, rule.Params, rule.Proxy)
 			return
 		}
-		handle, err = Get(rule.Typ, rule, handle)
+		handle, err = Get(rule.Typ, rule, handle, dnsHandle)
 		if err != nil {
 			return
 		}
@@ -54,7 +56,7 @@ type Rule struct {
 }
 
 type Handle func(ctx context.Context, info Info) *Rule
-type NewFunc func(rule *Rule, handle Handle) (Handle, error)
+type NewFunc func(rule *Rule, handle Handle, dnsHandle dns.Handle) (Handle, error)
 
 var creator = make(map[string]NewFunc)
 
@@ -64,10 +66,10 @@ func Register(key string, f NewFunc) {
 }
 
 // Get: get rule by key
-func Get(typ string, rule *Rule, handle Handle) (Handle, error) {
+func Get(typ string, rule *Rule, handle Handle, dnsHandle dns.Handle) (Handle, error) {
 	f, ok := creator[typ]
 	if !ok {
 		return nil, fmt.Errorf("rule not support: %s", typ)
 	}
-	return f(rule, handle)
+	return f(rule, handle, dnsHandle)
 }

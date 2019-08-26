@@ -59,9 +59,13 @@ func newHTTPInbound(addr string, params map[string]string) (listen func(context.
 	logrus.WithField("addr", "http://"+addr).Info("http listen starting")
 	return func(ctx context.Context, handle listener.HandleFunc) {
 		dial(ctx, func(conn connpkg.ICtxConn) {
+			logrus.Debug("start dial HTTP/HTTPS connection")
 			for {
 				req, err := http.ReadRequest(bufio.NewReader(conn))
 				if err != nil {
+					if err == io.EOF {
+						return
+					}
 					logrus.WithError(err).Error("[http.Inbound] parse to http request failed")
 					_ = conn.Close()
 					return
@@ -138,6 +142,8 @@ func httpHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, err
 		if err != nil {
 			return nil, errors.Errorf("port [%s] is error: %s", port, err.Error())
 		}
+	} else {
+		ctxReq.SetPort(80)
 	}
 	hc := &httpConn{
 		header:   &bytes.Buffer{},
@@ -167,6 +173,8 @@ func httpsHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, er
 		if err != nil {
 			return nil, errors.Errorf("port [%s] is error: %s", port, err.Error())
 		}
+	} else {
+		ctxReq.SetPort(443)
 	}
 	type witchContext interface {
 		WithContext(ctx context.Context)

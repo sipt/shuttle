@@ -11,7 +11,7 @@ import (
 	"github.com/sipt/shuttle/assets"
 )
 
-var fileName = "GeoLite2-Country.mmdb"
+var fileName = "/Users/sipt/workspace/go/shuttle/GeoLite2-Country.mmdb"
 
 var geoipDB *geoip2.Reader
 

@@ -50,7 +50,7 @@ func (d *DirectServer) Dial(ctx context.Context, network string, info Info, dial
 	} else {
 		host = info.IP().String()
 	}
-	return dial(ctx, host, strconv.Itoa(info.Port()))
+	return dial(ctx, network, host, strconv.Itoa(info.Port()))
 }
 
 type RejectServer struct{}

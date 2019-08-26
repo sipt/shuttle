@@ -19,8 +19,9 @@ import (
 )
 
 func main() {
+	logrus.SetLevel(logrus.DebugLevel)
 	ctx, cancel := context.WithCancel(context.Background())
-	params := map[string]string{"path": "config1.toml"}
+	params := map[string]string{"path": "/Users/sipt/workspace/go/shuttle/cmd/config1.toml"}
 	config, err := conf.LoadConfig(ctx, "file", "toml", params, func() {
 		fmt.Println("config file change")
 	})
@@ -36,6 +37,7 @@ func main() {
 		panic(err)
 	}
 
+	logrus.Info("server starting...")
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	<-c
@@ -54,6 +56,7 @@ func handle(conn connpkg.ICtxConn) {
 			requseInfo.SetIP(answer.CurrentIP)
 		}
 	}
+	logrus.Infof("Match Rule [%s, %s, %s]", rule.Typ, rule.Value, rule.Proxy)
 	var s server.IServer
 	g := profile.Group()[rule.Proxy]
 	if g == nil {
@@ -70,6 +73,7 @@ func handle(conn connpkg.ICtxConn) {
 }
 
 func transefer(from, to connpkg.ICtxConn) {
+	logrus.Debug("start transefer")
 	go io.Copy(from, to)
 	go io.Copy(to, from)
 }

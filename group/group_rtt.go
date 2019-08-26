@@ -2,10 +2,10 @@ package group
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -160,7 +160,14 @@ func (r *rttGroup) testServerRTT(ctx context.Context, s IServerX, reply chan ISe
 				if err != nil {
 					return nil, err
 				}
-				return s.Server().DialTCP(ctx, host, fmt.Sprint(port), conn.DefaultDialTCP)
+				req := &reqInfo{}
+				req.port, _ = strconv.Atoi(port)
+				req.ip = net.ParseIP(host)
+				if len(req.ip) == 0 {
+					req.domain = host
+				}
+				conn, err := s.Server().Dial(ctx, "tcp", req, conn.DefaultDial)
+				return conn, err
 			},
 			MaxIdleConns:          100,
 			IdleConnTimeout:       90 * time.Second,
@@ -186,4 +193,20 @@ func (r *rttGroup) testServerRTT(ctx context.Context, s IServerX, reply chan ISe
 		reply <- nil
 		log.WithField("rtt", "failed").Debug("rtt test failed")
 	}
+}
+
+type reqInfo struct {
+	domain string
+	ip     net.IP
+	port   int
+}
+
+func (r *reqInfo) Domain() string {
+	return r.domain
+}
+func (r *reqInfo) IP() net.IP {
+	return r.ip
+}
+func (r *reqInfo) Port() int {
+	return r.port
 }

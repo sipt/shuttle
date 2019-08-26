@@ -1,6 +1,9 @@
 [general]
   logger_level = "debug"
 
+[dns]
+  servers = ["8.8.8.8", "114.114.114.114"]
+
 [[listener]]
   typ = "http"
   addr = ":8081"

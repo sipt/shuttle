@@ -3,6 +3,8 @@ package rule
 import (
 	"context"
 	"strings"
+
+	"github.com/sipt/shuttle/dns"
 )
 
 const (
@@ -16,7 +18,7 @@ func init() {
 	Register(KeyDomain, domainHandle)
 	Register(KeyDomainKeyword, domainKeywordHandle)
 }
-func domainSuffixHandle(rule *Rule, next Handle) (Handle, error) {
+func domainSuffixHandle(rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
 	return func(ctx context.Context, info Info) *Rule {
 		if strings.HasSuffix(info.Domain(), rule.Value) {
 			return rule
@@ -24,7 +26,7 @@ func domainSuffixHandle(rule *Rule, next Handle) (Handle, error) {
 		return next(ctx, info)
 	}, nil
 }
-func domainHandle(rule *Rule, next Handle) (Handle, error) {
+func domainHandle(rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
 	return func(ctx context.Context, info Info) *Rule {
 		if len(info.Domain()) == len(rule.Value) && info.Domain() == rule.Value {
 			return rule
@@ -32,7 +34,7 @@ func domainHandle(rule *Rule, next Handle) (Handle, error) {
 		return next(ctx, info)
 	}, nil
 }
-func domainKeywordHandle(rule *Rule, next Handle) (Handle, error) {
+func domainKeywordHandle(rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
 	return func(ctx context.Context, info Info) *Rule {
 		if len(info.Domain()) >= len(rule.Value) && strings.Index(info.Domain(), rule.Value) > -1 {
 			return rule

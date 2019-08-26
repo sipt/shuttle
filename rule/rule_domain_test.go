@@ -15,13 +15,13 @@ func TestDomainRule(t *testing.T) {
 	var err error
 	ctx := context.Background()
 	google := &Rule{Value: "google.com"}
-	handle, err = domainHandle(google, handle)
+	handle, err = domainHandle(google, handle, nil)
 	assert.NoError(t, err)
 	facebook := &Rule{Value: "facebook"}
-	handle, err = domainKeywordHandle(facebook, handle)
+	handle, err = domainKeywordHandle(facebook, handle, nil)
 	assert.NoError(t, err)
 	github := &Rule{Value: "github.com"}
-	handle, err = domainSuffixHandle(github, handle)
+	handle, err = domainSuffixHandle(github, handle, nil)
 	assert.NoError(t, err)
 
 	assert.Equal(t, handle(ctx, &info{domain: "www.google.com"}), defaultRule)

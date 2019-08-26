@@ -39,6 +39,13 @@ func (s *SelectGroup) Append(servers []IServerX) {
 	}
 	s.current = s.servers[0]
 }
+func (s *SelectGroup) Reset() {
+	s.Lock()
+	defer s.Unlock()
+	if len(s.servers) > 0 {
+		s.current = s.servers[0]
+	}
+}
 func (s *SelectGroup) Typ() string {
 	return TypSelect
 }

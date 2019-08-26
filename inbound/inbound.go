@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/sipt/shuttle/listener"
 
 	"github.com/sipt/shuttle/conf/model"
@@ -35,6 +37,7 @@ func ApplyConfig(config *model.Config, handle listener.HandleFunc) error {
 		inboundContext[v.Addr] = cancel
 		go f(subCtx, handle)
 	}
+	logrus.Debug("inbound init success")
 	return nil
 }
 

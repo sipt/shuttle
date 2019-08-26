@@ -4,8 +4,6 @@ import (
 	"context"
 	"net"
 
-	"github.com/sipt/shuttle/global"
-
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/dns"
 )
@@ -19,7 +17,7 @@ func init() {
 	Register(KeyIPCidr, ipCidrHandle)
 	Register(KeyGeoIP, geoIPHandle)
 }
-func ipCidrHandle(rule *Rule, next Handle) (Handle, error) {
+func ipCidrHandle(rule *Rule, next Handle, dnsHandle dns.Handle) (Handle, error) {
 	_, cidr, err := net.ParseCIDR(rule.Value)
 	if err != nil {
 		return nil, errors.Errorf("rule:[%s, %s, %s, %v], ip:[%s] invalid",
@@ -27,7 +25,7 @@ func ipCidrHandle(rule *Rule, next Handle) (Handle, error) {
 	}
 	return func(ctx context.Context, info Info) *Rule {
 		if len(info.IP()) == 0 {
-			dns := global.GetProfile(rule.Profile).DNSHandle()(ctx, info.Domain())
+			dns := dnsHandle(ctx, info.Domain())
 			if dns == nil || len(dns.CurrentIP) == 0 {
 				info.SetIP([]byte{})
 				return next(ctx, info)
@@ -40,7 +38,7 @@ func ipCidrHandle(rule *Rule, next Handle) (Handle, error) {
 	}, nil
 }
 
-func geoIPHandle(rule *Rule, next Handle) (Handle, error) {
+func geoIPHandle(rule *Rule, next Handle, dnsHandle dns.Handle) (Handle, error) {
 	return func(ctx context.Context, info Info) *Rule {
 		if len(info.CountryCode()) > 0 {
 			if info.CountryCode() == rule.Value {
@@ -48,7 +46,7 @@ func geoIPHandle(rule *Rule, next Handle) (Handle, error) {
 			}
 		} else {
 			if info.IP() == nil {
-				answer := global.GetProfile(rule.Profile).DNSHandle()(ctx, info.Domain())
+				answer := dnsHandle(ctx, info.Domain())
 				if answer == nil || len(answer.CurrentIP) == 0 {
 					info.SetIP([]byte{})
 					return next(ctx, info)
