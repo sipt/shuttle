@@ -1,12 +1,16 @@
 package model
 
 type Config struct {
+	Info struct {
+		Name string
+		URI  string
+	} `toml:"-" json:"-" yaml:"-"`
+
 	General struct {
 		LoggerLevel string `toml:"logger_level"`
 	} `toml:"general"`
 
 	Listener []struct {
-		Name string `toml:"name"`
 		// Typ: eg. [http, https, socks]
 		Typ string `toml:"typ"`
 		// Addr: e.g. [":8080", "[::1]:8080", "192.168.1.23:8080"]

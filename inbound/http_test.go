@@ -1,6 +1,7 @@
 package inbound
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"testing"
@@ -11,9 +12,10 @@ import (
 )
 
 func TestHttp(t *testing.T) {
+	ctx := context.Background()
 	f, err := newHTTPInbound(":20000", map[string]string{"auth_type": "basic", "user": "foo", "password": "bar"})
 	assert.NoError(t, err)
-	err = f(func(conn conn.ICtxConn) {
+	err = f(ctx, func(conn conn.ICtxConn) {
 		for {
 			data := make([]byte, 2048)
 			n, err := conn.Read(data)

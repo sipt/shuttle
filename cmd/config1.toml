@@ -1,0 +1,30 @@
+[general]
+  logger_level = "debug"
+
+[[listener]]
+  typ = "http"
+  addr = ":8081"
+  [listener.params]
+    password = "123123"
+    user = "root"
+
+[server_group]
+  Proxy = {typ = "select", servers = ["DIRECT"]}
+
+[[rule]]
+  typ = "DOMAIN"
+  value = "google.com"
+  proxy = "Proxy"
+  [rule.params]
+    Comment = "search engine"
+
+[[rule]]
+  typ = "DOMAIN"
+  value = "github.com"
+  proxy = "Proxy"
+  [rule.params]
+    Comment = "source code"
+
+[[rule]]
+  typ = "FINAL"
+  proxy = "Proxy"

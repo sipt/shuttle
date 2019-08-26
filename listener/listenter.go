@@ -1,13 +1,14 @@
 package listener
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/sipt/shuttle/conn"
 )
 
 type HandleFunc func(conn conn.ICtxConn)
-type NewFunc func(addr string) (func(HandleFunc) error, error)
+type NewFunc func(addr string) (func(context.Context, HandleFunc), error)
 
 var creator = make(map[string]NewFunc)
 
@@ -17,7 +18,7 @@ func Register(key string, f NewFunc) {
 }
 
 // Get: get listener by key
-func Get(typ, addr string) (func(HandleFunc) error, error) {
+func Get(typ, addr string) (func(context.Context, HandleFunc), error) {
 	f, ok := creator[typ]
 	if !ok {
 		return nil, fmt.Errorf("inbound not support: %s", typ)

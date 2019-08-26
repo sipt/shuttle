@@ -10,12 +10,12 @@ type NewStorageFunc func(map[string]string) (IStorage, error)
 var storageCreator = make(map[string]NewStorageFunc)
 
 // Register: register {key: storage}
-func RegisterStorage(key string, f NewStorageFunc) {
+func Register(key string, f NewStorageFunc) {
 	storageCreator[key] = f
 }
 
-// GetStorage: get storage by key
-func GetStorage(key string, params map[string]string) (IStorage, error) {
+// Get: get storage by key
+func Get(key string, params map[string]string) (IStorage, error) {
 	f, ok := storageCreator[key]
 	if !ok {
 		return nil, fmt.Errorf("storage not support: %s", key)
@@ -24,6 +24,7 @@ func GetStorage(key string, params map[string]string) (IStorage, error) {
 }
 
 type IStorage interface {
+	Name() string
 	// Load: load config from disk? As JSON? YAML? TOML?
 	Load() (data []byte, err error)
 	// Save: save config to file? upload to server?

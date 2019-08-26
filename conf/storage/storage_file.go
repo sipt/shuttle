@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
@@ -17,7 +18,7 @@ const (
 )
 
 func init() {
-	RegisterStorage(KeyFile, newFileStorage)
+	Register(KeyFile, newFileStorage)
 }
 
 func newFileStorage(params map[string]string) (IStorage, error) {
@@ -39,6 +40,11 @@ type fileStorage struct {
 	filePath string
 	notify   func()
 	*sync.RWMutex
+}
+
+func (f *fileStorage) Name() string {
+	_, name := filepath.Split(f.filePath)
+	return name
 }
 
 // Load: load config from disk? As JSON? YAML? TOML?

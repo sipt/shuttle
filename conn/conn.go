@@ -19,19 +19,10 @@ func GetConnID() int64 {
 	return atomic.AddInt64(&connID, 1)
 }
 
-type DialTCPFunc func(ctx context.Context, addr, port string) (*net.TCPConn, error)
-type DialUDPFunc func(ctx context.Context, addr, port string) (*net.UDPConn, error)
+type DialFunc func(ctx context.Context, network string, addr, port string) (ICtxConn, error)
 
-func DefaultDialTCP(ctx context.Context, addr, port string) (ICtxConn, error) {
-	conn, err := net.Dial("tcp", net.JoinHostPort(addr, port))
-	if err != nil {
-		return nil, err
-	}
-	return WrapConn(conn), nil
-}
-
-func DefaultDialUDP(ctx context.Context, addr, port string) (ICtxConn, error) {
-	conn, err := net.Dial("udp", net.JoinHostPort(addr, port))
+func DefaultDial(ctx context.Context, network string, addr, port string) (ICtxConn, error) {
+	conn, err := net.Dial(network, net.JoinHostPort(addr, port))
 	if err != nil {
 		return nil, err
 	}

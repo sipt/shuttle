@@ -36,7 +36,7 @@ func init() {
 	Register("http", newHTTPInbound)
 }
 
-func newHTTPInbound(addr string, params map[string]string) (listen func(listener.HandleFunc) error, err error) {
+func newHTTPInbound(addr string, params map[string]string) (listen func(context.Context, listener.HandleFunc), err error) {
 	authType, ok := params[ParamsKeyAuthType]
 	authFunc := func(r *http.Request) bool { return true }
 	if ok {
@@ -52,13 +52,13 @@ func newHTTPInbound(addr string, params map[string]string) (listen func(listener
 			return
 		}
 	}
-	return func(handle listener.HandleFunc) error {
-		dial, err := listener.Get("tcp", addr)
-		if err != nil {
-			return err
-		}
-		logrus.WithField("addr", "http://"+addr).Info("http listen starting")
-		return dial(func(conn connpkg.ICtxConn) {
+	dial, err := listener.Get("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	logrus.WithField("addr", "http://"+addr).Info("http listen starting")
+	return func(ctx context.Context, handle listener.HandleFunc) {
+		dial(ctx, func(conn connpkg.ICtxConn) {
 			for {
 				req, err := http.ReadRequest(bufio.NewReader(conn))
 				if err != nil {

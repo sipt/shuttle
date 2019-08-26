@@ -14,10 +14,11 @@ func ApplyConfig(config *model.Config, proxyName map[string]bool, fallback Handl
 	for i := len(config.Rule) - 1; i >= 0; i-- {
 		v := config.Rule[i]
 		rule := &Rule{
-			Typ:    v.Typ,
-			Value:  v.Value,
-			Proxy:  v.Proxy,
-			Params: v.Params,
+			Typ:     v.Typ,
+			Value:   v.Value,
+			Proxy:   v.Proxy,
+			Params:  v.Params,
+			Profile: config.Info.Name,
 		}
 		if !proxyName[rule.Proxy] {
 			err = errors.Errorf("rule:[%s, %s, %s, %v], proxy:[%s] not found",
@@ -44,11 +45,12 @@ type Info interface {
 }
 
 type Rule struct {
-	Parent *Rule
-	Typ    string
-	Value  string
-	Proxy  string
-	Params map[string]string
+	Parent  *Rule
+	Profile string
+	Typ     string
+	Value   string
+	Proxy   string
+	Params  map[string]string
 }
 
 type Handle func(ctx context.Context, info Info) *Rule

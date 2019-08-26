@@ -12,7 +12,7 @@ func init() {
 }
 
 func NewLocalInclude(params map[string]string) (IInclude, error) {
-	s, err := storage.GetStorage(storage.KeyFile, params)
+	s, err := storage.Get(storage.KeyFile, params)
 	if err != nil {
 		return nil, errors.Wrap(err, "NewLocalInclude failed")
 	}

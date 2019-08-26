@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"net"
+	"strconv"
 	"sync"
 	"time"
 
@@ -42,12 +42,15 @@ func (d *DirectServer) Rtt(key string) time.Duration {
 	defer d.RUnlock()
 	return d.rtt[key]
 }
-func (d *DirectServer) DialTCP(ctx context.Context, addr, port string, dial conn.DialTCPFunc) (*net.TCPConn, error) {
-	return dial(ctx, addr, port)
-}
 
-func (d *DirectServer) DialUDP(ctx context.Context, addr, port string, dial conn.DialUDPFunc) (*net.UDPConn, error) {
-	return dial(ctx, addr, port)
+func (d *DirectServer) Dial(ctx context.Context, network string, info Info, dial conn.DialFunc) (conn.ICtxConn, error) {
+	var host string
+	if len(info.IP()) == 0 {
+		host = info.Domain()
+	} else {
+		host = info.IP().String()
+	}
+	return dial(ctx, host, strconv.Itoa(info.Port()))
 }
 
 type RejectServer struct{}
@@ -63,10 +66,6 @@ func (r *RejectServer) SetRtt(_ string, _ time.Duration) {
 func (r *RejectServer) Rtt(_ string) time.Duration {
 	return time.Duration(-1)
 }
-func (r *RejectServer) DialTCP(ctx context.Context, addr, port string, dial conn.DialTCPFunc) (*net.TCPConn, error) {
-	return nil, ErrRejected
-}
-
-func (r *RejectServer) DialUDP(ctx context.Context, addr, port string, dial conn.DialUDPFunc) (*net.UDPConn, error) {
+func (r *RejectServer) Dial(ctx context.Context, network string, info Info, dial conn.DialFunc) (conn.ICtxConn, error) {
 	return nil, ErrRejected
 }

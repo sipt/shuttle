@@ -27,7 +27,7 @@ func ipCidrHandle(rule *Rule, next Handle) (Handle, error) {
 	}
 	return func(ctx context.Context, info Info) *Rule {
 		if len(info.IP()) == 0 {
-			dns := global.GetDnsHandle()(ctx, info.Domain())
+			dns := global.GetProfile(rule.Profile).DNSHandle()(ctx, info.Domain())
 			if dns == nil || len(dns.CurrentIP) == 0 {
 				info.SetIP([]byte{})
 				return next(ctx, info)
@@ -48,7 +48,7 @@ func geoIPHandle(rule *Rule, next Handle) (Handle, error) {
 			}
 		} else {
 			if info.IP() == nil {
-				answer := global.GetDnsHandle()(ctx, info.Domain())
+				answer := global.GetProfile(rule.Profile).DNSHandle()(ctx, info.Domain())
 				if answer == nil || len(answer.CurrentIP) == 0 {
 					info.SetIP([]byte{})
 					return next(ctx, info)

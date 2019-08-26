@@ -21,8 +21,8 @@ var (
 	defaults    = []string{Direct, Reject}
 )
 
-func ApplyConfig(config *model.Config) ([]IServer, error) {
-	servers := make([]IServer, 0, len(config.Server)+len(defaults))
+func ApplyConfig(config *model.Config) (map[string]IServer, error) {
+	servers := make(map[string]IServer, len(config.Server)+len(defaults))
 	var (
 		s   IServer
 		err error
@@ -32,14 +32,14 @@ func ApplyConfig(config *model.Config) ([]IServer, error) {
 		if err != nil {
 			return nil, err
 		}
-		servers = append(servers, s)
+		servers[s.Name()] = s
 	}
 	for _, v := range defaults {
 		s, err = Get(v, Direct, "", "", nil)
 		if err != nil {
 			return nil, err
 		}
-		servers = append(servers, s)
+		servers[s.Name()] = s
 	}
 	return servers, nil
 }
@@ -68,6 +68,11 @@ type IServer interface {
 	SetRtt(key string, duration time.Duration)
 	Rtt(key string) time.Duration
 	// connect to server
-	DialTCP(ctx context.Context, addr, port string, dial conn.DialTCPFunc) (*net.TCPConn, error)
-	DialUDP(ctx context.Context, addr, port string, dial conn.DialUDPFunc) (*net.UDPConn, error)
+	Dial(ctx context.Context, network string, info Info, dial conn.DialFunc) (conn.ICtxConn, error)
+}
+
+type Info interface {
+	Domain() string
+	IP() net.IP
+	Port() int
 }

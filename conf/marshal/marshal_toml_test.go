@@ -52,10 +52,11 @@ var config = &model.Config{
 	Rule: []struct {
 		Typ    string            `toml:"typ"`
 		Value  string            `toml:"value"`
+		Proxy  string            `toml:"proxy"`
 		Params map[string]string `toml:"params"`
 	}{
-		{"DOMAIN", "google.com", M{"Proxy": "Proxy", "Comment": "search engine"}},
-		{"DOMAIN", "github.com", M{"Proxy": "Proxy", "Comment": "source code"}},
+		{"DOMAIN", "google.com", "Proxy", M{"Comment": "search engine"}},
+		{"DOMAIN", "github.com", "Proxy", M{"Comment": "source code"}},
 	},
 }
 
@@ -110,17 +111,16 @@ func TestTomlMarshal_Marshal(t *testing.T) {
 [[rule]]
   typ = "DOMAIN"
   value = "google.com"
+  proxy = "Proxy"
   [rule.params]
     Comment = "search engine"
-    Proxy = "Proxy"
 
 [[rule]]
   typ = "DOMAIN"
   value = "github.com"
+  proxy = "Proxy"
   [rule.params]
     Comment = "source code"
-    Proxy = "Proxy"
-
 `
 
 	config2, err := m.UnMarshal([]byte(str))

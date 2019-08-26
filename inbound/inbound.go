@@ -3,7 +3,6 @@ package inbound
 import (
 	"context"
 	"fmt"
-	"net"
 
 	"github.com/sipt/shuttle/listener"
 
@@ -16,11 +15,30 @@ const (
 	ProtocolUDP_DNS   = "dns"
 )
 
-func ApplyConfig(config *model.Config) ([]Inbound, error) {
-	return nil, nil
+var ctx = context.Background()
+var inboundContext = make(map[string]context.CancelFunc)
+
+func Cancel(addr string) {
+	cancel := inboundContext[addr]
+	if cancel != nil {
+		cancel()
+	}
 }
 
-type NewFunc func(addr string, params map[string]string) (listen func(listener.HandleFunc) error, err error)
+func ApplyConfig(config *model.Config, handle listener.HandleFunc) error {
+	for _, v := range config.Listener {
+		f, err := Get(v.Typ, v.Addr, v.Params)
+		if err != nil {
+			return err
+		}
+		subCtx, cancel := context.WithCancel(context.WithValue(ctx, "addr", v.Addr))
+		inboundContext[v.Addr] = cancel
+		go f(subCtx, handle)
+	}
+	return nil
+}
+
+type NewFunc func(addr string, params map[string]string) (listen func(context.Context, listener.HandleFunc), err error)
 
 var creator = make(map[string]NewFunc)
 
@@ -30,16 +48,10 @@ func Register(key string, f NewFunc) {
 }
 
 // Get: get inbound by key
-func Get(typ, addr string, params map[string]string) (func(listener.HandleFunc) error, error) {
+func Get(typ, addr string, params map[string]string) (func(context.Context, listener.HandleFunc), error) {
 	f, ok := creator[typ]
 	if !ok {
 		return nil, fmt.Errorf("inbound not support: %s", typ)
 	}
 	return f(addr, params)
-}
-
-type Inbound interface {
-	Listen(ctx context.Context, callback func(ctx context.Context, conn net.Conn)) (close func(), err error)
-	ListConn() []net.Conn
-	Protocol() string
 }

@@ -11,12 +11,12 @@ import (
 	"github.com/sipt/shuttle/conf/model"
 )
 
-func ApplyConfig(ctx context.Context, config *model.Config, servers []server.IServer) ([]IGroup, error) {
+func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]server.IServer) (map[string]IGroup, error) {
 	serverMap := make(map[string]IServerX)
 	for _, v := range servers {
 		serverMap[v.Name()] = &serverx{IServer: v}
 	}
-	groups := make([]IGroup, 0, len(config.ServerGroup))
+	groups := make(map[string]IGroup)
 	var (
 		g   IGroup
 		err error
@@ -31,7 +31,7 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers []server.ISe
 			return nil, errors.Errorf("group name duplicate: %s", name)
 		}
 		serverMap[name] = g
-		groups = append(groups, g)
+		groups[name] = g
 	}
 	for name, g := range config.ServerGroup {
 		ss := make([]IServerX, 0, len(g.Servers))
