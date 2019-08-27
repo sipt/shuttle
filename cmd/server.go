@@ -75,7 +75,7 @@ func handle(conn connpkg.ICtxConn) {
 func transefer(from, to connpkg.ICtxConn) {
 	logrus.Debug("start transefer")
 	go io.Copy(from, to)
-	go io.Copy(to, from)
+	io.Copy(to, from)
 }
 
 func Copy(dst io.Writer, src io.Reader) (written int64, err error) {

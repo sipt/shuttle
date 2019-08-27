@@ -141,8 +141,9 @@ func newBearerAuth(params map[string]string) (func(*http.Request) bool, error) {
 
 func httpHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, error) {
 	ctxReq := &request{
-		uri:    req.URL.String(),
-		domain: req.URL.Hostname(),
+		network: "tcp",
+		uri:     req.URL.String(),
+		domain:  req.URL.Hostname(),
 	}
 	var err error
 	if port := req.URL.Port(); port != "" {
@@ -173,8 +174,9 @@ func httpsHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, er
 		return nil, errors.Wrapf(err, "https handshake failed")
 	}
 	ctxReq := &request{
-		uri:    req.URL.String(),
-		domain: req.URL.Hostname(),
+		network: "tcp",
+		uri:     req.URL.String(),
+		domain:  req.URL.Hostname(),
 	}
 	if port := req.URL.Port(); port != "" {
 		ctxReq.port, err = strconv.Atoi(port)
@@ -184,10 +186,7 @@ func httpsHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, er
 	} else {
 		ctxReq.SetPort(443)
 	}
-	type witchContext interface {
-		WithContext(ctx context.Context)
-	}
-	c.(witchContext).WithContext(context.WithValue(c, constant.KeyRequestInfo, ctxReq))
+	c.WithContext(context.WithValue(c.GetContext(), constant.KeyRequestInfo, ctxReq))
 	return c, nil
 }
 
