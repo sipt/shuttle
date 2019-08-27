@@ -58,51 +58,59 @@ func newHTTPInbound(addr string, params map[string]string) (listen func(context.
 	}
 	logrus.WithField("addr", "http://"+addr).Info("http listen starting")
 	return func(ctx context.Context, handle listener.HandleFunc) {
-		dial(ctx, func(conn connpkg.ICtxConn) {
-			logrus.Debug("start dial HTTP/HTTPS connection")
-			for {
-				req, err := http.ReadRequest(bufio.NewReader(conn))
+		dial(ctx, newHttpHandleFunc(authFunc, handle))
+	}, nil
+}
+
+func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle listener.HandleFunc) func(conn connpkg.ICtxConn) {
+	if authFunc == nil {
+		authFunc = func(r *http.Request) bool { return true }
+	}
+	return func(conn connpkg.ICtxConn) {
+		defer conn.Close()
+		logrus.Debug("start dial HTTP/HTTPS connection")
+		for {
+			req, err := http.ReadRequest(bufio.NewReader(conn))
+			if err != nil {
+				if err == io.EOF {
+					return
+				}
+				logrus.WithError(err).Error("[http.Inbound] parse to http request failed")
+				_ = conn.Close()
+				return
+			}
+			if !authFunc(req) {
+				resp := &http.Response{
+					StatusCode: http.StatusProxyAuthRequired,
+				}
+				err = resp.Write(conn)
 				if err != nil {
-					if err == io.EOF {
-						return
-					}
-					logrus.WithError(err).Error("[http.Inbound] parse to http request failed")
+					logrus.WithError(err).Error("[http.Inbound] write to response failed")
 					_ = conn.Close()
 					return
 				}
-				if !authFunc(req) {
-					resp := &http.Response{
-						StatusCode: http.StatusProxyAuthRequired,
-					}
-					err = resp.Write(conn)
-					if err != nil {
-						logrus.WithError(err).Error("[http.Inbound] write to response failed")
-						_ = conn.Close()
-						return
-					}
-					return
-				}
-				if req.Method == http.MethodConnect {
-					c, err := httpsHandshake(req, conn)
-					if err != nil {
-						logrus.WithError(err).Error("[http.Inbound] https handshake failed")
-						_ = conn.Close()
-						return
-					}
-					handle(c)
-					return
-				} else {
-					c, err := httpHandshake(req, conn)
-					if err != nil {
-						logrus.WithError(err).Error("[http.Inbound] http handshake failed")
-						_ = conn.Close()
-						return
-					}
-					handle(c)
-				}
+				return
 			}
-		})
-	}, nil
+			if req.Method == http.MethodConnect {
+				c, err := httpsHandshake(req, conn)
+				if err != nil {
+					logrus.WithError(err).Error("[http.Inbound] https handshake failed")
+					_ = conn.Close()
+					return
+				}
+				handle(c)
+				return
+			} else {
+				c, err := httpHandshake(req, conn)
+				if err != nil {
+					logrus.WithError(err).Error("[http.Inbound] http handshake failed")
+					_ = conn.Close()
+					return
+				}
+				handle(c)
+			}
+		}
+	}
 }
 
 func newBasicAuth(params map[string]string) (func(*http.Request) bool, error) {
@@ -204,6 +212,7 @@ func (h *httpConn) Close() error {
 }
 
 type request struct {
+	network     string
 	domain      string
 	uri         string
 	ip          net.IP
@@ -211,6 +220,9 @@ type request struct {
 	countryCode string
 }
 
+func (r *request) Network() string {
+	return r.network
+}
 func (r *request) Domain() string {
 	return r.domain
 }

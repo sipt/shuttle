@@ -8,7 +8,16 @@
   typ = "http"
   addr = ":8081"
   [listener.params]
+    auth_type = "basic"
     password = "123123"
+    user = "root"
+
+[[listener]]
+  typ = "socks"
+  addr = ":9000"
+  [listener.params]
+    auth_type = "basic"
+    password = "123"
     user = "root"
 
 [server_group]

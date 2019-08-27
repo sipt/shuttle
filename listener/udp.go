@@ -28,7 +28,7 @@ func newUDPListener(addr string) (func(context.Context, HandleFunc), error) {
 					logrus.WithField("addr", addr).WithError(err).Errorf("[udp] listener accept failed")
 					return
 				}
-				handle(conn.WrapConn(c))
+				handle(conn.NewConn(c, ctx))
 			}
 		}()
 		<-ctx.Done()

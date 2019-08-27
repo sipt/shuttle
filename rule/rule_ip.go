@@ -23,7 +23,7 @@ func ipCidrHandle(rule *Rule, next Handle, dnsHandle dns.Handle) (Handle, error)
 		return nil, errors.Errorf("rule:[%s, %s, %s, %v], ip:[%s] invalid",
 			rule.Typ, rule.Value, rule.Proxy, rule.Params, rule.Value)
 	}
-	return func(ctx context.Context, info Info) *Rule {
+	return func(ctx context.Context, info RequestInfo) *Rule {
 		if len(info.IP()) == 0 {
 			dns := dnsHandle(ctx, info.Domain())
 			if dns == nil || len(dns.CurrentIP) == 0 {
@@ -39,7 +39,7 @@ func ipCidrHandle(rule *Rule, next Handle, dnsHandle dns.Handle) (Handle, error)
 }
 
 func geoIPHandle(rule *Rule, next Handle, dnsHandle dns.Handle) (Handle, error) {
-	return func(ctx context.Context, info Info) *Rule {
+	return func(ctx context.Context, info RequestInfo) *Rule {
 		if len(info.CountryCode()) > 0 {
 			if info.CountryCode() == rule.Value {
 				return rule

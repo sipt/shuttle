@@ -9,7 +9,7 @@ import (
 
 func TestDomainRule(t *testing.T) {
 	defaultRule := &Rule{}
-	handle := func(ctx context.Context, info Info) *Rule {
+	handle := func(ctx context.Context, info RequestInfo) *Rule {
 		return defaultRule
 	}
 	var err error
@@ -32,7 +32,7 @@ func TestDomainRule(t *testing.T) {
 
 type info struct {
 	domain string
-	Info
+	RequestInfo
 }
 
 func (i *info) Domain() string {

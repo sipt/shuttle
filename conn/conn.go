@@ -32,6 +32,9 @@ func DefaultDial(ctx context.Context, network string, addr, port string) (ICtxCo
 type ICtxConn interface {
 	net.Conn
 	context.Context
+
+	GetConnID() int64
+	WithContext(ctx context.Context)
 }
 
 type ctxConn struct {
@@ -56,6 +59,9 @@ func WrapConn(conn net.Conn) ICtxConn {
 }
 
 func NewConn(conn net.Conn, ctx context.Context) ICtxConn {
+	if ctx.Value(KeyConnID) == nil {
+		ctx = context.WithValue(ctx, KeyConnID, GetConnID())
+	}
 	return &ctxConn{
 		Conn:    conn,
 		Context: ctx,

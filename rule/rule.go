@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sipt/shuttle/dns"
-
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conf/model"
+	"github.com/sipt/shuttle/dns"
 )
 
 func ApplyConfig(config *model.Config, proxyName map[string]bool, fallback Handle, dnsHandle dns.Handle) (handle Handle, err error) {
@@ -35,7 +34,8 @@ func ApplyConfig(config *model.Config, proxyName map[string]bool, fallback Handl
 	return
 }
 
-type Info interface {
+// simple of RequestInfo
+type RequestInfo interface {
 	Domain() string
 	URI() string
 	IP() net.IP
@@ -55,7 +55,7 @@ type Rule struct {
 	Params  map[string]string
 }
 
-type Handle func(ctx context.Context, info Info) *Rule
+type Handle func(ctx context.Context, info RequestInfo) *Rule
 type NewFunc func(rule *Rule, handle Handle, dnsHandle dns.Handle) (Handle, error)
 
 var creator = make(map[string]NewFunc)

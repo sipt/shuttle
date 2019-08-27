@@ -91,7 +91,7 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 	if err != nil {
 		return errors.Wrapf(err, "[dns.ApplyConfig] failed")
 	}
-	ruleHandle, err := rule.ApplyConfig(config, proxyName, func(ctx context.Context, info rule.Info) *rule.Rule {
+	ruleHandle, err := rule.ApplyConfig(config, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
 		return defaultRule
 	}, dnsHandle)
 	if err != nil {
