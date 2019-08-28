@@ -135,8 +135,10 @@ func NewCmdFunc(ctx context.Context, addr *socks.Addr, handle listener.HandleFun
 		if err != nil {
 			return err
 		}
-		ctx = context.WithValue(ctx, constant.KeyRequestInfo, req)
-		handle(connpkg.NewConn(conn, ctx))
+		if socks.CmdConnect == cmdReq.Cmd {
+			ctx = context.WithValue(ctx, constant.KeyRequestInfo, req)
+			handle(connpkg.NewConn(conn, ctx))
+		}
 		return nil
 	}
 }

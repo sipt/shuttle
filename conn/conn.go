@@ -1,9 +1,13 @@
 package conn
 
 import (
+	"bytes"
 	"context"
 	"net"
 	"sync/atomic"
+	"time"
+
+	"github.com/sipt/shuttle/pkg/socks"
 )
 
 const (
@@ -75,5 +79,71 @@ func NewConn(conn net.Conn, ctx context.Context) ICtxConn {
 	return &ctxConn{
 		Conn:    conn,
 		Context: ctx,
+	}
+}
+
+type udpConn struct {
+	context.Context
+	buf    *bytes.Buffer
+	local  net.Addr
+	remote net.Addr
+	c      socks.WriteTo
+}
+
+func (u *udpConn) Read(b []byte) (n int, err error) {
+	if u.buf != nil && u.buf.Len() > 0 {
+		return u.buf.Write(b)
+	}
+	return 0, nil
+}
+func (u *udpConn) Write(b []byte) (n int, err error) {
+	if u.c != nil {
+		return u.c.WriteTo(b, u.remote)
+	}
+	return 0, nil
+}
+func (u *udpConn) Close() error {
+	u.buf.Reset()
+	return nil
+}
+func (u *udpConn) LocalAddr() net.Addr {
+	return u.local
+}
+func (u *udpConn) RemoteAddr() net.Addr {
+	return u.remote
+}
+func (u *udpConn) SetDeadline(t time.Time) error {
+	return nil
+}
+func (u *udpConn) SetReadDeadline(t time.Time) error {
+	return nil
+}
+func (u *udpConn) SetWriteDeadline(t time.Time) error {
+	return u.c.SetWriteDeadline(t)
+}
+func (u *udpConn) GetContext() context.Context {
+	return u.Context
+}
+func (u *udpConn) WithContext(ctx context.Context) {
+	u.Context = ctx
+}
+
+func (u *udpConn) WithValue(k string, v interface{}) {
+	u.Context = context.WithValue(u.Context, k, v)
+}
+func (u *udpConn) GetConnID() int64 {
+	id, _ := u.Value(KeyConnID).(int64)
+	return id
+}
+func NewUDPConn(wt socks.WriteTo, ctx context.Context, remoteAddr net.Addr, data []byte) ICtxConn {
+	if ctx.Value(KeyConnID) == nil {
+		ctx = context.WithValue(ctx, KeyConnID, GetConnID())
+	}
+	return &udpConn{
+		Context: ctx,
+		c:       wt,
+		buf:     bytes.NewBuffer(data),
+		local:   wt.LocalAddr(),
+		remote:  remoteAddr,
 	}
 }
