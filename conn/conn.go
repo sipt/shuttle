@@ -36,6 +36,7 @@ type ICtxConn interface {
 	GetConnID() int64
 	WithContext(ctx context.Context)
 	GetContext() context.Context
+	WithValue(string, interface{})
 }
 
 type ctxConn struct {
@@ -49,6 +50,10 @@ func (c *ctxConn) GetContext() context.Context {
 
 func (c *ctxConn) WithContext(ctx context.Context) {
 	c.Context = ctx
+}
+
+func (c *ctxConn) WithValue(k string, v interface{}) {
+	c.Context = context.WithValue(c.Context, k, v)
 }
 
 func (c *ctxConn) GetConnID() int64 {

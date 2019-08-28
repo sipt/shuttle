@@ -186,7 +186,7 @@ func httpsHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, er
 	} else {
 		ctxReq.SetPort(443)
 	}
-	c.WithContext(context.WithValue(c.GetContext(), constant.KeyRequestInfo, ctxReq))
+	c.WithValue(constant.KeyRequestInfo, ctxReq)
 	return c, nil
 }
 
