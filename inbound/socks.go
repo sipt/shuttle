@@ -122,7 +122,7 @@ func NewCmdFunc(ctx context.Context, addr *socks.Addr, handle listener.HandleFun
 		switch cmdReq.Cmd {
 		case socks.CmdConnect:
 			req.network = "tcp"
-		case socks.CmdUDP:
+		case socks.CmdUDPAssociate:
 			req.network = "udp"
 		default:
 			return errors.Errorf("not support %s", cmdReq.Cmd)

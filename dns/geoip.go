@@ -7,11 +7,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/oschwald/geoip2-golang"
+	geoip2 "github.com/oschwald/geoip2-golang"
 	"github.com/sipt/shuttle/assets"
 )
 
-var fileName = "/Users/sipt/workspace/go/shuttle/GeoLite2-Country.mmdb"
+var fileName = "GeoLite2-Country.mmdb"
 
 var geoipDB *geoip2.Reader
 

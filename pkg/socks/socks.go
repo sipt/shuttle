@@ -26,6 +26,8 @@ func (cmd Command) String() string {
 		return "socks connect"
 	case cmdBind:
 		return "socks bind"
+	case CmdUDPAssociate:
+		return "socks udp associate"
 	default:
 		return "socks " + strconv.Itoa(int(cmd))
 	}
@@ -70,9 +72,9 @@ const (
 	AddrTypeFQDN = 0x03
 	AddrTypeIPv6 = 0x04
 
-	CmdConnect Command = 0x01 // establishes an active-open forward proxy connection
-	cmdBind    Command = 0x02 // establishes a passive-open forward proxy connection
-	CmdUDP     Command = 0x03 // associate a UDP package
+	CmdConnect      Command = 0x01 // establishes an active-open forward proxy connection
+	cmdBind         Command = 0x02 // establishes a passive-open forward proxy connection
+	CmdUDPAssociate Command = 0x03 // associate a UDP package
 
 	AuthMethodNotRequired         AuthMethod = 0x00 // no authentication required
 	AuthMethodUsernamePassword    AuthMethod = 0x02 // use username/password

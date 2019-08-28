@@ -20,7 +20,7 @@ import (
 func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 	ctx, cancel := context.WithCancel(context.Background())
-	params := map[string]string{"path": "/Users/sipt/workspace/go/shuttle/cmd/config1.toml"}
+	params := map[string]string{"path": "config1.toml"}
 	config, err := conf.LoadConfig(ctx, "file", "toml", params, func() {
 		fmt.Println("config file change")
 	})

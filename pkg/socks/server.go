@@ -89,7 +89,7 @@ func ParseCmdRequest(b []byte) (*CmdRequest, error) {
 	if b[0] != Version5 {
 		return nil, errors.New("unexpected protocol version")
 	}
-	if Command(b[1]) != CmdConnect && Command(b[1]) != CmdUDP {
+	if Command(b[1]) != CmdConnect && Command(b[1]) != CmdUDPAssociate {
 		return nil, errors.New("unexpected command")
 	}
 	if b[2] != 0 {
