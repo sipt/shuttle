@@ -9,23 +9,28 @@ import (
 
 // udp server for socks5.
 type udpServer struct {
-	ln net.PacketConn
+	net.PacketConn
+	dst *net.UDPAddr
 }
 
-// Addr rerurns a server address.
-func (s *udpServer) Addr() net.Addr {
-	return s.ln.LocalAddr()
-}
-
-// Close closes the server.
-func (s *udpServer) Close() error {
-	return s.ln.Close()
-}
-
-func (s *udpServer) Serve(cmdFunc func(wt WriteTo, remote net.Addr, dst *Addr, b []byte) error) {
+func (s *udpServer) Serve(cmdFunc func(pc net.PacketConn, remote net.Addr, dst net.Addr, b []byte) error) {
 	b := make([]byte, 1500)
-	n, remoteAddr, err := s.ln.ReadFrom(b)
-	go s.Serve(cmdFunc)
+	err := s.SetReadDeadline(time.Now().Add(time.Minute))
+	if err != nil {
+		logrus.WithField("server", "udp").Debugf("set read dead line failed")
+		return
+	}
+	defer func() {
+		if err != nil {
+			s.Close()
+		}
+	}()
+	n, remoteAddr, err := s.ReadFrom(b)
+	if err != nil {
+		logrus.WithError(err).WithField("server", "udp").WithField("addr", s.LocalAddr().String()).
+			Debugf("read packet failed")
+		return
+	}
 	// handshake
 	if b[0]|b[1] != 0 {
 		logrus.WithField("server", "udp").Debugf("RSV [%x%x] not eq 0x0000", b[0], b[1])
@@ -66,26 +71,26 @@ func (s *udpServer) Serve(cmdFunc func(wt WriteTo, remote net.Addr, dst *Addr, b
 		logrus.WithField("server", "udp").Debugf("short cmd request")
 		return
 	}
-	err = cmdFunc(s.ln, remoteAddr, dstAddr, b[off+l:n])
+	ip := s.LocalAddr().(*net.UDPAddr).IP.String()
+	if ip != "0.0.0.0" && ip != "::" && dstAddr.String() != s.LocalAddr().String() {
+		return
+	}
+	err = cmdFunc(s, remoteAddr, s.dst, b[off+l:n])
 	if err != nil {
 		logrus.WithError(err).WithField("server", "udp").Debugf("cmd func failed")
 		return
 	}
 }
 
-type WriteTo interface {
-	WriteTo(p []byte, addr net.Addr) (n int, err error)
-	LocalAddr() net.Addr
-	SetWriteDeadline(t time.Time) error
-}
-
 // NewUDPServer returns a new udpServer.
-func NewUDPServer(addr string) (*udpServer, error) {
+func NewUDPServer(addr string, dst *net.UDPAddr) (*udpServer, error) {
 	var err error
 	s := new(udpServer)
-	s.ln, err = net.ListenPacket("udp", addr)
+	s.dst = dst
+	s.PacketConn, err = net.ListenPacket("udp", addr)
 	if err != nil {
 		return nil, err
 	}
+	logrus.WithField("addr", s.LocalAddr()).Debugf("start udp read on: %s", s.LocalAddr().String())
 	return s, nil
 }

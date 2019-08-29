@@ -6,13 +6,11 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/sipt/shuttle/constant"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/pkg/errors"
+	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/listener"
 	"github.com/sipt/shuttle/pkg/socks"
+	"github.com/sirupsen/logrus"
 
 	connpkg "github.com/sipt/shuttle/conn"
 )
@@ -122,23 +120,55 @@ func NewCmdFunc(ctx context.Context, addr *socks.Addr, handle listener.HandleFun
 		switch cmdReq.Cmd {
 		case socks.CmdConnect:
 			req.network = "tcp"
+			b, err = socks.MarshalCmdReply(socks.Version5, socks.StatusSucceeded, addr)
+			if err != nil {
+				return err
+			}
+			_, err = conn.Write(b)
+			if err != nil {
+				return err
+			}
+			ctx = context.WithValue(ctx, constant.KeyRequestInfo, req)
+			handle(connpkg.NewConn(conn, ctx))
 		case socks.CmdUDPAssociate:
 			req.network = "udp"
+			err = udpAssociate(ctx, conn, req, handle)
+			if err != nil {
+				return err
+			}
 		default:
 			return errors.Errorf("not support %s", cmdReq.Cmd)
 		}
-		b, err = socks.MarshalCmdReply(socks.Version5, socks.StatusSucceeded, addr)
-		if err != nil {
-			return err
-		}
-		_, err = conn.Write(b)
-		if err != nil {
-			return err
-		}
-		if socks.CmdConnect == cmdReq.Cmd {
-			ctx = context.WithValue(ctx, constant.KeyRequestInfo, req)
-			handle(connpkg.NewConn(conn, ctx))
-		}
 		return nil
 	}
+}
+
+func udpAssociate(ctx context.Context, conn net.Conn, req *request, handle listener.HandleFunc) error {
+	dst := &net.UDPAddr{
+		IP:   req.ip,
+		Port: req.port,
+	}
+	u, err := socks.NewUDPServer("", dst)
+	if err != nil {
+		return errors.Wrap(err, "create udp listen failed")
+	}
+	go u.Serve(func(pc net.PacketConn, remote net.Addr, dst net.Addr, b []byte) error {
+		ctx = context.WithValue(ctx, constant.KeyRequestInfo, req)
+		handle(connpkg.NewUDPConn(pc, ctx, remote, b))
+		return nil
+	})
+	addr := u.LocalAddr().(*net.UDPAddr)
+	fmt.Println(addr, u.LocalAddr())
+	b, err := socks.MarshalCmdReply(socks.Version5, socks.StatusSucceeded, &socks.Addr{
+		IP:   addr.IP,
+		Port: addr.Port,
+	})
+	if err != nil {
+		return err
+	}
+	_, err = conn.Write(b)
+	if err != nil {
+		return err
+	}
+	return nil
 }

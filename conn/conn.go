@@ -3,11 +3,12 @@ package conn
 import (
 	"bytes"
 	"context"
+	"io"
 	"net"
 	"sync/atomic"
 	"time"
 
-	"github.com/sipt/shuttle/pkg/socks"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -30,6 +31,7 @@ func DefaultDial(ctx context.Context, network string, addr, port string) (ICtxCo
 	if err != nil {
 		return nil, err
 	}
+	logrus.WithField("network", network).WithField("addr", addr+":"+port).Debug("connect to server")
 	return WrapConn(conn), nil
 }
 
@@ -87,18 +89,22 @@ type udpConn struct {
 	buf    *bytes.Buffer
 	local  net.Addr
 	remote net.Addr
-	c      socks.WriteTo
+	c      net.PacketConn
 }
 
 func (u *udpConn) Read(b []byte) (n int, err error) {
 	if u.buf != nil && u.buf.Len() > 0 {
-		return u.buf.Write(b)
+		n, err = u.buf.Read(b)
+		logrus.WithField("data", b[:n]).Debug("read udp data")
+		return
 	}
-	return 0, nil
+	return 0, io.EOF
 }
 func (u *udpConn) Write(b []byte) (n int, err error) {
 	if u.c != nil {
-		return u.c.WriteTo(b, u.remote)
+		n, err = u.c.WriteTo(b, u.remote)
+		logrus.WithField("data", b).WithField("remote", u.remote.String()).Debug("read udp data")
+		return
 	}
 	return 0, nil
 }
@@ -135,15 +141,15 @@ func (u *udpConn) GetConnID() int64 {
 	id, _ := u.Value(KeyConnID).(int64)
 	return id
 }
-func NewUDPConn(wt socks.WriteTo, ctx context.Context, remoteAddr net.Addr, data []byte) ICtxConn {
+func NewUDPConn(pc net.PacketConn, ctx context.Context, remoteAddr net.Addr, data []byte) ICtxConn {
 	if ctx.Value(KeyConnID) == nil {
 		ctx = context.WithValue(ctx, KeyConnID, GetConnID())
 	}
 	return &udpConn{
 		Context: ctx,
-		c:       wt,
+		c:       pc,
 		buf:     bytes.NewBuffer(data),
-		local:   wt.LocalAddr(),
+		local:   pc.LocalAddr(),
 		remote:  remoteAddr,
 	}
 }

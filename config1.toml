@@ -15,10 +15,6 @@
 [[listener]]
   typ = "socks"
   addr = ":9000"
-  [listener.params]
-    auth_type = "basic"
-    password = "123"
-    user = "root"
 
 [server_group]
   Proxy = {typ = "select", servers = ["DIRECT"]}
