@@ -211,7 +211,7 @@ func ResolveDomain(ctx context.Context, domain string, servers ...*DnsServer) (i
 		ips    []net.IP
 		server *DnsServer
 	}
-	c := make(chan *_reply)
+	c := make(chan *_reply, 1)
 	for _, v := range servers {
 		go func(s *DnsServer) {
 			m := &dns.Msg{}
@@ -219,7 +219,10 @@ func ResolveDomain(ctx context.Context, domain string, servers ...*DnsServer) (i
 				RecursionDesired = true
 			r, err := dns.Exchange(m, s.Addr())
 			if err != nil {
-				logrus.WithError(err).WithField("domain", domain).WithField("dns_server", s.String())
+				logrus.WithError(err).WithField("domain", domain).
+					WithField("dns_server", s.String()).
+					Error("resolve dns failed")
+				return
 			}
 			ips := make([]net.IP, 0, len(r.Answer))
 			for _, v := range r.Answer {
@@ -228,11 +231,15 @@ func ResolveDomain(ctx context.Context, domain string, servers ...*DnsServer) (i
 					ips = append(ips, a.A)
 				}
 			}
-			c <- &_reply{ips: ips, server: s}
+			select {
+			case c <- &_reply{ips: ips, server: s}:
+			default:
+			}
 		}(v)
 	}
 	select {
 	case reply := <-c:
+		close(c)
 		return reply.ips, *reply.server, nil
 	case <-ctx.Done():
 		return nil, DnsServer{}, errors.Errorf("[ResolveDomain] context was canceled")

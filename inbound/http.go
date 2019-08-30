@@ -2,7 +2,6 @@ package inbound
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/sipt/shuttle/constant"
@@ -68,7 +68,6 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle listener.Hand
 	}
 	return func(conn connpkg.ICtxConn) {
 		defer conn.Close()
-		logrus.Debug("start dial HTTP/HTTPS connection")
 		for {
 			req, err := http.ReadRequest(bufio.NewReader(conn))
 			if err != nil {
@@ -79,6 +78,8 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle listener.Hand
 				_ = conn.Close()
 				return
 			}
+			logrus.WithField("conn-id", conn.GetConnID()).WithField("host", req.Host).
+				Debug("start dial HTTP/HTTPS connection")
 			if !authFunc(req) {
 				resp := &http.Response{
 					StatusCode: http.StatusProxyAuthRequired,
@@ -154,18 +155,21 @@ func httpHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, err
 	} else {
 		ctxReq.SetPort(80)
 	}
+	filterProxyHeader(req)
 	hc := &httpConn{
-		header:   &bytes.Buffer{},
-		body:     req.Body,
+		req:      req,
 		ICtxConn: connpkg.NewConn(c, context.WithValue(c, constant.KeyRequestInfo, ctxReq)),
 		Mutex:    &sync.Mutex{},
 	}
-	req.Body = nil
-	err = req.Write(hc.header)
-	if err != nil {
-		return nil, errors.Wrapf(err, "read request failed")
-	}
 	return hc, nil
+}
+
+func filterProxyHeader(req *http.Request) {
+	for k := range req.Header {
+		if strings.HasPrefix(k, "Proxy") {
+			req.Header.Del(k)
+		}
+	}
 }
 
 func httpsHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, error) {
@@ -191,23 +195,35 @@ func httpsHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, er
 }
 
 type httpConn struct {
-	header *bytes.Buffer
-	body   io.ReadCloser
+	req *http.Request
 	connpkg.ICtxConn
 	*sync.Mutex
 }
 
+func (h *httpConn) WriteTo(w io.Writer) (n int64, err error) {
+	wr := &writer{Writer: w}
+	err = h.req.Write(wr)
+	n = wr.length
+	return n, err
+}
+
 func (h *httpConn) Read(b []byte) (int, error) {
-	if h.header.Len() > 0 {
-		h.Lock()
-		defer h.Unlock()
-		return h.header.Read(b)
-	}
-	return h.body.Read(b)
+	return 0, errors.New("httpConn not support read")
 }
 
 func (h *httpConn) Close() error {
-	return h.body.Close()
+	return h.req.Body.Close()
+}
+
+type writer struct {
+	length int64
+	io.Writer
+}
+
+func (w *writer) Write(b []byte) (n int, err error) {
+	n, err = w.Writer.Write(b)
+	w.length += int64(n)
+	return n, err
 }
 
 type request struct {

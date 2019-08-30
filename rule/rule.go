@@ -55,6 +55,10 @@ type Rule struct {
 	Params  map[string]string
 }
 
+func (r *Rule) String() string {
+	return fmt.Sprintf("%s:%s [%s]", r.Typ, r.Value, r.Proxy)
+}
+
 type Handle func(ctx context.Context, info RequestInfo) *Rule
 type NewFunc func(rule *Rule, handle Handle, dnsHandle dns.Handle) (Handle, error)
 

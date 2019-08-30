@@ -53,6 +53,7 @@ func handle(conn connpkg.ICtxConn) {
 		answer := profile.DNSHandle()(conn, reqInfo.Domain())
 		if answer != nil {
 			reqInfo.SetIP(answer.CurrentIP)
+			reqInfo.SetCountryCode(answer.CurrentCountry)
 		}
 	}
 	logrus.Infof("Match Rule [%s, %s, %s]", rule.Typ, rule.Value, rule.Proxy)
@@ -63,12 +64,17 @@ func handle(conn connpkg.ICtxConn) {
 	} else {
 		s = g.Server()
 	}
+	logrus.WithField("network", reqInfo.Network()).
+		WithField("domain", reqInfo.Domain()).
+		WithField("addr", fmt.Sprintf("%s:%d", reqInfo.IP(), reqInfo.Port())).
+		WithField("country-code", reqInfo.CountryCode()).
+		WithField("rule", rule.String()).
+		Infof("URI: %s", reqInfo.URI())
 	sc, err := s.Dial(conn, reqInfo.Network(), reqInfo, connpkg.DefaultDial)
 	if err != nil {
 		logrus.WithField("proxy", rule.Proxy).WithError(err).Errorf("remote to server failed")
 		return
 	}
-	logrus.Debug(reqInfo)
 	transefer(conn, sc)
 }
 

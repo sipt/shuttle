@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -115,11 +117,32 @@ func newCacheHandle(next Handle) (Handle, error) {
 		if dnsPtr.IsNil() {
 			dnsPtr = next(ctx, domain)
 			cache.Set(domain, *dnsPtr)
+			logrus.WithField("domain", domain).
+				WithField("ip", dnsPtr.CurrentIP.String()).
+				WithField("country", dnsPtr.CurrentServer.String()).
+				WithField("country", dnsPtr.CurrentCountry).
+				Debug("cache missing")
 		} else if dnsPtr.ExpireAt.Before(time.Now()) {
+			logrus.WithField("domain", domain).
+				WithField("ip", dnsPtr.CurrentIP.String()).
+				WithField("country", dnsPtr.CurrentServer.String()).
+				WithField("country", dnsPtr.CurrentCountry).
+				Debug("cache expired")
 			go func() {
 				dnsPtr = next(ctx, domain)
 				cache.Set(domain, *dnsPtr)
+				logrus.WithField("domain", domain).
+					WithField("ip", dnsPtr.CurrentIP.String()).
+					WithField("country", dnsPtr.CurrentServer.String()).
+					WithField("country", dnsPtr.CurrentCountry).
+					Debug("dns update")
 			}()
+		} else {
+			logrus.WithField("domain", domain).
+				WithField("ip", dnsPtr.CurrentIP.String()).
+				WithField("country", dnsPtr.CurrentServer.String()).
+				WithField("country", dnsPtr.CurrentCountry).
+				Debug("find in cache")
 		}
 		return dnsPtr
 	}, nil
