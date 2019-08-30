@@ -15,7 +15,7 @@ func init() {
 
 func newTCPListener(addr string) (func(context.Context, HandleFunc), error) {
 	l, err := net.Listen("tcp", addr)
-	logrus.WithField("addr", "tcp://"+addr).Info("tcp listen starting")
+	logrus.WithField("addr", "tcp://"+l.Addr().String()).Info("tcp listen starting")
 	if err != nil {
 		return nil, errors.Errorf("listen tcp://[%s] failed", addr)
 	}

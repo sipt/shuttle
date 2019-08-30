@@ -15,7 +15,7 @@ func init() {
 
 func newUDPListener(addr string) (func(context.Context, HandleFunc), error) {
 	l, err := net.Listen("udp", addr)
-	logrus.WithField("addr", "udp://"+addr).Info("udp listen starting")
+	logrus.WithField("addr", "udp://"+l.Addr().String()).Info("udp listen starting")
 	if err != nil {
 		return nil, errors.Errorf("listen udp://[%s] failed", addr)
 	}
