@@ -34,7 +34,8 @@ func GeoLookUp(ip net.IP) (countryCode string) {
 	}
 	country, err := geoipDB.Country(ip)
 	if err == nil && country != nil {
-		logrus.Debugf("[GeoIP] lookup [%s] country -> [%s]", ip, country.Country.IsoCode)
+		logrus.WithField("country-code", country.Country.IsoCode).WithField("ip", ip.String()).
+			Debug("GeoIP lookup")
 		return country.Country.IsoCode
 	}
 	logrus.Errorf("[GeoIP] lookup [%s] country failed: %s", ip, err.Error())
