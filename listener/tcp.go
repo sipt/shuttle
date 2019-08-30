@@ -28,7 +28,7 @@ func newTCPListener(addr string) (func(context.Context, HandleFunc), error) {
 					logrus.WithField("addr", addr).WithError(err).Errorf("[tcp] listener accept failed")
 					return
 				}
-				handle(conn.NewConn(c, ctx))
+				go handle(conn.NewConn(c, ctx))
 			}
 		}()
 		<-ctx.Done()
