@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/constant"
-	"github.com/sipt/shuttle/listener"
+	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/pkg/socks"
 	"github.com/sirupsen/logrus"
 
@@ -19,7 +19,7 @@ func init() {
 	Register("socks", newSocksInbound)
 }
 
-func newSocksInbound(addr string, params map[string]string) (listen func(context.Context, listener.HandleFunc), err error) {
+func newSocksInbound(addr string, params map[string]string) (listen func(context.Context, typ.HandleFunc), err error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func newSocksInbound(addr string, params map[string]string) (listen func(context
 			return
 		}
 	}
-	return func(ctx context.Context, handleFunc listener.HandleFunc) {
+	return func(ctx context.Context, handleFunc typ.HandleFunc) {
 		cmdFunc := NewCmdFunc(ctx, addrPtr, handleFunc)
 		server.Serve(authFunc, cmdFunc)
 		<-ctx.Done()
@@ -103,7 +103,7 @@ func newAuthFunc(params map[string]string) (func(net.Conn, []byte) error, error)
 	}, nil
 }
 
-func NewCmdFunc(ctx context.Context, addr *socks.Addr, handle listener.HandleFunc) func(net.Conn, []byte) error {
+func NewCmdFunc(ctx context.Context, addr *socks.Addr, handle typ.HandleFunc) func(net.Conn, []byte) error {
 	return func(conn net.Conn, b []byte) error {
 		cmdReq, err := socks.ParseCmdRequest(b)
 		if err != nil {
@@ -143,7 +143,7 @@ func NewCmdFunc(ctx context.Context, addr *socks.Addr, handle listener.HandleFun
 	}
 }
 
-func udpAssociate(ctx context.Context, conn net.Conn, req *request, handle listener.HandleFunc) error {
+func udpAssociate(ctx context.Context, conn net.Conn, req *request, handle typ.HandleFunc) error {
 	dst := &net.UDPAddr{
 		IP:   req.ip,
 		Port: req.port,

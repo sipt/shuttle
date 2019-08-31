@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sipt/shuttle/constant"
-
 	"github.com/pkg/errors"
+	"github.com/sipt/shuttle/constant"
+	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/listener"
 	"github.com/sirupsen/logrus"
 
@@ -36,7 +36,7 @@ func init() {
 	Register("http", newHTTPInbound)
 }
 
-func newHTTPInbound(addr string, params map[string]string) (listen func(context.Context, listener.HandleFunc), err error) {
+func newHTTPInbound(addr string, params map[string]string) (listen func(context.Context, typ.HandleFunc), err error) {
 	authType, ok := params[ParamsKeyAuthType]
 	authFunc := func(r *http.Request) bool { return true }
 	if ok {
@@ -57,12 +57,12 @@ func newHTTPInbound(addr string, params map[string]string) (listen func(context.
 		return nil, err
 	}
 	logrus.WithField("addr", "http://"+addr).Info("http listen starting")
-	return func(ctx context.Context, handle listener.HandleFunc) {
+	return func(ctx context.Context, handle typ.HandleFunc) {
 		dial(ctx, newHttpHandleFunc(authFunc, handle))
 	}, nil
 }
 
-func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle listener.HandleFunc) func(conn connpkg.ICtxConn) {
+func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle typ.HandleFunc) func(conn connpkg.ICtxConn) {
 	if authFunc == nil {
 		authFunc = func(r *http.Request) bool { return true }
 	}
@@ -93,6 +93,7 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle listener.Hand
 				return
 			}
 			if req.Method == http.MethodConnect {
+				conn.WithValue(constant.KeyProtocol, "https")
 				c, err := httpsHandshake(req, conn)
 				if err != nil {
 					logrus.WithError(err).Error("[http.Inbound] https handshake failed")
@@ -102,6 +103,7 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle listener.Hand
 				handle(c)
 				return
 			} else {
+				conn.WithValue(constant.KeyProtocol, "https")
 				c, err := httpHandshake(req, conn)
 				if err != nil {
 					logrus.WithError(err).Error("[http.Inbound] http handshake failed")

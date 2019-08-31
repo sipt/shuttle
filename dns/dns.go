@@ -239,7 +239,6 @@ func ResolveDomain(ctx context.Context, domain string, servers ...*DnsServer) (i
 	}
 	select {
 	case reply := <-c:
-		close(c)
 		return reply.ips, *reply.server, nil
 	case <-ctx.Done():
 		return nil, DnsServer{}, errors.Errorf("[ResolveDomain] context was canceled")

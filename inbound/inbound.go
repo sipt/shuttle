@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/sipt/shuttle/listener"
-
 	"github.com/sipt/shuttle/conf/model"
+	"github.com/sipt/shuttle/constant/typ"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -27,7 +25,7 @@ func Cancel(addr string) {
 	}
 }
 
-func ApplyConfig(config *model.Config, handle listener.HandleFunc) error {
+func ApplyConfig(config *model.Config, handle typ.HandleFunc) error {
 	for _, v := range config.Listener {
 		f, err := Get(v.Typ, v.Addr, v.Params)
 		if err != nil {
@@ -41,7 +39,7 @@ func ApplyConfig(config *model.Config, handle listener.HandleFunc) error {
 	return nil
 }
 
-type NewFunc func(addr string, params map[string]string) (listen func(context.Context, listener.HandleFunc), err error)
+type NewFunc func(addr string, params map[string]string) (listen func(context.Context, typ.HandleFunc), err error)
 
 var creator = make(map[string]NewFunc)
 
@@ -51,7 +49,7 @@ func Register(key string, f NewFunc) {
 }
 
 // Get: get inbound by key
-func Get(typ, addr string, params map[string]string) (func(context.Context, listener.HandleFunc), error) {
+func Get(typ, addr string, params map[string]string) (func(context.Context, typ.HandleFunc), error) {
 	f, ok := creator[typ]
 	if !ok {
 		return nil, fmt.Errorf("inbound not support: %s", typ)

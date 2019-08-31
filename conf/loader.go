@@ -5,17 +5,16 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-
+	"github.com/sipt/shuttle/conf/marshal"
+	"github.com/sipt/shuttle/conf/model"
+	"github.com/sipt/shuttle/conf/storage"
+	"github.com/sipt/shuttle/conn/filter"
+	"github.com/sipt/shuttle/conn/stream"
 	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/global"
 	"github.com/sipt/shuttle/group"
 	"github.com/sipt/shuttle/rule"
-
 	"github.com/sipt/shuttle/server"
-
-	"github.com/sipt/shuttle/conf/marshal"
-	"github.com/sipt/shuttle/conf/model"
-	"github.com/sipt/shuttle/conf/storage"
 )
 
 // LoadConfig
@@ -97,7 +96,15 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 	if err != nil {
 		return errors.Wrapf(err, "[rule.ApplyConfig] failed")
 	}
-	profile, err := global.NewProfile(config, dnsHandle, ruleHandle, groups, servers)
+	filterHandle, err := filter.ApplyConfig(config)
+	if err != nil {
+		return errors.Wrapf(err, "[filter.ApplyConfig] failed")
+	}
+	before, after, err := stream.ApplyConfig(config)
+	if err != nil {
+		return errors.Wrapf(err, "[stream.ApplyConfig] failed")
+	}
+	profile, err := global.NewProfile(config, dnsHandle, ruleHandle, groups, servers, filterHandle, before, after)
 	if err != nil {
 		return errors.Wrapf(err, "create profile failed")
 	}

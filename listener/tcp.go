@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conn"
+	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sirupsen/logrus"
 )
 
@@ -13,13 +14,13 @@ func init() {
 	Register("tcp", newTCPListener)
 }
 
-func newTCPListener(addr string) (func(context.Context, HandleFunc), error) {
+func newTCPListener(addr string) (func(context.Context, typ.HandleFunc), error) {
 	l, err := net.Listen("tcp", addr)
 	logrus.WithField("addr", "tcp://"+l.Addr().String()).Info("tcp listen starting")
 	if err != nil {
 		return nil, errors.Errorf("listen tcp://[%s] failed", addr)
 	}
-	return func(ctx context.Context, handle HandleFunc) {
+	return func(ctx context.Context, handle typ.HandleFunc) {
 		go func() {
 			for {
 				c, err := l.Accept()

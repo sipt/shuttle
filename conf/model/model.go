@@ -57,4 +57,20 @@ type Config struct {
 		Typ    string            `toml:"typ"`
 		Params map[string]string `toml:"params"`
 	} `toml:"include"`
+
+	Filter []struct {
+		Typ    string            `toml:"typ"`
+		Params map[string]string `toml:"params"`
+	} `toml:"filter"`
+
+	Stream struct {
+		Before []struct {
+			Typ    string            `toml:"typ"`
+			Params map[string]string `toml:"params"`
+		} `toml:"before"`
+		After []struct {
+			Typ    string            `toml:"typ"`
+			Params map[string]string `toml:"params"`
+		} `toml:"after"`
+	} `toml:"stream"`
 }

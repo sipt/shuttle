@@ -3,6 +3,8 @@ package global
 import (
 	"context"
 	"sync"
+
+	"github.com/sipt/shuttle/constant"
 )
 
 func init() {
@@ -51,7 +53,7 @@ func (n *Namespace) Context() context.Context {
 func NamespaceWithContext(ctx context.Context) *Namespace {
 	mutex.RLock()
 	defer mutex.RUnlock()
-	name, ok := ctx.Value("namespace").(string)
+	name, ok := ctx.Value(constant.KeyNamespace).(string)
 	if !ok || len(name) == 0 {
 		return namespace[defaultName]
 	}
