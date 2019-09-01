@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/fsnotify/fsnotify v1.4.7
+	github.com/gin-gonic/gin v1.4.0 // indirect
 	github.com/kbinani/win v0.3.0
 	github.com/miekg/dns v1.1.16
 	github.com/oschwald/geoip2-golang v1.3.0

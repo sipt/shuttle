@@ -10,6 +10,7 @@ import (
 	"github.com/sipt/shuttle/conf"
 	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/constant/typ"
+	"github.com/sipt/shuttle/controller"
 	"github.com/sipt/shuttle/global"
 	"github.com/sipt/shuttle/inbound"
 	"github.com/sipt/shuttle/server"
@@ -27,15 +28,20 @@ func main() {
 		fmt.Println("config file change")
 	})
 	if err != nil {
-		panic(err)
+		logrus.WithError(err).Fatal("load config failed")
 	}
 	err = conf.ApplyConfig(ctx, config)
 	if err != nil {
+		logrus.WithError(err).Fatal("apply config failed")
+	}
+	closer, err := controller.ApplyConfig(config)
+	if err != nil {
+		logrus.WithError(err).Fatal("start controller failed")
 		panic(err)
 	}
 	err = inbound.ApplyConfig(config, handle())
 	if err != nil {
-		panic(err)
+		logrus.WithError(err).Fatal("start inbound failed")
 	}
 
 	logrus.Info("server starting...")
@@ -43,6 +49,7 @@ func main() {
 	signal.Notify(c, os.Interrupt)
 	<-c
 	cancel()
+	closer()
 }
 
 func handle() typ.HandleFunc {

@@ -13,6 +13,7 @@ import (
 	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/global"
 	"github.com/sipt/shuttle/group"
+	"github.com/sipt/shuttle/plugin"
 	"github.com/sipt/shuttle/rule"
 	"github.com/sipt/shuttle/server"
 )
@@ -66,6 +67,11 @@ func LoadConfig(ctx context.Context, typ, encode string, params map[string]strin
 }
 
 func ApplyConfig(ctx context.Context, config *model.Config) error {
+	// apply plugin config
+	err := plugin.ApplyConfig(config)
+	if err != nil {
+		return errors.Wrapf(err, "[plugin.ApplyConfig] failed")
+	}
 	// apply dns config
 	dnsHandle, err := dns.ApplyConfig(config, func(ctx context.Context, domain string) *dns.DNS { return nil })
 	if err != nil {

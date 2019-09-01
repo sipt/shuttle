@@ -15,9 +15,16 @@ type Config struct {
 		Typ string `toml:"typ"`
 		// Addr: e.g. [":8080", "[::1]:8080", "192.168.1.23:8080"]
 		Addr string `toml:"addr"`
-		// Params of listener: e.g. {"Password": "password", "UserName": "user name"}
+		// Params of listener: e.g. {"auth_type": "basic", "password": "password", "user": "user name"}
 		Params map[string]string `toml:"params"`
 	} `toml:"listener"`
+
+	Controller struct {
+		// Addr: e.g. [":8080", "[::1]:8080", "192.168.1.23:8080"]
+		Addr string `toml:"addr"`
+		// Params of listener: e.g. {"auth_type": "basic", "password": "password", "user": "user name"}
+		Params map[string]string `toml:"params"`
+	}
 
 	DNS struct {
 		IncludeSystem bool     `toml:"include_system"`
@@ -73,4 +80,6 @@ type Config struct {
 			Params map[string]string `toml:"params"`
 		} `toml:"after"`
 	} `toml:"stream"`
+
+	Plugins map[string]map[string]string `json:"plugins"`
 }
