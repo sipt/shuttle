@@ -119,6 +119,20 @@ func outboundHandle() typ.HandleFunc {
 }
 
 func transefer(from, to connpkg.ICtxConn) {
-	go io.Copy(from, to)
-	io.Copy(to, from)
+	end := make(chan bool, 1)
+	go func() {
+		_, err := io.Copy(from, to)
+		if err != nil {
+			end <- true
+		}
+	}()
+	go func() {
+		_, err := io.Copy(to, from)
+		if err != nil {
+			end <- true
+		}
+	}()
+	<-end
+	_ = from.Close()
+	_ = to.Close()
 }

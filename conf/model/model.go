@@ -32,8 +32,8 @@ type Config struct {
 
 	Server map[string]struct {
 		Typ    string            `toml:"typ"`
-		Addr   string            `toml:"addr"`
-		Port   string            `toml:"port"`
+		Host   string            `toml:"host"`
+		Port   int               `toml:"port"`
 		Params map[string]string `toml:"params"`
 	} `toml:"server"`
 

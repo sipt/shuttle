@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conf/model"
 	"github.com/sipt/shuttle/conn"
+	"github.com/sipt/shuttle/dns"
 )
 
 const (
@@ -21,21 +22,21 @@ var (
 	defaults    = []string{Direct, Reject}
 )
 
-func ApplyConfig(config *model.Config) (map[string]IServer, error) {
+func ApplyConfig(config *model.Config, dnsHandle dns.Handle) (map[string]IServer, error) {
 	servers := make(map[string]IServer, len(config.Server)+len(defaults))
 	var (
 		s   IServer
 		err error
 	)
 	for name, v := range config.Server {
-		s, err = Get(v.Typ, name, v.Addr, v.Port, v.Params)
+		s, err = Get(v.Typ, name, v.Host, v.Port, v.Params, dnsHandle)
 		if err != nil {
 			return nil, err
 		}
 		servers[s.Name()] = s
 	}
 	for _, v := range defaults {
-		s, err = Get(v, Direct, "", "", nil)
+		s, err = Get(v, Direct, "", 0, nil, dnsHandle)
 		if err != nil {
 			return nil, err
 		}
@@ -44,7 +45,7 @@ func ApplyConfig(config *model.Config) (map[string]IServer, error) {
 	return servers, nil
 }
 
-type NewFunc func(name, addr, port string, params map[string]string) (IServer, error)
+type NewFunc func(name, addr string, port int, params map[string]string, dnsHandle dns.Handle) (IServer, error)
 
 var creator = make(map[string]NewFunc)
 
@@ -54,12 +55,12 @@ func Register(key string, f NewFunc) {
 }
 
 // Get: get server by key
-func Get(typ, name, addr, port string, params map[string]string) (IServer, error) {
+func Get(typ, name, addr string, port int, params map[string]string, dnsHandle dns.Handle) (IServer, error) {
 	f, ok := creator[typ]
 	if !ok {
 		return nil, fmt.Errorf("server not support: %s", typ)
 	}
-	return f(name, addr, port, params)
+	return f(name, addr, port, params, dnsHandle)
 }
 
 type IServer interface {

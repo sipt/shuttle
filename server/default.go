@@ -7,16 +7,17 @@ import (
 	"time"
 
 	"github.com/sipt/shuttle/conn"
+	"github.com/sipt/shuttle/dns"
 )
 
 func init() {
-	Register(Direct, func(_, _, _ string, _ map[string]string) (server IServer, e error) {
+	Register(Direct, func(_, _ string, _ int, _ map[string]string, _ dns.Handle) (server IServer, e error) {
 		return &DirectServer{
 			RWMutex: &sync.RWMutex{},
 			rtt:     make(map[string]time.Duration),
 		}, nil
 	})
-	Register(Reject, func(_, _, _ string, _ map[string]string) (server IServer, e error) {
+	Register(Reject, func(_, _ string, _ int, _ map[string]string, _ dns.Handle) (server IServer, e error) {
 		return &RejectServer{}, nil
 	})
 }

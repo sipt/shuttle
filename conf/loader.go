@@ -66,15 +66,22 @@ func LoadConfig(ctx context.Context, typ, encode string, params map[string]strin
 }
 
 func ApplyConfig(ctx context.Context, config *model.Config) error {
-	servers, err := server.ApplyConfig(config)
+	// apply dns config
+	dnsHandle, err := dns.ApplyConfig(config, func(ctx context.Context, domain string) *dns.DNS { return nil })
+	if err != nil {
+		return errors.Wrapf(err, "[dns.ApplyConfig] failed")
+	}
+	// apply server config
+	servers, err := server.ApplyConfig(config, dnsHandle)
 	if err != nil {
 		return err
 	}
+	// apply server_group config
 	groups, err := group.ApplyConfig(ctx, config, servers)
 	if err != nil {
 		return err
 	}
-
+	// apply rule config
 	proxyName := make(map[string]bool)
 	for _, v := range servers {
 		proxyName[v.Name()] = true
@@ -86,29 +93,30 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 		Typ:   "FINAL",
 		Proxy: server.Direct,
 	}
-	dnsHandle, err := dns.ApplyConfig(config, func(ctx context.Context, domain string) *dns.DNS { return nil })
-	if err != nil {
-		return errors.Wrapf(err, "[dns.ApplyConfig] failed")
-	}
 	ruleHandle, err := rule.ApplyConfig(config, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
 		return defaultRule
 	}, dnsHandle)
 	if err != nil {
 		return errors.Wrapf(err, "[rule.ApplyConfig] failed")
 	}
+	// apply filter config
 	filterHandle, err := filter.ApplyConfig(config)
 	if err != nil {
 		return errors.Wrapf(err, "[filter.ApplyConfig] failed")
 	}
+	// apply stream filter config
 	before, after, err := stream.ApplyConfig(config)
 	if err != nil {
 		return errors.Wrapf(err, "[stream.ApplyConfig] failed")
 	}
+	// create profile
 	profile, err := global.NewProfile(config, dnsHandle, ruleHandle, groups, servers, filterHandle, before, after)
 	if err != nil {
 		return errors.Wrapf(err, "create profile failed")
 	}
 	global.AddProfile(config.Info.Name, profile)
+	// TODO multiple profile
+	// set profile to namespace
 	global.AddNamespace("default", ctx, profile)
 	return nil
 }
