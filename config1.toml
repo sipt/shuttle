@@ -1,23 +1,29 @@
 [general]
   logger_level = "debug"
+  default_test_uri = "http://www.bing.com"
 
 [dns]
   servers = ["8.8.8.8", "114.114.114.114"]
+  [[dns.mapping]]
+    domain = "localhost"
+    ip = ["127.0.0.1"]
+
+[controller]
+  addr = ":9001"
 
 [[listener]]
   typ = "http"
   addr = ":8081"
-  [listener.params]
-    auth_type = "basic"
-    password = "123123"
-    user = "root"
 
 [[listener]]
   typ = "socks"
   addr = ":9000"
 
+[server]
+  surge = {typ = "socks5", host = "localhost", port = 8889}
+
 [server_group]
-  Proxy = {typ = "select", servers = ["DIRECT"]}
+  Proxy = {typ = "select", servers = ["surge"]}
 
 [[rule]]
   typ = "DOMAIN"

@@ -13,8 +13,10 @@ import (
 )
 
 const (
-	Direct = "DIRECT"
-	Reject = "REJECT"
+	Direct           = "DIRECT"
+	Reject           = "REJECT"
+	ParamsKeyTestURI = "test_uri"
+	DefaultRttKey    = "default_rtt"
 )
 
 var (
@@ -29,10 +31,16 @@ func ApplyConfig(config *model.Config, dnsHandle dns.Handle) (map[string]IServer
 		err error
 	)
 	for name, v := range config.Server {
+		if v.Params == nil {
+			v.Params = map[string]string{ParamsKeyTestURI: config.General.DefaultTestURI}
+		} else if _, ok := v.Params[ParamsKeyTestURI]; !ok {
+			v.Params[ParamsKeyTestURI] = config.General.DefaultTestURI
+		}
 		s, err = Get(v.Typ, name, v.Host, v.Port, v.Params, dnsHandle)
 		if err != nil {
 			return nil, err
 		}
+		s = NewRttServer(s, v.Params)
 		servers[s.Name()] = s
 	}
 	for _, v := range defaults {
@@ -40,6 +48,7 @@ func ApplyConfig(config *model.Config, dnsHandle dns.Handle) (map[string]IServer
 		if err != nil {
 			return nil, err
 		}
+		s = NewRttServer(s, map[string]string{ParamsKeyTestURI: config.General.DefaultTestURI})
 		servers[s.Name()] = s
 	}
 	return servers, nil
@@ -68,6 +77,7 @@ type IServer interface {
 	Name() string
 	SetRtt(key string, duration time.Duration)
 	Rtt(key string) time.Duration
+	TestRtt(key, uri string) time.Duration
 	// connect to server
 	Dial(ctx context.Context, network string, info Info, dial conn.DialFunc) (conn.ICtxConn, error)
 }
@@ -76,4 +86,20 @@ type Info interface {
 	Domain() string
 	IP() net.IP
 	Port() int
+}
+
+type reqInfo struct {
+	domain string
+	ip     net.IP
+	port   int
+}
+
+func (r *reqInfo) Domain() string {
+	return r.domain
+}
+func (r *reqInfo) IP() net.IP {
+	return r.ip
+}
+func (r *reqInfo) Port() int {
+	return r.port
 }

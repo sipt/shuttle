@@ -38,16 +38,19 @@ func ApplyConfig(config *model.Config) error {
 			plug, err := plugin.Open(pluginPath)
 			if err != nil {
 				logrus.WithError(err).Errorf("import plugin[%s] failed", pluginPath)
+				continue
 			}
 			f, err := plug.Lookup("ApplyConfig")
 			if err != nil {
 				logrus.WithError(err).Errorf("Lookup [func ApplyConfig(*model.Config) error] in plugin [%s] failed", file.Name())
+				continue
 			}
 			applyConfig, ok := f.(func(map[string]string) error)
 			if ok {
 				err = applyConfig(config.Plugins[name])
 				if err != nil {
 					logrus.WithError(err).Errorf("plugin[%s].ApplyConfig failed", name)
+					continue
 				}
 			}
 		}

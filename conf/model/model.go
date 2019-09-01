@@ -7,7 +7,8 @@ type Config struct {
 	} `toml:"-" json:"-" yaml:"-"`
 
 	General struct {
-		LoggerLevel string `toml:"logger_level"`
+		LoggerLevel    string `toml:"logger_level"`
+		DefaultTestURI string `toml:"default_test_uri"`
 	} `toml:"general"`
 
 	Listener []struct {
@@ -24,7 +25,7 @@ type Config struct {
 		Addr string `toml:"addr"`
 		// Params of listener: e.g. {"auth_type": "basic", "password": "password", "user": "user name"}
 		Params map[string]string `toml:"params"`
-	}
+	} `toml:"controller"`
 
 	DNS struct {
 		IncludeSystem bool     `toml:"include_system"`

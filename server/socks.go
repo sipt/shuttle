@@ -56,6 +56,7 @@ func init() {
 }
 
 type Socks5Server struct {
+	IServer   // just for not implement: TestRtt
 	name      string
 	rtt       map[string]time.Duration
 	auth      *socks.UsernamePassword

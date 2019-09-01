@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+	"github.com/sipt/shuttle/controller/model"
 )
 
 const (
@@ -20,10 +21,13 @@ const (
 	ParamsKeyToken    = "token"
 )
 
-var e *gin.Engine
+var e = gin.Default()
+
+func GetEngine() *gin.Engine {
+	return e
+}
 
 func InitEngine(addr string, params map[string]string) (closer func(), err error) {
-	e = gin.Default()
 	authType, ok := params[ParamsKeyAuthType]
 	if ok {
 		var authFunc gin.HandlerFunc
@@ -74,16 +78,10 @@ func newBearerAuth(params map[string]string) (gin.HandlerFunc, error) {
 	authorization := "Bearer " + token
 	return func(c *gin.Context) {
 		if c.GetHeader("Authorization") != authorization {
-			c.JSON(http.StatusUnauthorized, &Response{
+			c.JSON(http.StatusUnauthorized, &model.Response{
 				Code:    1,
 				Message: "unauthorized",
 			})
 		}
 	}, nil
-}
-
-type Response struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
 }
