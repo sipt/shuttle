@@ -23,7 +23,7 @@ const (
 	DefaultTestURL  = "http://www.gstatic.com/generate_204"
 	DefaultInterval = 10 * time.Minute
 
-	ParamsKeyTestURL  = "test_url"
+	ParamsKeyTestURI  = "test_url"
 	ParamsKeyInterval = "interval"
 )
 
@@ -37,11 +37,11 @@ func newRttGroup(ctx context.Context, name string, params map[string]string) (gr
 		name:    name,
 		RWMutex: &sync.RWMutex{},
 	}
-	rtt.testUrl = params[ParamsKeyTestURL]
+	rtt.testUrl = params[ParamsKeyTestURI]
 	if rtt.testUrl == "" {
 		rtt.testUrl = DefaultTestURL
 	} else if testUrl, err := url.Parse(rtt.testUrl); err != nil || len(testUrl.Scheme) == 0 || len(testUrl.Hostname()) == 0 {
-		err = errors.Errorf("[group: %s] [%s: %s] is invalid", name, ParamsKeyTestURL, rtt.testUrl)
+		err = errors.Errorf("[group: %s] [%s: %s] is invalid", name, ParamsKeyTestURI, rtt.testUrl)
 		return nil, err
 	}
 	interval := params[ParamsKeyInterval]
@@ -82,6 +82,9 @@ func (r *rttGroup) Append(servers []IServerX) {
 	}
 	r.current = r.servers[0]
 	go r.autoSelectByRTT()
+}
+func (r *rttGroup) Items() []IServerX {
+	return r.servers
 }
 func (r *rttGroup) Typ() string {
 	return TypRTT
@@ -134,13 +137,18 @@ func (r *rttGroup) testAllRTT() {
 	if len(r.servers) == 0 {
 		return
 	}
-	ctx, _ := context.WithTimeout(r.ctx, time.Second*10)
 	var (
 		reply   = make(chan IServerX, len(r.servers))
 		current IServerX
 	)
 	for _, v := range r.servers {
-		go r.testServerRTT(ctx, v, reply)
+		go func(s IServerX) {
+			if s.Server().TestRtt(r.name, r.testUrl) > 0 {
+				reply <- s
+			} else {
+				reply <- nil
+			}
+		}(v)
 	}
 	for range r.servers {
 		if current = <-reply; current != nil {

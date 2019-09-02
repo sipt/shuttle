@@ -6,8 +6,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ConfigLogger() {
-	logrus.SetLevel(logrus.DebugLevel)
+func ConfigLogger(level logrus.Level) {
+	logrus.SetLevel(level)
 	logrus.SetOutput(os.Stdout)
-	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetFormatter(&logrus.TextFormatter{})
 }

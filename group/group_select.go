@@ -2,6 +2,7 @@ package group
 
 import (
 	"context"
+	"net/url"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -12,6 +13,17 @@ const TypSelect = "select"
 
 func init() {
 	Register(TypSelect, func(ctx context.Context, name string, params map[string]string) (group IGroup, e error) {
+		s := &SelectGroup{
+			name:    name,
+			RWMutex: &sync.RWMutex{},
+			testUrl: params[ParamsKeyTestURI],
+		}
+		if s.testUrl == "" {
+			s.testUrl = DefaultTestURL
+		} else if testUrl, err := url.Parse(s.testUrl); err != nil || len(testUrl.Scheme) == 0 || len(testUrl.Hostname()) == 0 {
+			err = errors.Errorf("[group: %s] [%s: %s] is invalid", name, ParamsKeyTestURI, s.testUrl)
+			return nil, err
+		}
 		return &SelectGroup{
 			name:    name,
 			RWMutex: &sync.RWMutex{},
@@ -23,6 +35,7 @@ type SelectGroup struct {
 	name    string
 	servers []IServerX
 	current IServerX
+	testUrl string
 	*sync.RWMutex
 }
 
@@ -39,11 +52,16 @@ func (s *SelectGroup) Append(servers []IServerX) {
 	}
 	s.current = s.servers[0]
 }
+func (s *SelectGroup) Items() []IServerX {
+	return s.servers
+}
 func (s *SelectGroup) Reset() {
-	s.Lock()
-	defer s.Unlock()
-	if len(s.servers) > 0 {
-		s.current = s.servers[0]
+	for _, v := range s.servers {
+		if g, ok := v.(IGroup); ok {
+			g.Reset()
+		} else {
+			v.Server().TestRtt(s.name, s.testUrl)
+		}
 	}
 }
 func (s *SelectGroup) Typ() string {

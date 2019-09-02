@@ -23,6 +23,11 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 		ok  bool
 	)
 	for name, v := range config.ServerGroup {
+		if v.Params == nil {
+			v.Params = map[string]string{ParamsKeyTestURI: config.General.DefaultTestURI}
+		} else if _, ok := v.Params[ParamsKeyTestURI]; !ok {
+			v.Params[ParamsKeyTestURI] = config.General.DefaultTestURI
+		}
 		g, err = Get(ctx, v.Typ, name, v.Params)
 		if err != nil {
 			return nil, err
@@ -64,6 +69,7 @@ func Get(ctx context.Context, typ string, name string, params map[string]string)
 type IGroup interface {
 	Append(servers []IServerX)
 	Select(name string) error
+	Items() []IServerX
 	Reset()
 	IServerX
 }

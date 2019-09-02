@@ -28,6 +28,34 @@ func InitAPI(e *gin.Engine) {
 			Data: list,
 		})
 	})
+	e.GET("/api/servers/:name", func(c *gin.Context) {
+		np := global.NamespaceWithContext(c)
+		servers := np.Profile().Server()
+		name := c.Param("name")
+		if len(name) == 0 {
+			c.JSON(http.StatusBadRequest, &model.Response{
+				Code:    1,
+				Message: "server name is empty",
+			})
+			return
+		}
+		s, ok := servers[name]
+		if !ok || s == nil {
+			c.JSON(http.StatusBadRequest, &model.Response{
+				Code:    1,
+				Message: fmt.Sprintf("server name[%s] not found", name),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, &model.Response{
+			Data: &ItemResponse{
+				Name: s.Name(),
+				Typ:  s.Typ(),
+				RTT:  formatRtt(s.Rtt(server.DefaultRttKey)),
+			},
+		})
+	})
 	e.PUT("/api/servers/:name/rtt", func(c *gin.Context) {
 		np := global.NamespaceWithContext(c)
 		servers := np.Profile().Server()
@@ -37,13 +65,15 @@ func InitAPI(e *gin.Engine) {
 				Code:    1,
 				Message: "server name is empty",
 			})
+			return
 		}
 		s, ok := servers[name]
-		if !ok {
+		if !ok || s == nil {
 			c.JSON(http.StatusBadRequest, &model.Response{
 				Code:    1,
 				Message: fmt.Sprintf("server name[%s] not found", name),
 			})
+			return
 		}
 
 		c.JSON(http.StatusOK, &model.Response{

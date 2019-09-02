@@ -17,6 +17,8 @@ const (
 	Reject           = "REJECT"
 	ParamsKeyTestURI = "test_uri"
 	DefaultRttKey    = "default_rtt"
+
+	DefaultTestURL = "http://www.gstatic.com/generate_204"
 )
 
 var (

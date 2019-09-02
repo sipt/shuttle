@@ -4,10 +4,12 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/dns"
 	"github.com/sirupsen/logrus"
@@ -79,10 +81,17 @@ func (r *RejectServer) Dial(ctx context.Context, network string, info Info, dial
 }
 
 func NewRttServer(server IServer, params map[string]string) IServer {
-	return &RttServer{
+	rtt := &RttServer{
 		IServer: server,
 		testUri: params[ParamsKeyTestURI],
 	}
+	if rtt.testUri == "" {
+		rtt.testUri = DefaultTestURL
+	} else if testUrl, err := url.Parse(rtt.testUri); err != nil || len(testUrl.Scheme) == 0 || len(testUrl.Hostname()) == 0 {
+		err = errors.Errorf("[server: %s] [%s: %s] is invalid", server.Name(), ParamsKeyTestURI, rtt.testUri)
+		rtt.testUri = DefaultTestURL
+	}
+	return rtt
 }
 
 type RttServer struct {

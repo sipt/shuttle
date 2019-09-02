@@ -34,9 +34,10 @@ func TestRttGroup(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	direct, err := server.Get(server.Direct, "", "", "", nil)
+	direct, err := server.Get(server.Direct, "", "", 0, nil, nil)
 	assert.NoError(t, err)
-	reject, err := server.Get(server.Reject, "", "", "", nil)
+	direct = server.NewRttServer(direct, map[string]string{})
+	reject, err := server.Get(server.Reject, "", "", 0, nil, nil)
 	assert.NoError(t, err)
 	group.Append([]IServerX{
 		&serverx{direct},

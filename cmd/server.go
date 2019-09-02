@@ -8,6 +8,7 @@ import (
 	"os/signal"
 
 	"github.com/sipt/shuttle/conf"
+	"github.com/sipt/shuttle/conf/logger"
 	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/controller"
@@ -23,10 +24,15 @@ import (
 func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 	ctx, cancel := context.WithCancel(context.Background())
-	params := map[string]string{"path": "config1.toml"}
+	params := map[string]string{"path": "shuttle_pro.toml"}
 	config, err := conf.LoadConfig(ctx, "file", "toml", params, func() {
 		fmt.Println("config file change")
 	})
+	l, err := logrus.ParseLevel(config.General.LoggerLevel)
+	if err != nil {
+		l = logrus.DebugLevel
+	}
+	logger.ConfigLogger(l)
 	if err != nil {
 		logrus.WithError(err).Fatal("load config failed")
 	}
@@ -128,14 +134,6 @@ func outboundHandle() typ.HandleFunc {
 func transfer(from, to connpkg.ICtxConn) {
 	end := make(chan bool, 1)
 	go func() {
-		_, err := io.Copy(from, to)
-		if err != nil {
-			end <- true
-			logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
-				Debug("io.copy failed")
-		}
-	}()
-	go func() {
 		_, err := io.Copy(to, from)
 		if err != nil {
 			end <- true
@@ -143,20 +141,15 @@ func transfer(from, to connpkg.ICtxConn) {
 				Debug("io.copy failed")
 		}
 	}()
+	go func() {
+		_, err := io.Copy(from, to)
+		if err != nil {
+			logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
+				Debug("io.copy failed")
+		}
+		end <- true
+	}()
 	<-end
 	_ = from.Close()
 	_ = to.Close()
-}
-
-func syncTransfer(from, to connpkg.ICtxConn) error {
-	_, err := io.Copy(from, to)
-	if err != nil {
-		logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
-			Debug("io.copy failed")
-	}
-	_, err = io.Copy(to, from)
-	if err != nil {
-		logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
-			Debug("io.copy failed")
-	}
 }
