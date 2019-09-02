@@ -40,5 +40,12 @@
     Comment = "source code"
 
 [[rule]]
+  typ = "RULE-SET"
+  value = "$1"
+  proxy = "Proxy"
+  [rule.params]
+    url = "https://raw.githubusercontent.com/lhie1/Rules/master/Surge3/Proxy.list"
+
+[[rule]]
   typ = "FINAL"
   proxy = "Proxy"
