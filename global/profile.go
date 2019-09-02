@@ -36,6 +36,7 @@ func RemoveProfile(key string) {
 func NewProfile(
 	config *model.Config,
 	dnsHandle dns.Handle,
+	dnsCache dns.ICache,
 	ruleHandle rule.Handle,
 	group map[string]group.IGroup,
 	server map[string]server.IServer,
@@ -45,6 +46,7 @@ func NewProfile(
 		uri:        config.Info.URI,
 		config:     config,
 		dnsHandle:  dnsHandle,
+		dnsCache:   dnsCache,
 		ruleHandle: ruleHandle,
 		group:      group,
 		server:     server,
@@ -58,6 +60,7 @@ type Profile struct {
 	uri           string
 	config        *model.Config
 	dnsHandle     dns.Handle
+	dnsCache      dns.ICache
 	ruleHandle    rule.Handle
 	group         map[string]group.IGroup
 	server        map[string]server.IServer
@@ -75,6 +78,10 @@ func (p *Profile) Config() *model.Config {
 
 func (p *Profile) DNSHandle() dns.Handle {
 	return p.dnsHandle
+}
+
+func (p *Profile) DNSCache() dns.ICache {
+	return p.dnsCache
 }
 
 func (p *Profile) RuleHandle() rule.Handle {

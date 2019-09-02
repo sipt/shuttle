@@ -73,7 +73,7 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 		return errors.Wrapf(err, "[plugin.ApplyConfig] failed")
 	}
 	// apply dns config
-	dnsHandle, err := dns.ApplyConfig(config, func(ctx context.Context, domain string) *dns.DNS { return nil })
+	dnsHandle, dnsCache, err := dns.ApplyConfig(config, func(ctx context.Context, domain string) *dns.DNS { return nil })
 	if err != nil {
 		return errors.Wrapf(err, "[dns.ApplyConfig] failed")
 	}
@@ -116,7 +116,7 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 		return errors.Wrapf(err, "[stream.ApplyConfig] failed")
 	}
 	// create profile
-	profile, err := global.NewProfile(config, dnsHandle, ruleHandle, groups, servers, filterHandle, before, after)
+	profile, err := global.NewProfile(config, dnsHandle, dnsCache, ruleHandle, groups, servers, filterHandle, before, after)
 	if err != nil {
 		return errors.Wrapf(err, "create profile failed")
 	}

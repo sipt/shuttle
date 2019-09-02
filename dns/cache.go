@@ -101,7 +101,7 @@ func (c *cache) ClearExpired() {
 	c.Unlock()
 }
 
-func newCacheHandle(next Handle) (Handle, error) {
+func newCacheHandle(next Handle) (Handle, ICache, error) {
 	cache := NewCache()
 	go func() {
 		timer := time.NewTimer(clearCacheExpiredInterval)
@@ -145,5 +145,5 @@ func newCacheHandle(next Handle) (Handle, error) {
 				Debug("find in cache")
 		}
 		return dnsPtr
-	}, nil
+	}, cache, nil
 }
