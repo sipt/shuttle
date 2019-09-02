@@ -36,7 +36,7 @@ func Register(key string, f NewFunc) {
 func Get(typ string, params map[string]string, filter FilterFunc) (FilterFunc, error) {
 	f, ok := filterMap[typ]
 	if !ok {
-		return nil, fmt.Errorf("rule not support: %s", typ)
+		return nil, fmt.Errorf("filter not support: %s", typ)
 	}
 	return f(params, filter)
 }

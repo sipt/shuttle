@@ -79,11 +79,14 @@ func ruleSetHandle(rule *Rule, next Handle, dnsHandle dns.Handle) (Handle, error
 		//		rule.Typ, rule.Value, rule.Proxy, rule.Params, rule.Proxy)
 		//	return
 		//}
-		handle, err = Get(r.Typ, r, handle, dnsHandle)
+		handle, err = Get(r.Typ, r, next, dnsHandle)
 		if err != nil {
 			logrus.WithError(err).WithField("type", KeyRuleSet).WithField("url", url).
 				Error("init rule set failed")
 		}
+		if handle != nil {
+			next = handle
+		}
 	}
-	return handle, err
+	return next, nil
 }
