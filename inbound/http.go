@@ -75,7 +75,6 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle typ.HandleFun
 					return
 				}
 				logrus.WithError(err).Error("[http.Inbound] parse to http request failed")
-				_ = conn.Close()
 				return
 			}
 			logrus.WithField("conn-id", conn.GetConnID()).WithField("host", req.Host).
@@ -87,7 +86,6 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle typ.HandleFun
 				err = resp.Write(conn)
 				if err != nil {
 					logrus.WithError(err).Error("[http.Inbound] write to response failed")
-					_ = conn.Close()
 					return
 				}
 				return
@@ -97,20 +95,18 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle typ.HandleFun
 				c, err := httpsHandshake(req, conn)
 				if err != nil {
 					logrus.WithError(err).Error("[http.Inbound] https handshake failed")
-					_ = conn.Close()
 					return
 				}
 				handle(c)
 				return
 			} else {
-				conn.WithValue(constant.KeyProtocol, "https")
+				conn.WithValue(constant.KeyProtocol, "http")
 				c, err := httpHandshake(req, conn)
 				if err != nil {
 					logrus.WithError(err).Error("[http.Inbound] http handshake failed")
-					_ = conn.Close()
 					return
 				}
-				handle(c)
+				go handle(c)
 			}
 		}
 	}

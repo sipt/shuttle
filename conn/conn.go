@@ -67,6 +67,11 @@ func (c *ctxConn) GetConnID() int64 {
 	return id
 }
 
+func (c *ctxConn) Close() error {
+	logrus.WithField("conn-id", c.GetConnID()).Debug("close the connection")
+	return c.Conn.Close()
+}
+
 func WrapConn(conn net.Conn) ICtxConn {
 	return &ctxConn{
 		Conn:    conn,

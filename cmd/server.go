@@ -121,25 +121,42 @@ func outboundHandle() typ.HandleFunc {
 			return
 		}
 		lc = profile.BeforeStream()(lc)
-		transefer(lc, sc)
+		transfer(lc, sc)
 	}
 }
 
-func transefer(from, to connpkg.ICtxConn) {
+func transfer(from, to connpkg.ICtxConn) {
 	end := make(chan bool, 1)
 	go func() {
 		_, err := io.Copy(from, to)
 		if err != nil {
 			end <- true
+			logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
+				Debug("io.copy failed")
 		}
 	}()
 	go func() {
 		_, err := io.Copy(to, from)
 		if err != nil {
 			end <- true
+			logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
+				Debug("io.copy failed")
 		}
 	}()
 	<-end
 	_ = from.Close()
 	_ = to.Close()
+}
+
+func syncTransfer(from, to connpkg.ICtxConn) error {
+	_, err := io.Copy(from, to)
+	if err != nil {
+		logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
+			Debug("io.copy failed")
+	}
+	_, err = io.Copy(to, from)
+	if err != nil {
+		logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
+			Debug("io.copy failed")
+	}
 }
