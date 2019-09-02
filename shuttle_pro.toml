@@ -23,7 +23,7 @@
   surge = {typ = "socks5", host = "localhost", port = 8889}
 
 [server_group]
-  Proxy = {typ = "select", servers = ["surge"]}
+  Proxy = {typ = "select", servers = ["surge", "DIRECT"]}
 
 [[rule]]
   typ = "DOMAIN"

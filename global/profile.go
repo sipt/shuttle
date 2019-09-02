@@ -38,7 +38,7 @@ func NewProfile(
 	dnsHandle dns.Handle,
 	dnsCache dns.ICache,
 	ruleHandle rule.Handle,
-	group map[string]group.IGroup,
+	group map[interface{}]group.IGroup,
 	server map[string]server.IServer,
 	filter filter.FilterFunc,
 	before, after stream.DecorateFunc) (*Profile, error) {
@@ -62,7 +62,7 @@ type Profile struct {
 	dnsHandle     dns.Handle
 	dnsCache      dns.ICache
 	ruleHandle    rule.Handle
-	group         map[string]group.IGroup
+	group         map[interface{}]group.IGroup
 	server        map[string]server.IServer
 	filter        filter.FilterFunc
 	before, after stream.DecorateFunc
@@ -88,7 +88,7 @@ func (p *Profile) RuleHandle() rule.Handle {
 	return p.ruleHandle
 }
 
-func (p *Profile) Group() map[string]group.IGroup {
+func (p *Profile) Group() map[interface{}]group.IGroup {
 	return p.group
 }
 

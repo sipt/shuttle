@@ -5,24 +5,27 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-
-	"github.com/sipt/shuttle/server"
-
 	"github.com/sipt/shuttle/conf/model"
+	"github.com/sipt/shuttle/server"
 )
 
-func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]server.IServer) (map[string]IGroup, error) {
+var Global = "GLOBAL"
+
+func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]server.IServer) (map[interface{}]IGroup, error) {
 	serverMap := make(map[string]IServerX)
 	for _, v := range servers {
 		serverMap[v.Name()] = &serverx{IServer: v}
 	}
-	groups := make(map[string]IGroup)
+	groups := make(map[interface{}]IGroup)
 	var (
 		g   IGroup
 		err error
 		ok  bool
 	)
 	for name, v := range config.ServerGroup {
+		if name == Global {
+			return nil, errors.Errorf("group name [%s] is reserved", name)
+		}
 		if v.Params == nil {
 			v.Params = map[string]string{ParamsKeyTestURI: config.General.DefaultTestURI}
 		} else if _, ok := v.Params[ParamsKeyTestURI]; !ok {
@@ -38,13 +41,23 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 		serverMap[name] = g
 		groups[name] = g
 	}
+	// global group, when in GLOBAL_MODE
+	gl, err := Get(ctx, TypSelect, Global, map[string]string{ParamsKeyTestURI: config.General.DefaultTestURI})
+	if err != nil {
+		return nil, err
+	}
+	gs := make([]IServerX, 0, len(config.ServerGroup))
 	for name, g := range config.ServerGroup {
 		ss := make([]IServerX, 0, len(g.Servers))
 		for _, s := range g.Servers {
 			ss = append(ss, serverMap[s])
+			gs = append(gs, serverMap[s])
 		}
 		serverMap[name].(IGroup).Append(ss)
+		gs = append(gs, serverMap[name])
 	}
+	gl.Append(gs)
+	groups[Global] = gl
 	return groups, nil
 }
 

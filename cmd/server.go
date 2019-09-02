@@ -13,6 +13,7 @@ import (
 	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/controller"
 	"github.com/sipt/shuttle/global"
+	"github.com/sipt/shuttle/global/namespace"
 	"github.com/sipt/shuttle/inbound"
 	"github.com/sipt/shuttle/server"
 	"github.com/sirupsen/logrus"
@@ -68,7 +69,7 @@ func handle() typ.HandleFunc {
 func namespaceHandle(next typ.HandleFunc) typ.HandleFunc {
 	return func(conn connpkg.ICtxConn) {
 		if p, ok := conn.Value(constant.KeyProfile).(*global.Profile); !ok || p == nil {
-			np := global.NamespaceWithContext(conn)
+			np := namespace.NamespaceWithContext(conn)
 			conn.WithValue(constant.KeyProfile, np.Profile())
 		}
 		next(conn)

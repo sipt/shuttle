@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/controller/model"
-	"github.com/sipt/shuttle/global"
+	"github.com/sipt/shuttle/global/namespace"
 	"github.com/sipt/shuttle/group"
 )
 
@@ -15,13 +15,17 @@ func InitAPI(e *gin.Engine) {
 	e.GET("/api/groups", listHandleFunc)
 	e.GET("/api/groups/:name", groupHandleFunc)
 	e.PUT("/api/groups/:name/rtt", resetHandleFunc)
+	e.PUT("/api/groups/:name/select/:sub_name", selectHandleFunc)
 }
 
 func listHandleFunc(c *gin.Context) {
-	np := global.NamespaceWithContext(c)
+	np := namespace.NamespaceWithContext(c)
 	groups := np.Profile().Group()
 	list := make([]*Group, 0, len(groups))
 	for _, v := range groups {
+		if v.Name() == group.Global {
+			continue
+		}
 		list = append(list, makeGroupResp(v))
 	}
 	c.JSON(http.StatusOK, &model.Response{
@@ -31,7 +35,7 @@ func listHandleFunc(c *gin.Context) {
 }
 
 func groupHandleFunc(c *gin.Context) {
-	np := global.NamespaceWithContext(c)
+	np := namespace.NamespaceWithContext(c)
 	groups := np.Profile().Group()
 	name := c.Param("name")
 	if len(name) == 0 {
@@ -55,8 +59,48 @@ func groupHandleFunc(c *gin.Context) {
 	})
 }
 
+func selectHandleFunc(c *gin.Context) {
+	np := namespace.NamespaceWithContext(c)
+	groups := np.Profile().Group()
+	name := c.Param("name")
+	if len(name) == 0 {
+		c.JSON(http.StatusBadRequest, &model.Response{
+			Code:    1,
+			Message: "group name is empty",
+		})
+		return
+	}
+	subName := c.Param("sub_name")
+	if len(subName) == 0 {
+		c.JSON(http.StatusBadRequest, &model.Response{
+			Code:    1,
+			Message: "group sub name is empty",
+		})
+		return
+	}
+	g, ok := groups[name]
+	if !ok || g == nil {
+		c.JSON(http.StatusBadRequest, &model.Response{
+			Code:    1,
+			Message: fmt.Sprintf("group name[%s] not found", name),
+		})
+		return
+	}
+	err := g.Select(subName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, &model.Response{
+			Code:    1,
+			Message: fmt.Sprintf("[%s] not found in group[%s]", subName, name),
+		})
+	}
+	c.JSON(http.StatusOK, &model.Response{
+		Code: 0,
+		Data: makeGroupResp(g),
+	})
+}
+
 func resetHandleFunc(c *gin.Context) {
-	np := global.NamespaceWithContext(c)
+	np := namespace.NamespaceWithContext(c)
 	groups := np.Profile().Group()
 	name := c.Param("name")
 	if len(name) == 0 {

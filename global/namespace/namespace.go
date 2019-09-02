@@ -1,10 +1,11 @@
-package global
+package namespace
 
 import (
 	"context"
 	"sync"
 
 	"github.com/sipt/shuttle/constant"
+	"github.com/sipt/shuttle/global"
 )
 
 func init() {
@@ -16,11 +17,12 @@ const defaultName = "default"
 var namespace map[string]*Namespace
 var mutex = &sync.RWMutex{}
 
-func AddNamespace(name string, ctx context.Context, profile *Profile) {
+func AddNamespace(name string, ctx context.Context, profile *global.Profile) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	n := &Namespace{
 		profile: profile,
+		mode:    constant.ModeRule,
 	}
 	n.ctx, n.cancel = context.WithCancel(ctx)
 	namespace[name] = n
@@ -35,10 +37,11 @@ func RemoveNamespace(name string) {
 type Namespace struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
-	profile *Profile
+	profile *global.Profile
+	mode    string
 }
 
-func (n *Namespace) Profile() *Profile {
+func (n *Namespace) Profile() *global.Profile {
 	return n.profile
 }
 
@@ -48,6 +51,18 @@ func (n *Namespace) Cancel() {
 
 func (n *Namespace) Context() context.Context {
 	return n.ctx
+}
+
+func (n *Namespace) Mode() string {
+	return n.mode
+}
+
+func (n *Namespace) SetMode(mode string) {
+	switch mode {
+	case constant.ModeRule, constant.ModeDirect, constant.ModeGlobal:
+		n.mode = mode
+	default:
+	}
 }
 
 func NamespaceWithContext(ctx context.Context) *Namespace {

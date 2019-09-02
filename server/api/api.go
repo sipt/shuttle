@@ -7,13 +7,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/controller/model"
-	"github.com/sipt/shuttle/global"
+	"github.com/sipt/shuttle/global/namespace"
 	"github.com/sipt/shuttle/server"
 )
 
 func InitAPI(e *gin.Engine) {
 	e.GET("/api/servers", func(c *gin.Context) {
-		np := global.NamespaceWithContext(c)
+		np := namespace.NamespaceWithContext(c)
 		servers := np.Profile().Server()
 		list := make([]*ItemResponse, 0, len(servers))
 		for _, v := range servers {
@@ -29,7 +29,7 @@ func InitAPI(e *gin.Engine) {
 		})
 	})
 	e.GET("/api/servers/:name", func(c *gin.Context) {
-		np := global.NamespaceWithContext(c)
+		np := namespace.NamespaceWithContext(c)
 		servers := np.Profile().Server()
 		name := c.Param("name")
 		if len(name) == 0 {
@@ -57,7 +57,7 @@ func InitAPI(e *gin.Engine) {
 		})
 	})
 	e.PUT("/api/servers/:name/rtt", func(c *gin.Context) {
-		np := global.NamespaceWithContext(c)
+		np := namespace.NamespaceWithContext(c)
 		servers := np.Profile().Server()
 		name := c.Param("name")
 		if len(name) == 0 {

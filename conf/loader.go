@@ -10,8 +10,10 @@ import (
 	"github.com/sipt/shuttle/conf/storage"
 	"github.com/sipt/shuttle/conn/filter"
 	"github.com/sipt/shuttle/conn/stream"
+	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/global"
+	"github.com/sipt/shuttle/global/namespace"
 	"github.com/sipt/shuttle/group"
 	"github.com/sipt/shuttle/plugin"
 	"github.com/sipt/shuttle/rule"
@@ -105,6 +107,8 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 	if err != nil {
 		return errors.Wrapf(err, "[rule.ApplyConfig] failed")
 	}
+	// global_mode || direct_mode || rule_mode
+	ruleHandle = ruleModeHandle(&rule.Rule{Profile: config.Info.Name}, ruleHandle, nil)
 	// apply filter config
 	filterHandle, err := filter.ApplyConfig(config)
 	if err != nil {
@@ -123,6 +127,24 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 	global.AddProfile(config.Info.Name, profile)
 	// TODO multiple profile
 	// set profile to namespace
-	global.AddNamespace("default", ctx, profile)
+	namespace.AddNamespace("default", ctx, profile)
 	return nil
+}
+
+func ruleModeHandle(r *rule.Rule, next rule.Handle, _ dns.Handle) rule.Handle {
+	return func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
+		np := namespace.NamespaceWithContext(ctx)
+		switch np.Mode() {
+		case constant.ModeDirect:
+			r.Typ = constant.ModeDirect
+			r.Proxy = "DIRECT"
+			return r
+		case constant.ModeGlobal:
+			r.Typ = constant.ModeGlobal
+			r.Proxy = "GLOBAL"
+			return r
+		default:
+			return next(ctx, info)
+		}
+	}
 }

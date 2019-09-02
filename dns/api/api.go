@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/controller/model"
-	"github.com/sipt/shuttle/global"
+	"github.com/sipt/shuttle/global/namespace"
 )
 
 func InitAPI(e *gin.Engine) {
@@ -14,7 +14,7 @@ func InitAPI(e *gin.Engine) {
 }
 
 func listHandleFunc(c *gin.Context) {
-	np := global.NamespaceWithContext(c)
+	np := namespace.NamespaceWithContext(c)
 	cache := np.Profile().DNSCache()
 	cacheList := cache.List()
 	list := make([]*DNS, 0, len(cacheList))
@@ -33,7 +33,7 @@ func listHandleFunc(c *gin.Context) {
 	})
 }
 func clearHandleFunc(c *gin.Context) {
-	np := global.NamespaceWithContext(c)
+	np := namespace.NamespaceWithContext(c)
 	cache := np.Profile().DNSCache()
 	cache.Clear()
 	c.JSON(http.StatusOK, &model.Response{})
