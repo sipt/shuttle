@@ -3,7 +3,7 @@
   default_test_uri = "http://www.bing.com"
 
 [dns]
-  servers = ["8.8.8.8", "114.114.114.114"]
+  servers = ["10.150.33.9"]
   [[dns.mapping]]
     domain = "localhost"
     ip = ["127.0.0.1"]
@@ -23,7 +23,7 @@
   surge = {typ = "socks5", host = "localhost", port = 8889}
 
 [server_group]
-  Proxy = {typ = "select", servers = ["surge", "DIRECT"]}
+  Proxy = {typ = "select", servers = ["DIRECT"]}
 
 [[rule]]
   typ = "DOMAIN"
