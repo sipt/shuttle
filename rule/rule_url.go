@@ -15,7 +15,7 @@ const (
 func init() {
 	Register(KeyUrlRegex, urlRegexHandle)
 }
-func urlRegexHandle(rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
+func urlRegexHandle(_ context.Context, rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
 	reg, err := regexp.Compile(rule.Value)
 	if err != nil {
 		return nil, errors.Errorf("rule:[%s, %s, %s, %v], regex:[%s] invalid",

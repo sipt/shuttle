@@ -125,6 +125,7 @@ func outboundHandle() typ.HandleFunc {
 		})
 		if err != nil {
 			logrus.WithField("proxy", rule.Proxy).WithError(err).Errorf("remote to server failed")
+			_ = lc.Close()
 			return
 		}
 		lc = profile.BeforeStream()(lc)

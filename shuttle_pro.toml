@@ -24,6 +24,8 @@
 
 [server_group]
   Proxy = {typ = "select", servers = ["DIRECT"]}
+  AdBlock = {typ = "select", servers = ["REJECT"]}
+  Domestic = {typ = "select", servers = ["DIRECT"]}
 
 [[rule]]
   typ = "DOMAIN"
@@ -45,6 +47,37 @@
   proxy = "Proxy"
   [rule.params]
     url = "https://raw.githubusercontent.com/lhie1/Rules/master/Surge3/Proxy.list"
+
+[[rule]]
+  typ = "RULE-SET"
+  value = "$1"
+  proxy = "AdBlock"
+  [rule.params]
+    url = "https://raw.githubusercontent.com/lhie1/Rules/master/Surge3/Reject.list"
+
+[[rule]]
+  typ = "RULE-SET"
+  value = "$1"
+  proxy = "Proxy"
+  [rule.params]
+    url = "https://raw.githubusercontent.com/lhie1/Rules/master/Surge3/AsianTV.list"
+
+[[rule]]
+  typ = "RULE-SET"
+  value = "$1"
+  proxy = "Proxy"
+  [rule.params]
+    url = "https://raw.githubusercontent.com/lhie1/Rules/master/Surge3/GlobalTV.list"
+
+[[rule]]
+  typ = "RULE-SET"
+  value = "https://raw.githubusercontent.com/lhie1/Rules/master/Surge3/Proxy.list"
+  proxy = "Proxy"
+
+[[rule]]
+  typ = "RULE-SET"
+  value = "https://raw.githubusercontent.com/lhie1/Rules/master/Surge3/Proxy.list"
+  proxy = "Proxy"
 
 [[rule]]
   typ = "FINAL"

@@ -17,7 +17,7 @@ func init() {
 	Register(KeyIPCidr, ipCidrHandle)
 	Register(KeyGeoIP, geoIPHandle)
 }
-func ipCidrHandle(rule *Rule, next Handle, dnsHandle dns.Handle) (Handle, error) {
+func ipCidrHandle(_ context.Context, rule *Rule, next Handle, dnsHandle dns.Handle) (Handle, error) {
 	_, cidr, err := net.ParseCIDR(rule.Value)
 	if err != nil {
 		return nil, errors.Errorf("rule:[%s, %s, %s, %v], ip:[%s] invalid",
@@ -38,7 +38,7 @@ func ipCidrHandle(rule *Rule, next Handle, dnsHandle dns.Handle) (Handle, error)
 	}, nil
 }
 
-func geoIPHandle(rule *Rule, next Handle, dnsHandle dns.Handle) (Handle, error) {
+func geoIPHandle(_ context.Context, rule *Rule, next Handle, dnsHandle dns.Handle) (Handle, error) {
 	return func(ctx context.Context, info RequestInfo) *Rule {
 		if len(info.CountryCode()) > 0 {
 			if info.CountryCode() == rule.Value {

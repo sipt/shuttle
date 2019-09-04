@@ -18,7 +18,7 @@ func init() {
 	Register(KeyDomain, domainHandle)
 	Register(KeyDomainKeyword, domainKeywordHandle)
 }
-func domainSuffixHandle(rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
+func domainSuffixHandle(_ context.Context, rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
 	return func(ctx context.Context, info RequestInfo) *Rule {
 		if strings.HasSuffix(info.Domain(), rule.Value) {
 			return rule
@@ -26,7 +26,7 @@ func domainSuffixHandle(rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
 		return next(ctx, info)
 	}, nil
 }
-func domainHandle(rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
+func domainHandle(_ context.Context, rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
 	return func(ctx context.Context, info RequestInfo) *Rule {
 		if len(info.Domain()) == len(rule.Value) && info.Domain() == rule.Value {
 			return rule
@@ -34,7 +34,7 @@ func domainHandle(rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
 		return next(ctx, info)
 	}, nil
 }
-func domainKeywordHandle(rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
+func domainKeywordHandle(_ context.Context, rule *Rule, next Handle, _ dns.Handle) (Handle, error) {
 	return func(ctx context.Context, info RequestInfo) *Rule {
 		if len(info.Domain()) >= len(rule.Value) && strings.Index(info.Domain(), rule.Value) > -1 {
 			return rule
