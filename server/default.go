@@ -114,6 +114,7 @@ func (r *RttServer) TestRtt(key, uri string) time.Duration {
 				if len(req.ip) == 0 {
 					req.domain = host
 				}
+				ctx, _ = context.WithTimeout(ctx, time.Second*5)
 				conn, err := r.Dial(ctx, "tcp", req, conn.DefaultDial)
 				return conn, err
 			},

@@ -8,10 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/dns"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -45,17 +44,25 @@ func ruleSetHandle(ctx context.Context, rule *Rule, next Handle, dnsHandle dns.H
 		return subHandle(ctx, info)
 	}
 	go func() {
-		timer := time.NewTimer(interval)
+		var timer *time.Timer
 		for {
-			select {
-			case <-timer.C:
-			case <-ctx.Done():
+			if timer == nil {
+				timer = time.NewTimer(interval)
+			} else {
+				timer.Reset(interval)
+				select {
+				case <-timer.C:
+				case <-ctx.Done():
+				}
 			}
 			rules, modified, etag, err = downloadRuleSet(ctx, rule, etag)
 			if err != nil {
 				logrus.WithError(err).WithField("url", rule.Value).
 					Error("download rule set failed")
 				continue
+			}
+			if !modified {
+				logrus.WithField("url", rule.Value).Info("rule_set not change")
 			}
 			var reply, req Handle
 			req = next
@@ -77,7 +84,7 @@ func ruleSetHandle(ctx context.Context, rule *Rule, next Handle, dnsHandle dns.H
 				}
 			}
 			subHandle = req
-			timer.Reset(interval)
+			logrus.WithField("url", rule.Value).Info("rule_set update success")
 		}
 	}()
 	return
@@ -120,6 +127,7 @@ func downloadRuleSet(ctx context.Context, rule *Rule, reqETag string) (rules []*
 		bs, _, err = r.ReadLine()
 		if err != nil {
 			if err == io.EOF {
+				err = nil
 				break
 			}
 			err = errors.Errorf("read line failed, rule set failed: %s:[%d]", url, lnum)
@@ -131,16 +139,17 @@ func downloadRuleSet(ctx context.Context, rule *Rule, reqETag string) (rules []*
 			continue
 		}
 		cells := strings.Split(line, ",")
-		if len(cells) > 2 {
+		if len(cells) >= 2 {
 			rules = append(rules, &Rule{
 				Profile: rule.Profile,
 				Proxy:   rule.Proxy,
 				Typ:     cells[0],
 				Value:   cells[1],
 			})
+		} else {
+			logrus.WithField("line", lnum).WithField("url", url).
+				Errorf("rule set parse line failed: %s", line)
 		}
-		logrus.WithError(err).WithField("line", lnum).WithField("url", url).
-			Errorf("rule set parse line failed: %s", line)
 	}
 	etag = resp.Header.Get("ETag")
 	return

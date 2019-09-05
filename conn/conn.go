@@ -27,7 +27,8 @@ func GetConnID() int64 {
 type DialFunc func(ctx context.Context, network string, addr, port string) (ICtxConn, error)
 
 func DefaultDial(ctx context.Context, network string, addr, port string) (ICtxConn, error) {
-	conn, err := net.Dial(network, net.JoinHostPort(addr, port))
+	dialer := new(net.Dialer)
+	conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(addr, port))
 	if err != nil {
 		return nil, err
 	}

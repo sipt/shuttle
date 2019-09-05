@@ -101,7 +101,7 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 		Typ:   "FINAL",
 		Proxy: server.Direct,
 	}
-	ruleHandle, err := rule.ApplyConfig(config, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
+	ruleHandle, err := rule.ApplyConfig(ctx, config, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
 		return defaultRule
 	}, dnsHandle)
 	if err != nil {

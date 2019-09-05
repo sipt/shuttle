@@ -31,8 +31,9 @@ func ipCidrHandle(_ context.Context, rule *Rule, next Handle, dnsHandle dns.Hand
 				return next(ctx, info)
 			}
 			info.SetIP(dns.CurrentIP)
-		} else if len(info.IP()) > 0 {
-			cidr.Contains(info.IP())
+		}
+		if len(info.IP()) > 0 && cidr.Contains(info.IP()) {
+			return rule
 		}
 		return next(ctx, info)
 	}, nil

@@ -19,3 +19,6 @@
 
 # Build
 _output/
+
+bullets/
+plugins/
