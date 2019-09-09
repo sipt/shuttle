@@ -84,6 +84,7 @@ type IGroup interface {
 	Select(name string) error
 	Items() []IServerX
 	Reset()
+	Clear()
 	IServerX
 }
 

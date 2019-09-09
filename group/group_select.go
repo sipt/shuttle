@@ -99,3 +99,11 @@ func (s *SelectGroup) Select(name string) error {
 	}
 	return errors.Errorf("server[%s] not exist in group[%s]", name, s.name)
 }
+func (s *SelectGroup) Clear() {
+	if len(s.servers) == 0 {
+		return
+	}
+	s.Lock()
+	defer s.Unlock()
+	s.servers = nil // clear all
+}

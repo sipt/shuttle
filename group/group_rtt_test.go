@@ -5,31 +5,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipt/shuttle/conf/logger"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/sipt/shuttle/server"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRttGroup(t *testing.T) {
-	logger.ConfigLogger()
-	logrus.Debug("hello world")
 	ctx := context.Background()
 	_, err := Get(ctx, TypRTT, "test", map[string]string{
-		ParamsKeyTestURL:  "www.baidu.com",
+		ParamsKeyTestURI:  "www.baidu.com",
 		ParamsKeyInterval: "1q",
 	})
 	assert.Error(t, err)
 	_, err = Get(ctx, TypRTT, "test", map[string]string{
-		ParamsKeyTestURL:  "http://www.baidu.com",
+		ParamsKeyTestURI:  "http://www.baidu.com",
 		ParamsKeyInterval: "1q",
 	})
 	assert.Error(t, err)
 	group, err := Get(ctx, TypRTT, "test", map[string]string{
-		ParamsKeyTestURL:  "http://www.baidu.com",
+		ParamsKeyTestURI:  "http://www.baidu.com",
 		ParamsKeyInterval: "10s",
 	})
 	assert.NoError(t, err)

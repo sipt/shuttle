@@ -104,7 +104,7 @@ func (a *Addr) String() string {
 	return net.JoinHostPort(a.IP.String(), port)
 }
 
-// A Conn represents a forward proxy connection.
+// A ICtxConn represents a forward proxy connection.
 type Conn struct {
 	net.Conn
 

@@ -73,6 +73,15 @@ func (c *ctxConn) Close() error {
 	return c.Conn.Close()
 }
 
+func (c *ctxConn) Read(b []byte) (int, error) {
+	n, err := c.Conn.Read(b)
+	return n, err
+}
+func (c *ctxConn) Write(b []byte) (int, error) {
+	n, err := c.Conn.Write(b)
+	return n, err
+}
+
 func WrapConn(conn net.Conn) ICtxConn {
 	return &ctxConn{
 		Conn:    conn,

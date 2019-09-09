@@ -10,12 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/sipt/shuttle/conn"
-
 	"github.com/pkg/errors"
+	"github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/server"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -60,6 +58,7 @@ func newRttGroup(ctx context.Context, name string, params map[string]string) (gr
 
 type rttGroup struct {
 	ctx      context.Context
+	cancel   func()
 	name     string
 	servers  []IServerX
 	current  IServerX
@@ -81,7 +80,9 @@ func (r *rttGroup) Append(servers []IServerX) {
 		r.servers = append(r.servers, servers...)
 	}
 	r.current = r.servers[0]
-	go r.autoSelectByRTT()
+	var ctx context.Context
+	ctx, r.cancel = context.WithCancel(r.ctx)
+	go r.autoSelectByRTT(ctx)
 }
 func (r *rttGroup) Items() []IServerX {
 	return r.servers
@@ -107,6 +108,15 @@ func (r *rttGroup) Server() server.IServer {
 		return nil
 	}
 }
+func (r *rttGroup) Clear() {
+	if len(r.servers) == 0 {
+		return
+	}
+	r.Lock()
+	defer r.Unlock()
+	r.cancel()      // stop timer
+	r.servers = nil // clear all
+}
 func (r *rttGroup) Select(name string) error {
 	return nil
 }
@@ -114,7 +124,7 @@ func (r *rttGroup) Reset() {
 	r.reset <- true
 }
 
-func (r *rttGroup) autoSelectByRTT() {
+func (r *rttGroup) autoSelectByRTT(ctx context.Context) {
 	r.testAllRTT()
 	timer := time.NewTimer(r.interval)
 	for {
@@ -125,7 +135,7 @@ func (r *rttGroup) autoSelectByRTT() {
 			timer.Stop()
 			r.testAllRTT()
 			timer.Reset(r.interval)
-		case <-r.ctx.Done():
+		case <-ctx.Done():
 			timer.Stop()
 			return
 		}
@@ -150,10 +160,11 @@ func (r *rttGroup) testAllRTT() {
 			}
 		}(v)
 	}
+	var skip = true
 	for range r.servers {
-		if current = <-reply; current != nil {
+		if current = <-reply; skip && current != nil {
+			skip = false
 			r.current = current
-			close(reply)
 			return
 		}
 	}
