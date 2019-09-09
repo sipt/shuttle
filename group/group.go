@@ -14,7 +14,7 @@ var Global = "GLOBAL"
 func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]server.IServer) (map[interface{}]IGroup, error) {
 	serverMap := make(map[string]IServerX)
 	for _, v := range servers {
-		serverMap[v.Name()] = &serverx{IServer: v}
+		serverMap[v.Name()] = WrapServer(v)
 	}
 	groups := make(map[interface{}]IGroup)
 	var (
@@ -94,6 +94,10 @@ type IServerX interface {
 	// connect to server
 	Server() server.IServer
 	Trace() []string
+}
+
+func WrapServer(s server.IServer) IServerX {
+	return &serverx{s}
 }
 
 type serverx struct {
