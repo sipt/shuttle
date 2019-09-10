@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conf/model"
 	"github.com/sipt/shuttle/dns"
@@ -28,6 +30,8 @@ func ApplyConfig(ctx context.Context, config *model.Config, proxyName map[string
 		}
 		handle, err = Get(ctx, rule.Typ, rule, handle, dnsHandle)
 		if err != nil {
+			logrus.WithError(err).WithField("name", rule.Typ).WithField("value", rule.Value).
+				WithField("proxy", rule.Proxy).Error("init rule failed")
 			return
 		}
 	}

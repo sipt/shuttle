@@ -29,6 +29,9 @@ func main() {
 	config, err := conf.LoadConfig(ctx, "file", "toml", params, func() {
 		fmt.Println("config file change")
 	})
+	if err != nil {
+		logrus.WithError(err).Fatal("load config failed")
+	}
 	l, err := logrus.ParseLevel(config.General.LoggerLevel)
 	if err != nil {
 		l = logrus.DebugLevel

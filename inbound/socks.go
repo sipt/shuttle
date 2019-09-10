@@ -158,7 +158,6 @@ func udpAssociate(ctx context.Context, conn net.Conn, req *request, handle typ.H
 		return nil
 	})
 	addr := u.LocalAddr().(*net.UDPAddr)
-	fmt.Println(addr, u.LocalAddr())
 	b, err := socks.MarshalCmdReply(socks.Version5, socks.StatusSucceeded, &socks.Addr{
 		IP:   addr.IP,
 		Port: addr.Port,

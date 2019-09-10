@@ -16,10 +16,10 @@ func init() {
 
 func newTCPListener(addr string) (func(context.Context, typ.HandleFunc), error) {
 	l, err := net.Listen("tcp", addr)
-	logrus.WithField("addr", "tcp://"+l.Addr().String()).Info("tcp listen starting")
 	if err != nil {
-		return nil, errors.Errorf("listen tcp://[%s] failed", addr)
+		return nil, errors.Errorf("listen tcp://[%s] failed: %s", addr, err.Error())
 	}
+	logrus.WithField("addr", "tcp://"+l.Addr().String()).Info("tcp listen starting")
 	return func(ctx context.Context, handle typ.HandleFunc) {
 		go func() {
 			for {

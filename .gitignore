@@ -22,3 +22,5 @@ _output/
 
 bullets/
 plugins/
+bore
+*.toml
