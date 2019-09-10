@@ -6,13 +6,14 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/server"
 )
 
 const TypSelect = "select"
 
 func init() {
-	Register(TypSelect, func(ctx context.Context, name string, params map[string]string) (group IGroup, e error) {
+	Register(TypSelect, func(ctx context.Context, name string, params map[string]string, _ dns.Handle) (group IGroup, e error) {
 		s := &SelectGroup{
 			name:    name,
 			RWMutex: &sync.RWMutex{},

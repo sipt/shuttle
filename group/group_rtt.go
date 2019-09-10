@@ -12,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conn"
+	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/server"
 	"github.com/sirupsen/logrus"
 )
@@ -29,7 +30,7 @@ func init() {
 	Register(TypRTT, newRttGroup)
 }
 
-func newRttGroup(ctx context.Context, name string, params map[string]string) (group IGroup, err error) {
+func newRttGroup(ctx context.Context, name string, params map[string]string, _ dns.Handle) (group IGroup, err error) {
 	rtt := &rttGroup{
 		ctx:     ctx,
 		name:    name,

@@ -85,7 +85,7 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 		return err
 	}
 	// apply server_group config
-	groups, err := group.ApplyConfig(ctx, config, servers)
+	groups, err := group.ApplyConfig(ctx, config, servers, dnsHandle)
 	if err != nil {
 		return err
 	}

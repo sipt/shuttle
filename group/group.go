@@ -6,12 +6,13 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conf/model"
+	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/server"
 )
 
 var Global = "GLOBAL"
 
-func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]server.IServer) (map[interface{}]IGroup, error) {
+func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]server.IServer, dnsHandle dns.Handle) (map[interface{}]IGroup, error) {
 	serverMap := make(map[string]IServerX)
 	for _, v := range servers {
 		serverMap[v.Name()] = WrapServer(v)
@@ -31,7 +32,7 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 		} else if _, ok := v.Params[ParamsKeyTestURI]; !ok {
 			v.Params[ParamsKeyTestURI] = config.General.DefaultTestURI
 		}
-		g, err = Get(ctx, v.Typ, name, v.Params)
+		g, err = Get(ctx, v.Typ, name, v.Params, dnsHandle)
 		if err != nil {
 			return nil, err
 		}
@@ -42,7 +43,7 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 		groups[name] = g
 	}
 	// global group, when in GLOBAL_MODE
-	gl, err := Get(ctx, TypSelect, Global, map[string]string{ParamsKeyTestURI: config.General.DefaultTestURI})
+	gl, err := Get(ctx, TypSelect, Global, map[string]string{ParamsKeyTestURI: config.General.DefaultTestURI}, dnsHandle)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +62,7 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 	return groups, nil
 }
 
-type NewFunc func(ctx context.Context, name string, params map[string]string) (IGroup, error)
+type NewFunc func(ctx context.Context, name string, params map[string]string, dnsHandle dns.Handle) (IGroup, error)
 
 var creator = make(map[string]NewFunc)
 
@@ -71,12 +72,12 @@ func Register(key string, f NewFunc) {
 }
 
 // Get: get group by key
-func Get(ctx context.Context, typ string, name string, params map[string]string) (IGroup, error) {
+func Get(ctx context.Context, typ string, name string, params map[string]string, dnsHandle dns.Handle) (IGroup, error) {
 	f, ok := creator[typ]
 	if !ok {
 		return nil, fmt.Errorf("server not support: %s", typ)
 	}
-	return f(ctx, name, params)
+	return f(ctx, name, params, dnsHandle)
 }
 
 type IGroup interface {
