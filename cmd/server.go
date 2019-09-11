@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -22,10 +23,14 @@ import (
 	rulepkg "github.com/sipt/shuttle/rule"
 )
 
+var path = flag.String("c", "shuttle.toml", "config file path")
+var encoding = flag.String("e", "toml", "config file encoding")
+
 func main() {
+	flag.Parse()
 	logrus.SetLevel(logrus.DebugLevel)
 	ctx, cancel := context.WithCancel(context.Background())
-	params := map[string]string{"path": "shuttle_pro.toml"}
+	params := map[string]string{"path": *path}
 	config, err := conf.LoadConfig(ctx, "file", "toml", params, func() {
 		fmt.Println("config file change")
 	})

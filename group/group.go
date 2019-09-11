@@ -48,14 +48,18 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 		return nil, err
 	}
 	gs := make([]IServerX, 0, len(config.ServerGroup))
-	for name, g := range config.ServerGroup {
+	for gname, g := range config.ServerGroup {
 		ss := make([]IServerX, 0, len(g.Servers))
-		for _, s := range g.Servers {
-			ss = append(ss, serverMap[s])
-			gs = append(gs, serverMap[s])
+		for _, sname := range g.Servers {
+			s := serverMap[sname]
+			if s == nil {
+				return nil, errors.Errorf("[group:%s] [server: %s] not exist in group/server", gname, sname)
+			}
+			ss = append(ss, s)
+			gs = append(gs, s)
 		}
-		serverMap[name].(IGroup).Append(ss)
-		gs = append(gs, serverMap[name])
+		serverMap[gname].(IGroup).Append(ss)
+		gs = append(gs, serverMap[gname])
 	}
 	gl.Append(gs)
 	groups[Global] = gl
