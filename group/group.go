@@ -50,15 +50,19 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 	gs := make([]IServerX, 0, len(config.ServerGroup))
 	for gname, g := range config.ServerGroup {
 		ss := make([]IServerX, 0, len(g.Servers))
+		gEntity := serverMap[gname].(IGroup)
 		for _, sname := range g.Servers {
 			s := serverMap[sname]
 			if s == nil {
 				return nil, errors.Errorf("[group:%s] [server: %s] not exist in group/server", gname, sname)
 			}
+			if gEntity.UdpRelay() && !s.UdpRelay() {
+				return nil, errors.Errorf("[group:%s] [server: %s] server not support udp-relay", gname, sname)
+			}
 			ss = append(ss, s)
 			gs = append(gs, s)
 		}
-		serverMap[gname].(IGroup).Append(ss)
+		gEntity.Append(ss)
 		gs = append(gs, serverMap[gname])
 	}
 	gl.Append(gs)
@@ -99,6 +103,7 @@ type IServerX interface {
 	// connect to server
 	Server() server.IServer
 	Trace() []string
+	UdpRelay() bool
 }
 
 func WrapServer(s server.IServer) IServerX {

@@ -12,10 +12,14 @@ import (
 	"github.com/sipt/shuttle/dns"
 )
 
-func ApplyConfig(ctx context.Context, config *model.Config, proxyName map[string]bool, fallback Handle, dnsHandle dns.Handle) (handle Handle, err error) {
+func ApplyConfig(ctx context.Context, config *model.Config, isUDP bool, proxyName map[string]bool, fallback Handle, dnsHandle dns.Handle) (handle Handle, err error) {
 	handle = fallback
-	for i := len(config.Rule) - 1; i >= 0; i-- {
-		v := config.Rule[i]
+	rules := config.Rule
+	if isUDP {
+		rules = config.UDPRule
+	}
+	for i := len(rules) - 1; i >= 0; i-- {
+		v := rules[i]
 		rule := &Rule{
 			Typ:     v.Typ,
 			Value:   v.Value,

@@ -15,9 +15,10 @@ const TypSelect = "select"
 func init() {
 	Register(TypSelect, func(ctx context.Context, name string, params map[string]string, _ dns.Handle) (group IGroup, e error) {
 		s := &SelectGroup{
-			name:    name,
-			RWMutex: &sync.RWMutex{},
-			testUrl: params[ParamsKeyTestURI],
+			name:     name,
+			RWMutex:  &sync.RWMutex{},
+			testUrl:  params[ParamsKeyTestURI],
+			udpRelay: params[ParamsKeyUdpRelay] == "true",
 		}
 		if s.testUrl == "" {
 			s.testUrl = DefaultTestURL
@@ -25,18 +26,16 @@ func init() {
 			err = errors.Errorf("[group: %s] [%s: %s] is invalid", name, ParamsKeyTestURI, s.testUrl)
 			return nil, err
 		}
-		return &SelectGroup{
-			name:    name,
-			RWMutex: &sync.RWMutex{},
-		}, nil
+		return s, nil
 	})
 }
 
 type SelectGroup struct {
-	name    string
-	servers []IServerX
-	current IServerX
-	testUrl string
+	name     string
+	servers  []IServerX
+	current  IServerX
+	testUrl  string
+	udpRelay bool
 	*sync.RWMutex
 }
 
@@ -74,6 +73,9 @@ func (s *SelectGroup) Name() string {
 func (s *SelectGroup) Trace() []string {
 	trace := make([]string, 0, len(s.current.Trace())+1)
 	return append(append(trace, s.name), s.current.Trace()...)
+}
+func (s *SelectGroup) UdpRelay() bool {
+	return s.udpRelay
 }
 func (s *SelectGroup) Server() server.IServer {
 	s.RLock()

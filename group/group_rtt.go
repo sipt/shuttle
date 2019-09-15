@@ -22,8 +22,9 @@ const (
 	DefaultTestURL  = "http://www.gstatic.com/generate_204"
 	DefaultInterval = 10 * time.Minute
 
-	ParamsKeyTestURI  = "test_url"
+	ParamsKeyTestURI  = "test-url"
 	ParamsKeyInterval = "interval"
+	ParamsKeyUdpRelay = "udp-relay"
 )
 
 func init() {
@@ -54,6 +55,7 @@ func newRttGroup(ctx context.Context, name string, params map[string]string, _ d
 		}
 	}
 	rtt.reset = make(chan bool)
+	rtt.udpRelay = params[ParamsKeyUdpRelay] == "true"
 	return rtt, nil
 }
 
@@ -66,6 +68,7 @@ type rttGroup struct {
 	testUrl  string
 	interval time.Duration
 	reset    chan bool
+	udpRelay bool
 	*sync.RWMutex
 }
 
@@ -97,6 +100,9 @@ func (r *rttGroup) Name() string {
 func (r *rttGroup) Trace() []string {
 	trace := make([]string, 0, len(r.current.Trace())+1)
 	return append(append(trace, r.name), r.current.Trace()...)
+}
+func (r *rttGroup) UdpRelay() bool {
+	return r.udpRelay
 }
 func (r *rttGroup) Server() server.IServer {
 	r.RLock()

@@ -101,7 +101,9 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 		Typ:   "FINAL",
 		Proxy: server.Direct,
 	}
-	ruleHandle, err := rule.ApplyConfig(ctx, config, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
+
+	// TCP rules
+	ruleHandle, err := rule.ApplyConfig(ctx, config, false, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
 		return defaultRule
 	}, dnsHandle)
 	if err != nil {
@@ -109,6 +111,17 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 	}
 	// global_mode || direct_mode || rule_mode
 	ruleHandle = ruleModeHandle(&rule.Rule{Profile: config.Info.Name}, ruleHandle, nil)
+
+	// UDP rules
+	udpRuleHandle, err := rule.ApplyConfig(ctx, config, true, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
+		return defaultRule
+	}, dnsHandle)
+	if err != nil {
+		return errors.Wrapf(err, "[rule.ApplyConfig] failed")
+	}
+	// global_mode || direct_mode || rule_mode
+	udpRuleHandle = ruleModeHandle(&rule.Rule{Profile: config.Info.Name}, udpRuleHandle, nil)
+
 	// apply filter config
 	filterHandle, err := filter.ApplyConfig(config)
 	if err != nil {
@@ -120,7 +133,7 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 		return errors.Wrapf(err, "[stream.ApplyConfig] failed")
 	}
 	// create profile
-	profile, err := global.NewProfile(config, dnsHandle, dnsCache, ruleHandle, groups, servers, filterHandle, before, after)
+	profile, err := global.NewProfile(config, dnsHandle, dnsCache, ruleHandle, udpRuleHandle, groups, servers, filterHandle, before, after)
 	if err != nil {
 		return errors.Wrapf(err, "create profile failed")
 	}

@@ -90,6 +90,9 @@ func ruleHandle(next typ.HandleFunc) typ.HandleFunc {
 		profile := conn.Value(constant.KeyProfile).(*global.Profile)
 
 		rule := profile.RuleHandle()(conn, reqInfo)
+		if reqInfo.Network() == "udp" {
+			rule = profile.UDPRuleHandle()(conn, reqInfo)
+		}
 		if len(reqInfo.IP()) == 0 {
 			answer := profile.DNSHandle()(conn, reqInfo.Domain())
 			if answer != nil {

@@ -80,6 +80,7 @@ type IServer interface {
 	SetRtt(key string, duration time.Duration)
 	Rtt(key string) time.Duration
 	TestRtt(key, uri string) time.Duration
+	UdpRelay() bool
 	// connect to server
 	Dial(ctx context.Context, network string, info Info, dial conn.DialFunc) (conn.ICtxConn, error)
 }

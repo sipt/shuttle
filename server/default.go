@@ -49,6 +49,9 @@ func (d *DirectServer) Rtt(key string) time.Duration {
 	defer d.RUnlock()
 	return d.rtt[key]
 }
+func (d *DirectServer) UdpRelay() bool {
+	return true
+}
 
 func (d *DirectServer) Dial(ctx context.Context, network string, info Info, dial conn.DialFunc) (conn.ICtxConn, error) {
 	var host string
@@ -78,6 +81,9 @@ func (r *RejectServer) TestRtt(_, _ string) time.Duration {
 }
 func (r *RejectServer) Dial(ctx context.Context, network string, info Info, dial conn.DialFunc) (conn.ICtxConn, error) {
 	return nil, ErrRejected
+}
+func (r *RejectServer) UdpRelay() bool {
+	return false
 }
 
 func NewRttServer(server IServer, params map[string]string) IServer {

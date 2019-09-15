@@ -7,8 +7,8 @@ type Config struct {
 	} `toml:"-" json:"-" yaml:"-"`
 
 	General struct {
-		LoggerLevel    string `toml:"logger_level"`
-		DefaultTestURI string `toml:"default_test_uri"`
+		LoggerLevel    string `toml:"logger-level"`
+		DefaultTestURI string `toml:"default-test-uri"`
 	} `toml:"general"`
 
 	Listener []struct {
@@ -16,21 +16,21 @@ type Config struct {
 		Typ string `toml:"typ"`
 		// Addr: e.g. [":8080", "[::1]:8080", "192.168.1.23:8080"]
 		Addr string `toml:"addr"`
-		// Params of listener: e.g. {"auth_type": "basic", "password": "password", "user": "user name"}
+		// Params of listener: e.g. {"auth-type": "basic", "password": "password", "user": "user name"}
 		Params map[string]string `toml:"params"`
 	} `toml:"listener"`
 
 	Controller struct {
 		// Addr: e.g. [":8080", "[::1]:8080", "192.168.1.23:8080"]
 		Addr string `toml:"addr"`
-		// Params of listener: e.g. {"auth_type": "basic", "password": "password", "user": "user name"}
+		// Params of listener: e.g. {"auth-type": "basic", "password": "password", "user": "user name"}
 		Params map[string]string `toml:"params"`
 	} `toml:"controller"`
 
 	DNS struct {
-		IncludeSystem bool     `toml:"include_system"`
+		IncludeSystem bool     `toml:"include-system"`
 		Servers       []string `toml:"servers"`
-		TimeoutSec    int      `toml:"timeout_sec"`
+		TimeoutSec    int      `toml:"timeout-sec"`
 		Mapping       []struct {
 			Domain string   `toml:"domain"`
 			IP     []string `toml:"ip"`
@@ -51,14 +51,11 @@ type Config struct {
 		// Servers: e.g. in {Server..., ServerGroup...}
 		Servers []string          `toml:"servers"`
 		Params  map[string]string `toml:"params"`
-	} `toml:"server_group"`
+	} `toml:"server-group"`
 
-	Rule []struct {
-		Typ    string            `toml:"typ"`
-		Value  string            `toml:"value"`
-		Proxy  string            `toml:"proxy"`
-		Params map[string]string `toml:"params"`
-	} `toml:"rule"`
+	Rule []Rule `toml:"rule"`
+
+	UDPRule []Rule `toml:"udp-rule"`
 
 	Include []struct {
 		// e.g. {typ = local, path = "/User/root/config/server.toml"}
@@ -83,4 +80,11 @@ type Config struct {
 	} `toml:"stream"`
 
 	Plugins map[string]map[string]string `json:"plugins"`
+}
+
+type Rule struct {
+	Typ    string            `toml:"typ"`
+	Value  string            `toml:"value"`
+	Proxy  string            `toml:"proxy"`
+	Params map[string]string `toml:"params"`
 }

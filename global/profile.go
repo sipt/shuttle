@@ -38,21 +38,23 @@ func NewProfile(
 	dnsHandle dns.Handle,
 	dnsCache dns.ICache,
 	ruleHandle rule.Handle,
+	udpRuleHandle rule.Handle,
 	group map[interface{}]group.IGroup,
 	server map[string]server.IServer,
 	filter filter.FilterFunc,
 	before, after stream.DecorateFunc) (*Profile, error) {
 	return &Profile{
-		uri:        config.Info.URI,
-		config:     config,
-		dnsHandle:  dnsHandle,
-		dnsCache:   dnsCache,
-		ruleHandle: ruleHandle,
-		group:      group,
-		server:     server,
-		filter:     filter,
-		before:     before,
-		after:      after,
+		uri:           config.Info.URI,
+		config:        config,
+		dnsHandle:     dnsHandle,
+		dnsCache:      dnsCache,
+		ruleHandle:    ruleHandle,
+		udpRuleHandle: ruleHandle,
+		group:         group,
+		server:        server,
+		filter:        filter,
+		before:        before,
+		after:         after,
 	}, nil
 }
 
@@ -62,6 +64,7 @@ type Profile struct {
 	dnsHandle     dns.Handle
 	dnsCache      dns.ICache
 	ruleHandle    rule.Handle
+	udpRuleHandle rule.Handle
 	group         map[interface{}]group.IGroup
 	server        map[string]server.IServer
 	filter        filter.FilterFunc
@@ -86,6 +89,10 @@ func (p *Profile) DNSCache() dns.ICache {
 
 func (p *Profile) RuleHandle() rule.Handle {
 	return p.ruleHandle
+}
+
+func (p *Profile) UDPRuleHandle() rule.Handle {
+	return p.udpRuleHandle
 }
 
 func (p *Profile) Group() map[interface{}]group.IGroup {
