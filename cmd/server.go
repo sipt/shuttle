@@ -16,6 +16,7 @@ import (
 	"github.com/sipt/shuttle/global"
 	"github.com/sipt/shuttle/global/namespace"
 	"github.com/sipt/shuttle/inbound"
+	"github.com/sipt/shuttle/pkg/debug"
 	"github.com/sipt/shuttle/server"
 	"github.com/sirupsen/logrus"
 
@@ -25,6 +26,7 @@ import (
 
 var path = flag.String("c", "shuttle.toml", "config file path")
 var encoding = flag.String("e", "toml", "config file encoding")
+var logFile = flag.String("log", "", "logger file")
 
 func main() {
 	flag.Parse()
@@ -71,6 +73,7 @@ func handle() typ.HandleFunc {
 	handle := outboundHandle()
 	handle = ruleHandle(handle)
 	handle = namespaceHandle(handle)
+	handle = recoverHandle(handle)
 	return handle
 }
 
@@ -141,6 +144,17 @@ func outboundHandle() typ.HandleFunc {
 		}
 		lc = profile.BeforeStream()(lc)
 		transfer(lc, sc)
+	}
+}
+
+func recoverHandle(next typ.HandleFunc) typ.HandleFunc {
+	return func(lc connpkg.ICtxConn) {
+		defer func() {
+			if e := recover(); e != nil {
+				logrus.WithField("error", e).WithField("stack", string(debug.Stack(3))).
+					Error("stacktrace from panic")
+			}
+		}()
 	}
 }
 
