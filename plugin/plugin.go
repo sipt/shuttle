@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"flag"
 	"os"
 	"path"
 	"plugin"
@@ -15,14 +16,19 @@ const (
 	ExtName    = ".plugin"
 )
 
+var pluginsDir = flag.String("plugins", PluginsDir, "plugins dir")
+
 func ApplyConfig(config *model.Config) error {
-	if dir, err := os.Stat(PluginsDir); err != nil && !os.IsExist(err) {
+	if *pluginsDir == "" {
+		return nil
+	}
+	if dir, err := os.Stat(*pluginsDir); err != nil && !os.IsExist(err) {
 		logrus.Infof("not found plugins")
 		return nil
 	} else if !dir.IsDir() {
 		logrus.Errorf("plugins is not a dir")
 	}
-	dir, err := os.Open(PluginsDir)
+	dir, err := os.Open(*pluginsDir)
 	if err != nil {
 		return errors.Wrap(err, "open plugins dir failed")
 	}

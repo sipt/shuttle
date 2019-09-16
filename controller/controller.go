@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"github.com/gin-gonic/gin"
+	"github.com/sipt/shuttle/conf/logger"
 	"github.com/sipt/shuttle/conf/model"
 
 	dnsapi "github.com/sipt/shuttle/dns/api"
@@ -10,6 +12,7 @@ import (
 )
 
 func ApplyConfig(conf *model.Config) (closer func(), err error) {
+	e.Use(gin.LoggerWithWriter(logger.Std))
 	sapi.InitAPI(e)   // init server api
 	gapi.InitAPI(e)   // init group api
 	dnsapi.InitAPI(e) // init dns api

@@ -144,19 +144,24 @@ func NewCmdFunc(ctx context.Context, addr *socks.Addr, handle typ.HandleFunc) fu
 }
 
 func udpAssociate(ctx context.Context, conn net.Conn, req *request, handle typ.HandleFunc) error {
-	dst := &net.UDPAddr{
-		IP:   req.ip,
-		Port: req.port,
+	laddr := ""
+	if req.port > 0 {
+		laddr = fmt.Sprintf(":%d", req.port)
 	}
-	u, err := socks.NewUDPServer("", dst)
+	u, err := socks.NewUDPServer(laddr)
 	if err != nil {
 		return errors.Wrap(err, "create udp listen failed")
 	}
 	go u.Serve(func(pc net.PacketConn, remote net.Addr, dst net.Addr, b []byte) error {
+		addr := dst.(*socks.Addr)
+		req.ip = addr.IP
+		req.domain = addr.Name
+		req.port = addr.Port
 		ctx = context.WithValue(ctx, constant.KeyRequestInfo, req)
 		handle(connpkg.NewUDPConn(pc, ctx, remote, b))
 		return nil
 	})
+	defer u.Close() // 当TCP结束时，UDP也关闭
 	addr := u.LocalAddr().(*net.UDPAddr)
 	b, err := socks.MarshalCmdReply(socks.Version5, socks.StatusSucceeded, &socks.Addr{
 		IP:   addr.IP,
@@ -169,5 +174,13 @@ func udpAssociate(ctx context.Context, conn net.Conn, req *request, handle typ.H
 	if err != nil {
 		return err
 	}
-	return nil
+	buf := make([]byte, 1)
+	for {
+		_, err := conn.Read(buf)
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			continue
+		}
+		logrus.WithField("bind", addr.String()).Debug("UDP Associate end")
+		return nil
+	}
 }

@@ -26,11 +26,15 @@ import (
 
 var path = flag.String("c", "shuttle.toml", "config file path")
 var encoding = flag.String("e", "toml", "config file encoding")
-var logFile = flag.String("log", "", "logger file")
+var logPath = flag.String("logpath", "", "logger file")
 
 func main() {
 	flag.Parse()
 	logrus.SetLevel(logrus.DebugLevel)
+	err := logger.ConfigOutput(*logPath)
+	if err != nil {
+		panic(err)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	params := map[string]string{"path": *path}
 	config, err := conf.LoadConfig(ctx, "file", "toml", params, func() {
@@ -155,6 +159,7 @@ func recoverHandle(next typ.HandleFunc) typ.HandleFunc {
 					Error("stacktrace from panic")
 			}
 		}()
+		next(lc)
 	}
 }
 

@@ -10,7 +10,6 @@ import (
 // udp server for socks5.
 type udpServer struct {
 	net.PacketConn
-	dst *net.UDPAddr
 }
 
 func (s *udpServer) Serve(cmdFunc func(pc net.PacketConn, remote net.Addr, dst net.Addr, b []byte) error) {
@@ -71,11 +70,7 @@ func (s *udpServer) Serve(cmdFunc func(pc net.PacketConn, remote net.Addr, dst n
 		logrus.WithField("server", "udp").Debugf("short cmd request")
 		return
 	}
-	ip := s.LocalAddr().(*net.UDPAddr).IP.String()
-	if ip != "0.0.0.0" && ip != "::" && dstAddr.String() != s.LocalAddr().String() {
-		return
-	}
-	err = cmdFunc(s, remoteAddr, s.dst, b[off+l:n])
+	err = cmdFunc(s, remoteAddr, dstAddr, b[off+l:n])
 	if err != nil {
 		logrus.WithError(err).WithField("server", "udp").Debugf("cmd func failed")
 		return
@@ -83,10 +78,9 @@ func (s *udpServer) Serve(cmdFunc func(pc net.PacketConn, remote net.Addr, dst n
 }
 
 // NewUDPServer returns a new udpServer.
-func NewUDPServer(addr string, dst *net.UDPAddr) (*udpServer, error) {
+func NewUDPServer(addr string) (*udpServer, error) {
 	var err error
 	s := new(udpServer)
-	s.dst = dst
 	s.PacketConn, err = net.ListenPacket("udp", addr)
 	if err != nil {
 		return nil, err

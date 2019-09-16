@@ -34,7 +34,7 @@ func TestResolveDomain(t *testing.T) {
 }
 
 func TestApplyConfig(t *testing.T) {
-	fileName = "../" + fileName
+	fileName := "../GeoLite2-Country.mmdb"
 	h, err := ApplyConfig(&model.Config{
 		DNS: struct {
 			IncludeSystem bool     `json:"include_system"`
