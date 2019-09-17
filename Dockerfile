@@ -18,4 +18,12 @@ COPY --from=builder /shuttle/bin/plugins/ss.plugin /shuttle/bin/plugins/
 COPY --from=builder /shuttle/bin/plugins/policy-path.plugin /shuttle/bin/plugins/
 COPY --from=builder /shuttle/bin/shuttle /usr/local/bin/
 
+ENV CONFIG_PATH /config/shuttle_pro.toml
+ENV PLUGINS_DIR /shuttle/bin/plugins
+ENV GEOIP_DB /shuttle/bin/GeoLite2-Country.mmdb
+ENV ENCODING toml
+EXPOSE 10000:8081/tcp
+EXPOSE 10001:9000/tcp
+EXPOSE 10002:9001/tcp
+
 ENTRYPOINT ["shuttle"]
