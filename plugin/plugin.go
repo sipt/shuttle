@@ -16,7 +16,7 @@ const (
 	ExtName    = ".plugin"
 )
 
-var pluginsDir = flag.String("plugins", PluginsDir, "plugins dir")
+var pluginsDir = flag.String("plugins", os.Getenv("PLUGINS_DIR"), "plugins dir")
 
 func ApplyConfig(config *model.Config) error {
 	if *pluginsDir == "" {

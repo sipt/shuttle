@@ -24,9 +24,9 @@ import (
 	rulepkg "github.com/sipt/shuttle/rule"
 )
 
-var path = flag.String("c", "shuttle.toml", "config file path")
-var encoding = flag.String("e", "toml", "config file encoding")
-var logPath = flag.String("logpath", "", "logger file")
+var path = flag.String("c", os.Getenv("CONFIG_PATH"), "config file path")
+var encoding = flag.String("e", os.Getenv("ENCODING"), "config file encoding")
+var logPath = flag.String("logpath", os.Getenv("LOGGER_PATH"), "logger file")
 
 func main() {
 	flag.Parse()

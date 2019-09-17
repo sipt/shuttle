@@ -3,16 +3,16 @@ package dns
 import (
 	"flag"
 	"net"
+	"os"
 
 	"github.com/pkg/errors"
-
+	"github.com/sipt/shuttle/assets"
 	"github.com/sirupsen/logrus"
 
-	"github.com/oschwald/geoip2-golang"
-	"github.com/sipt/shuttle/assets"
+	geoip2 "github.com/oschwald/geoip2-golang"
 )
 
-var fileName = flag.String("geoip", "GeoLite2-Country.mmdb", "geo ip db path")
+var fileName = flag.String("geoip", os.Getenv("GEOIP_DB"), "geo ip db path")
 
 var geoipDB *geoip2.Reader
 

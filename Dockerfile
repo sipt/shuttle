@@ -12,12 +12,10 @@ RUN GOOS=linux GOARCH=amd64 go build -buildmode=plugin -o /shuttle/bin/plugins/p
 
 FROM alpine:latest
 WORKDIR /shuttle/bin/
-RUN pwd
+RUN apk --no-cache add tzdata ca-certificates libc6-compat libgcc libstdc++
 COPY --from=builder /GeoLite2-Country.mmdb /shuttle/bin/
 COPY --from=builder /shuttle/bin/plugins/ss.plugin /shuttle/bin/plugins/
 COPY --from=builder /shuttle/bin/plugins/policy-path.plugin /shuttle/bin/plugins/
-RUN ls -l
 COPY --from=builder /shuttle/bin/shuttle /usr/local/bin/
-RUN ls -l /usr/local/bin/shuttle
 
-#ENTRYPOINT ["shuttle", "-c", "$CONFIG_PATH", "-geoip", "$GEOIP_DB", "-plugins", "$PLUGINS_DIR"]
+ENTRYPOINT ["shuttle"]
