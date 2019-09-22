@@ -12,23 +12,23 @@ import (
 )
 
 const (
-	PluginsDir = "plugins"
+	pluginsDir = "plugins"
 	ExtName    = ".plugin"
 )
 
-var pluginsDir = flag.String("plugins", os.Getenv("PLUGINS_DIR"), "plugins dir")
+var PluginsDir = flag.String("plugins", os.Getenv("PLUGINS_DIR"), "plugins dir")
 
 func ApplyConfig(config *model.Config) error {
-	if *pluginsDir == "" {
+	if *PluginsDir == "" {
 		return nil
 	}
-	if dir, err := os.Stat(*pluginsDir); err != nil && !os.IsExist(err) {
+	if dir, err := os.Stat(*PluginsDir); err != nil && !os.IsExist(err) {
 		logrus.Infof("not found plugins")
 		return nil
 	} else if !dir.IsDir() {
 		logrus.Errorf("plugins is not a dir")
 	}
-	dir, err := os.Open(*pluginsDir)
+	dir, err := os.Open(*PluginsDir)
 	if err != nil {
 		return errors.Wrap(err, "open plugins dir failed")
 	}
@@ -40,7 +40,7 @@ func ApplyConfig(config *model.Config) error {
 		if !file.IsDir() && path.Ext(file.Name()) == ExtName {
 			_, name := path.Split(file.Name())
 			name = name[:len(name)-len(ExtName)]
-			pluginPath := path.Join(PluginsDir, file.Name())
+			pluginPath := path.Join(pluginsDir, file.Name())
 			plug, err := plugin.Open(pluginPath)
 			if err != nil {
 				logrus.WithError(err).Errorf("import plugin[%s] failed", pluginPath)

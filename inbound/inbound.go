@@ -15,17 +15,27 @@ const (
 	ProtocolUDP_DNS   = "dns"
 )
 
-var ctx = context.Background()
-var inboundContext = make(map[string]context.CancelFunc)
+var (
+	cancel         func()
+	inboundContext = make(map[string]context.CancelFunc)
+)
 
-func Cancel(addr string) {
-	cancel := inboundContext[addr]
-	if cancel != nil {
+func Cancel(addr ...string) {
+	if len(addr) == 0 {
 		cancel()
+	} else {
+		for _, v := range addr {
+			cancel := inboundContext[v]
+			if cancel != nil {
+				cancel()
+				delete(inboundContext, v)
+			}
+		}
 	}
 }
 
-func ApplyConfig(config *model.Config, handle typ.HandleFunc) error {
+func ApplyConfig(ctx context.Context, config *model.Config, handle typ.HandleFunc) error {
+	ctx, cancel = context.WithCancel(ctx)
 	for _, v := range config.Listener {
 		f, err := Get(v.Typ, v.Addr, v.Params)
 		if err != nil {

@@ -1,12 +1,10 @@
-package main
+package cmd
 
 import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"os"
-	"os/signal"
 
 	"github.com/sipt/shuttle/conf"
 	"github.com/sipt/shuttle/conf/logger"
@@ -21,27 +19,28 @@ import (
 	"github.com/sirupsen/logrus"
 
 	connpkg "github.com/sipt/shuttle/conn"
+	closepkg "github.com/sipt/shuttle/pkg/close"
 	rulepkg "github.com/sipt/shuttle/rule"
 )
 
-var path = flag.String("c", os.Getenv("CONFIG_PATH"), "config file path")
-var encoding = flag.String("e", os.Getenv("ENCODING"), "config file encoding")
-var logPath = flag.String("logpath", os.Getenv("LOGGER_PATH"), "logger file")
+var Path = flag.String("c", os.Getenv("CONFIG_PATH"), "config file Path")
+var Encoding = flag.String("e", os.Getenv("ENCODING"), "config file Encoding")
+var LogPath = flag.String("logpath", os.Getenv("LOGGER_PATH"), "logger file")
 
-func main() {
-	flag.Parse()
+func Start() error {
 	logrus.SetLevel(logrus.DebugLevel)
-	err := logger.ConfigOutput(*logPath)
+	err := logger.ConfigOutput(*LogPath)
 	if err != nil {
 		panic(err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	params := map[string]string{"path": *path}
+	params := map[string]string{"path": *Path}
 	config, err := conf.LoadConfig(ctx, "file", "toml", params, func() {
 		fmt.Println("config file change")
 	})
 	if err != nil {
-		logrus.WithError(err).Fatal("load config failed")
+		logrus.WithError(err).Error("load config failed")
+		return err
 	}
 	l, err := logrus.ParseLevel(config.General.LoggerLevel)
 	if err != nil {
@@ -49,28 +48,35 @@ func main() {
 	}
 	logger.ConfigLogger(l)
 	if err != nil {
-		logrus.WithError(err).Fatal("load config failed")
+		logrus.WithError(err).Error("load config failed")
+		return err
 	}
 	err = conf.ApplyConfig(ctx, config)
 	if err != nil {
-		logrus.WithError(err).Fatal("apply config failed")
+		logrus.WithError(err).Error("apply config failed")
+		return err
 	}
 	closer, err := controller.ApplyConfig(config)
 	if err != nil {
-		logrus.WithError(err).Fatal("start controller failed")
-		panic(err)
+		logrus.WithError(err).Error("start controller failed")
+		return err
 	}
-	err = inbound.ApplyConfig(config, handle())
+	err = inbound.ApplyConfig(ctx, config, handle())
 	if err != nil {
-		logrus.WithError(err).Fatal("start inbound failed")
+		logrus.WithError(err).Error("start inbound failed")
+		return err
 	}
 
 	logrus.Info("server starting...")
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	<-c
-	cancel()
-	closer()
+	closepkg.AppendCloser(func() error {
+		cancel()
+		return nil
+	})
+	closepkg.AppendCloser(func() error {
+		closer()
+		return nil
+	})
+	return nil
 }
 
 func handle() typ.HandleFunc {
@@ -147,7 +153,7 @@ func outboundHandle() typ.HandleFunc {
 			return
 		}
 		lc = profile.BeforeStream()(lc)
-		transfer(lc, sc)
+		connpkg.Transfer(lc, sc)
 	}
 }
 
@@ -161,27 +167,4 @@ func recoverHandle(next typ.HandleFunc) typ.HandleFunc {
 		}()
 		next(lc)
 	}
-}
-
-func transfer(from, to connpkg.ICtxConn) {
-	end := make(chan bool, 1)
-	go func() {
-		_, err := io.Copy(to, from)
-		if err != nil {
-			end <- true
-			logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
-				Debug("io.copy failed")
-		}
-	}()
-	go func() {
-		_, err := io.Copy(from, to)
-		if err != nil {
-			logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
-				Debug("io.copy failed")
-		}
-		end <- true
-	}()
-	<-end
-	_ = from.Close()
-	_ = to.Close()
 }

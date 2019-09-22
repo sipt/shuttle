@@ -47,9 +47,10 @@ func newSocksInbound(addr string, params map[string]string) (listen func(context
 	}
 	return func(ctx context.Context, handleFunc typ.HandleFunc) {
 		cmdFunc := NewCmdFunc(ctx, addrPtr, handleFunc)
-		server.Serve(authFunc, cmdFunc)
+		go server.Serve(authFunc, cmdFunc)
 		<-ctx.Done()
 		_ = server.Close()
+		logrus.WithField("addr", fmt.Sprintf("socks5://%s", addr)).Info("socks listen stopped")
 	}, nil
 }
 

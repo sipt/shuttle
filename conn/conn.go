@@ -168,3 +168,26 @@ func NewUDPConn(pc net.PacketConn, ctx context.Context, remoteAddr net.Addr, dat
 		remote:  remoteAddr,
 	}
 }
+
+func Transfer(from, to ICtxConn) {
+	end := make(chan bool, 1)
+	go func() {
+		_, err := io.Copy(to, from)
+		if err != nil {
+			end <- true
+			logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
+				Debug("io.copy failed")
+		}
+	}()
+	go func() {
+		_, err := io.Copy(from, to)
+		if err != nil {
+			logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
+				Debug("io.copy failed")
+		}
+		end <- true
+	}()
+	<-end
+	_ = from.Close()
+	_ = to.Close()
+}

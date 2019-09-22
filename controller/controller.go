@@ -11,12 +11,15 @@ import (
 	sapi "github.com/sipt/shuttle/server/api"
 )
 
-func ApplyConfig(conf *model.Config) (closer func(), err error) {
+func init() {
 	e.Use(gin.LoggerWithWriter(logger.Std))
 	sapi.InitAPI(e)   // init server api
 	gapi.InitAPI(e)   // init group api
 	dnsapi.InitAPI(e) // init dns api
 	rapi.InitAPI(e)   // init rule api
+}
+
+func ApplyConfig(conf *model.Config) (closer func(), err error) {
 	if len(conf.Controller.Addr) == 0 {
 		return func() {}, nil
 	}

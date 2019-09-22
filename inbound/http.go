@@ -59,6 +59,7 @@ func newHTTPInbound(addr string, params map[string]string) (listen func(context.
 	logrus.WithField("addr", "http://"+addr).Info("http listen starting")
 	return func(ctx context.Context, handle typ.HandleFunc) {
 		dial(ctx, newHttpHandleFunc(authFunc, handle))
+		logrus.WithField("addr", "http://"+addr).Info("http listen stopped")
 	}, nil
 }
 

@@ -5,27 +5,28 @@ import (
 	"net"
 	"os"
 
+	"github.com/oschwald/geoip2-golang"
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/assets"
+	"github.com/sipt/shuttle/pkg/close"
 	"github.com/sirupsen/logrus"
-
-	geoip2 "github.com/oschwald/geoip2-golang"
 )
 
-var fileName = flag.String("geoip", os.Getenv("GEOIP_DB"), "geo ip db path")
+var GeoipPath = flag.String("geoip", os.Getenv("GEOIP_DB"), "geo ip db path")
 
 var geoipDB *geoip2.Reader
 
 func InitGeoIP() error {
 	var err error
-	geoipFileBytes, err := assets.ReadFile(*fileName)
+	geoipFileBytes, err := assets.ReadFile(*GeoipPath)
 	if err != nil {
-		return errors.Errorf("reade geo file [%s] failed: %s", *fileName, err.Error())
+		return errors.Errorf("reade geo file [%s] failed: %s", *GeoipPath, err.Error())
 	}
 	geoipDB, err = geoip2.FromBytes(geoipFileBytes)
 	if err != nil {
-		return errors.Errorf("reade geo file [%s] failed: %s", *fileName, err.Error())
+		return errors.Errorf("reade geo file [%s] failed: %s", *GeoipPath, err.Error())
 	}
+	close.AppendCloser(CloseGeoDB)
 	return nil
 }
 

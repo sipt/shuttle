@@ -1,5 +1,5 @@
 build:
-	go build -o _output/shuttle cmd/server.go
+	go build -o _output/shuttle cmd/main/main.go
 
 build-plugins:
 	go build -buildmode=plugin -ldflags '-w -s' -o _output/plugins/ss.plugin plugins/ss/shadowsocks.go
@@ -17,3 +17,5 @@ build-all: build build-plugins upgrade-geo
 
 build-image: build-all
 	docker build -t ${TARGET} -f Dockerfile .
+export-clib:
+	go build -buildmode=c-archive -o _output/export/shuttle.a cmd/export/c_lib.go
