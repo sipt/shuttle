@@ -60,7 +60,6 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 				return nil, errors.Errorf("[group:%s] [server: %s] server not support udp-relay", gname, sname)
 			}
 			ss = append(ss, s)
-			gs = append(gs, s)
 		}
 		gEntity.Append(ss)
 		gs = append(gs, serverMap[gname])
@@ -91,6 +90,7 @@ func Get(ctx context.Context, typ string, name string, params map[string]string,
 type IGroup interface {
 	Append(servers []IServerX)
 	Select(name string) error
+	Selected() IServerX
 	Items() []IServerX
 	Reset()
 	Clear()

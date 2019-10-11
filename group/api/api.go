@@ -130,8 +130,8 @@ func makeGroupResp(g group.IGroup) *Group {
 		Name: g.Name(),
 		Typ:  g.Typ(),
 		Selected: Server{
-			Name: g.Server().Name(),
-			Typ:  g.Server().Typ(),
+			Name: g.Selected().Name(),
+			Typ:  g.Selected().Typ(),
 			RTT:  formatRtt(g.Server().Rtt(g.Name())),
 		},
 		Servers: make([]Server, len(g.Items())),

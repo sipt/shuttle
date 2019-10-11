@@ -124,6 +124,9 @@ func (r *rttGroup) Clear() {
 	r.cancel()      // stop timer
 	r.servers = nil // clear all
 }
+func (r *rttGroup) Selected() IServerX {
+	return r.current
+}
 func (r *rttGroup) Select(name string) error {
 	return nil
 }

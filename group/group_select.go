@@ -88,15 +88,18 @@ func (s *SelectGroup) Server() server.IServer {
 		return nil
 	}
 }
+func (s *SelectGroup) Selected() IServerX {
+	return s.current
+}
 func (s *SelectGroup) Select(name string) error {
 	s.Lock()
 	defer s.Unlock()
 	if s.current != nil && s.current.Name() == name {
 		return nil
 	}
-	for _, v := range s.servers {
+	for i, v := range s.servers {
 		if v.Name() == name {
-			s.current = v
+			s.current = s.servers[i]
 			return nil
 		}
 	}
