@@ -12,36 +12,39 @@ type M map[string]string
 
 var config = &model.Config{
 	General: struct {
-		LoggerLevel string `toml:"logger_level"`
+		LoggerLevel    string `toml:"logger-level" yaml:"logger-level"`
+		DefaultTestURI string `toml:"default-test-uri" yaml:"default-test-uri"`
 	}{
-		"debug",
+		"debug", "https://www.bing.com",
 	},
 
 	Listener: []struct {
-		Typ    string            `toml:"typ"`
-		Addr   string            `toml:"addr"`
-		Params map[string]string `toml:"params"`
+		Typ    string            `toml:"typ" yaml:"typ"`
+		Addr   string            `toml:"addr" yaml:"addr"`
+		Params map[string]string `toml:"params" yaml:"params"`
 	}{
 		{"https", ":8081", map[string]string{"user": "root", "password": "123123"}},
 		{"socks", ":8080", map[string]string{"user": "root", "password": "123123"}},
 	},
 
 	Server: map[string]struct {
-		Typ    string            `toml:"typ"`
-		Addr   string            `toml:"addr"`
-		Port   string            `toml:"port"`
-		Params map[string]string `toml:"params"`
+		Typ    string            `toml:"typ" yaml:"typ"`
+		Host   string            `toml:"host" yaml:"host"`
+		Port   int               `toml:"port" yaml:"port"`
+		Params map[string]string `toml:"params" yaml:"params"`
 	}{
-		"JP1": {"ss", "jp.remote.com", "8080", M{"user": "root", "password": "123123"}},
-		"JP2": {"ss", "jp.remote.com", "8080", M{"user": "root", "password": "123123"}},
-		"US1": {"ss", "us.remote.com", "8080", M{"user": "root", "password": "123123"}},
-		"US2": {"ss", "us.remote.com", "8080", M{"user": "root", "password": "123123"}},
+		"JP1": {"ss", "jp.remote.com", 8080, M{"user": "root", "password": "123123"}},
+		"JP2": {"ss", "jp.remote.com", 8080, M{"user": "root", "password": "123123"}},
+		"US1": {"ss", "us.remote.com", 8080, M{"user": "root", "password": "123123"}},
+		"US2": {"ss", "us.remote.com", 8080, M{"user": "root", "password": "123123"}},
 	},
 
 	ServerGroup: map[string]struct {
-		Typ     string            `toml:"typ"`
-		Servers []string          `toml:"servers"`
-		Params  map[string]string `toml:"params"`
+		// Typ: e.g. ["rtt", "select"]
+		Typ string `toml:"typ" yaml:"typ"`
+		// Servers: e.g. in {Server..., ServerGroup...}
+		Servers []string          `toml:"servers" yaml:"servers"`
+		Params  map[string]string `toml:"params" yaml:"params"`
 	}{
 		"Proxy": {"select", []string{"AUTO", "JP", "US"}, nil},
 		"AUTO":  {"rtt", []string{"JP1", "JP2", "US1", "US2"}, M{"url": "https://www.google.com"}},
@@ -49,12 +52,7 @@ var config = &model.Config{
 		"US":    {"select", []string{"US1", "US2"}, nil},
 	},
 
-	Rule: []struct {
-		Typ    string            `toml:"typ"`
-		Value  string            `toml:"value"`
-		Proxy  string            `toml:"proxy"`
-		Params map[string]string `toml:"params"`
-	}{
+	Rule: []model.Rule{
 		{"DOMAIN", "google.com", "Proxy", M{"Comment": "search engine"}},
 		{"DOMAIN", "github.com", "Proxy", M{"Comment": "source code"}},
 	},

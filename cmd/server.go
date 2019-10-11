@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 
 	"github.com/sipt/shuttle/conf"
@@ -35,7 +36,7 @@ func Start() error {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	params := map[string]string{"path": *Path}
-	config, err := conf.LoadConfig(ctx, "file", "toml", params, func() {
+	config, err := conf.LoadConfig(ctx, "file", *Encoding, params, func() {
 		fmt.Println("config file change")
 	})
 	if err != nil {
@@ -101,18 +102,20 @@ func ruleHandle(next typ.HandleFunc) typ.HandleFunc {
 	return func(conn connpkg.ICtxConn) {
 		reqInfo := conn.Value(constant.KeyRequestInfo).(global.RequestInfo)
 		profile := conn.Value(constant.KeyProfile).(*global.Profile)
-
-		rule := profile.RuleHandle()(conn, reqInfo)
+		var rule *rulepkg.Rule
 		if reqInfo.Network() == "udp" {
 			rule = profile.UDPRuleHandle()(conn, reqInfo)
 		}
 		if len(reqInfo.IP()) == 0 {
-			answer := profile.DNSHandle()(conn, reqInfo.Domain())
-			if answer != nil {
-				reqInfo.SetIP(answer.CurrentIP)
-				reqInfo.SetCountryCode(answer.CurrentCountry)
+			if reqInfo.SetIP(net.ParseIP(reqInfo.Domain())); len(reqInfo.IP()) == 0 {
+				answer := profile.DNSHandle()(conn, reqInfo.Domain())
+				if answer != nil {
+					reqInfo.SetIP(answer.CurrentIP)
+					reqInfo.SetCountryCode(answer.CurrentCountry)
+				}
 			}
 		}
+		rule = profile.RuleHandle()(conn, reqInfo)
 		logrus.Infof("Match Rule [%s, %s, %s]", rule.Typ, rule.Value, rule.Proxy)
 		conn.WithValue(constant.KeyRule, rule)
 		next = profile.Filter()(next)
