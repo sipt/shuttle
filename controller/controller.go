@@ -5,6 +5,7 @@ import (
 	"github.com/sipt/shuttle/conf/logger"
 	"github.com/sipt/shuttle/conf/model"
 
+	capi "github.com/sipt/shuttle/cmd/api"
 	dnsapi "github.com/sipt/shuttle/dns/api"
 	gapi "github.com/sipt/shuttle/group/api"
 	rapi "github.com/sipt/shuttle/rule/api"
@@ -17,6 +18,7 @@ func init() {
 	gapi.InitAPI(e)   // init group api
 	dnsapi.InitAPI(e) // init dns api
 	rapi.InitAPI(e)   // init rule api
+	capi.InitAPI(e)   // cmd api
 }
 
 func ApplyConfig(conf *model.Config) (closer func(), err error) {

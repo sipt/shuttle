@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/sipt/shuttle/cmd/api"
 	"github.com/sipt/shuttle/conf"
 	"github.com/sipt/shuttle/conf/logger"
 	"github.com/sipt/shuttle/constant"
@@ -28,9 +29,17 @@ var Path = flag.String("c", os.Getenv("CONFIG_PATH"), "config file Path")
 var Encoding = flag.String("e", os.Getenv("ENCODING"), "config file Encoding")
 var LogPath = flag.String("logpath", os.Getenv("LOGGER_PATH"), "logger file")
 
-func Start() error {
+func Start() (err error) {
+	api.Status = api.StatusStarting
+	defer func() {
+		if err != nil {
+			api.Status = api.StatusStopped
+		} else {
+			api.Status = api.StatusRunning
+		}
+	}()
 	logrus.SetLevel(logrus.DebugLevel)
-	err := logger.ConfigOutput(*LogPath)
+	err = logger.ConfigOutput(*LogPath)
 	if err != nil {
 		panic(err)
 	}

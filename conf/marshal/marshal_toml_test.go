@@ -12,26 +12,27 @@ type M map[string]string
 
 var config = &model.Config{
 	General: struct {
-		LoggerLevel    string `toml:"logger-level" yaml:"logger-level"`
-		DefaultTestURI string `toml:"default-test-uri" yaml:"default-test-uri"`
+		LoggerLevel    string `toml:"logger-level" json:"logger-level" yaml:"logger-level"`
+		DefaultTestURI string `toml:"default-test-uri" json:"default-test-uri" yaml:"default-test-uri"`
 	}{
 		"debug", "https://www.bing.com",
 	},
 
 	Listener: []struct {
-		Typ    string            `toml:"typ" yaml:"typ"`
-		Addr   string            `toml:"addr" yaml:"addr"`
-		Params map[string]string `toml:"params" yaml:"params"`
+		Name   string            `toml:"name" json:"name" yaml:"name"`
+		Typ    string            `toml:"typ" json:"typ" yaml:"typ"`
+		Addr   string            `toml:"addr" json:"addr" yaml:"addr"`
+		Params map[string]string `toml:"params" json:"params" yaml:"params"`
 	}{
-		{"https", ":8081", map[string]string{"user": "root", "password": "123123"}},
-		{"socks", ":8080", map[string]string{"user": "root", "password": "123123"}},
+		{"http-inbound", "https", ":8081", map[string]string{"user": "root", "password": "123123"}},
+		{"socks-inbound", "socks", ":8080", map[string]string{"user": "root", "password": "123123"}},
 	},
 
 	Server: map[string]struct {
-		Typ    string            `toml:"typ" yaml:"typ"`
-		Host   string            `toml:"host" yaml:"host"`
-		Port   int               `toml:"port" yaml:"port"`
-		Params map[string]string `toml:"params" yaml:"params"`
+		Typ    string            `toml:"typ" json:"typ" yaml:"typ"`
+		Host   string            `toml:"host" json:"host" yaml:"host"`
+		Port   int               `toml:"port" json:"port" yaml:"port"`
+		Params map[string]string `toml:"params" json:"params" yaml:"params"`
 	}{
 		"JP1": {"ss", "jp.remote.com", 8080, M{"user": "root", "password": "123123"}},
 		"JP2": {"ss", "jp.remote.com", 8080, M{"user": "root", "password": "123123"}},
@@ -41,10 +42,10 @@ var config = &model.Config{
 
 	ServerGroup: map[string]struct {
 		// Typ: e.g. ["rtt", "select"]
-		Typ string `toml:"typ" yaml:"typ"`
+		Typ string `toml:"typ" json:"typ" yaml:"typ"`
 		// Servers: e.g. in {Server..., ServerGroup...}
-		Servers []string          `toml:"servers" yaml:"servers"`
-		Params  map[string]string `toml:"params" yaml:"params"`
+		Servers []string          `toml:"servers" json:"servers" yaml:"servers"`
+		Params  map[string]string `toml:"params" json:"params" yaml:"params"`
 	}{
 		"Proxy": {"select", []string{"AUTO", "JP", "US"}, nil},
 		"AUTO":  {"rtt", []string{"JP1", "JP2", "US1", "US2"}, M{"url": "https://www.google.com"}},
