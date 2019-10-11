@@ -4,6 +4,7 @@ import "C"
 import (
 	"github.com/sipt/shuttle/cmd"
 	"github.com/sipt/shuttle/dns"
+	"github.com/sipt/shuttle/global/namespace"
 	"github.com/sipt/shuttle/pkg/close"
 )
 
@@ -16,9 +17,9 @@ func start_shuttle(configPath, geoipPath *C.char) *C.char {
 	*cmd.Path = C.GoString(configPath)
 	*dns.GeoipPath = C.GoString(geoipPath)
 	if err := cmd.Start(); err != nil {
-		return C.CString(err.Error())
+		return C.CString("error: " + err.Error())
 	}
-	return C.CString("success")
+	return C.CString(namespace.NamespaceWithName().Profile().Config().Controller.Addr)
 }
 
 //export stop_shuttle
