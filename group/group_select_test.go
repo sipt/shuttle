@@ -10,7 +10,7 @@ import (
 
 func TestSelectGroup(t *testing.T) {
 	ctx := context.Background()
-	group, err := Get(ctx, TypSelect, "test", nil)
+	group, err := Get(ctx, TypSelect, "test", nil, nil)
 	assert.NoError(t, err)
 
 	group.Append([]IServerX{

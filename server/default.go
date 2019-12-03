@@ -97,17 +97,7 @@ func NewRttServer(server IServer, params map[string]string) IServer {
 		err = errors.Errorf("[server: %s] [%s: %s] is invalid", server.Name(), ParamsKeyTestURI, rtt.testUri)
 		rtt.testUri = DefaultTestURL
 	}
-	return rtt
-}
-
-type RttServer struct {
-	IServer
-	testUri string
-}
-
-func (r *RttServer) TestRtt(key, uri string) time.Duration {
-	log := logrus.WithField("method", "rtt-test").WithField("server", key)
-	client := &http.Client{
+	rtt.client = &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 				host, port, err := net.SplitHostPort(addr)
@@ -121,7 +111,7 @@ func (r *RttServer) TestRtt(key, uri string) time.Duration {
 					req.domain = host
 				}
 				ctx, _ = context.WithTimeout(ctx, time.Second*5)
-				conn, err := r.Dial(ctx, "tcp", req, conn.DefaultDial)
+				conn, err := rtt.Dial(ctx, "tcp", req, conn.DefaultDial)
 				return conn, err
 			},
 			MaxIdleConns:          100,
@@ -130,11 +120,22 @@ func (r *RttServer) TestRtt(key, uri string) time.Duration {
 			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}
+	return rtt
+}
+
+type RttServer struct {
+	IServer
+	testUri string
+	client  *http.Client
+}
+
+func (r *RttServer) TestRtt(key, uri string) time.Duration {
+	log := logrus.WithField("method", "rtt-test").WithField("server", key)
 	start := time.Now()
 	if len(uri) == 0 {
 		uri = r.testUri
 	}
-	resp, err := client.Get(uri)
+	resp, err := r.client.Get(uri)
 	if err != nil {
 		r.SetRtt(key, time.Duration(-1))
 		log.WithError(err).WithField("uri", uri).WithField("rtt", "failed").
