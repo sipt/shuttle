@@ -1,13 +1,14 @@
 package filter
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/sipt/shuttle/conf/model"
 	"github.com/sipt/shuttle/constant/typ"
 )
 
-func ApplyConfig(config *model.Config) (filter FilterFunc, err error) {
+func ApplyConfig(_ context.Context, config *model.Config) (filter FilterFunc, err error) {
 	filter = Nop
 	for _, v := range config.Filter {
 		filter, err = Get(v.Typ, v.Params, filter)

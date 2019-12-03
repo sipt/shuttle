@@ -123,12 +123,12 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 	udpRuleHandle = ruleModeHandle(&rule.Rule{Profile: config.Info.Name}, udpRuleHandle, nil)
 
 	// apply filter config
-	filterHandle, err := filter.ApplyConfig(config)
+	filterHandle, err := filter.ApplyConfig(ctx, config)
 	if err != nil {
 		return errors.Wrapf(err, "[filter.ApplyConfig] failed")
 	}
 	// apply stream filter config
-	before, after, err := stream.ApplyConfig(config)
+	before, after, err := stream.ApplyConfig(ctx, config)
 	if err != nil {
 		return errors.Wrapf(err, "[stream.ApplyConfig] failed")
 	}

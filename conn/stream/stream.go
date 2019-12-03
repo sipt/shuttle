@@ -1,19 +1,20 @@
 package stream
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/sipt/shuttle/conf/model"
 	"github.com/sipt/shuttle/conn"
 )
 
-func ApplyConfig(config *model.Config) (before, after DecorateFunc, err error) {
+func ApplyConfig(ctx context.Context, config *model.Config) (before, after DecorateFunc, err error) {
 	before, after = NopConn, NopConn
 	var bs = make([]DecorateFunc, 0, len(config.Stream.Before))
 	var as = make([]DecorateFunc, 0, len(config.Stream.After))
 	var decorate DecorateFunc
 	for _, v := range config.Stream.Before {
-		decorate, err = GetDecorateFunc(v.Typ, v.Params)
+		decorate, err = GetDecorateFunc(ctx, v.Typ, v.Params)
 		if err != nil {
 			return
 		}
@@ -28,7 +29,7 @@ func ApplyConfig(config *model.Config) (before, after DecorateFunc, err error) {
 		}
 	}
 	for _, v := range config.Stream.After {
-		decorate, err = GetDecorateFunc(v.Typ, v.Params)
+		decorate, err = GetDecorateFunc(ctx, v.Typ, v.Params)
 		if err != nil {
 			return
 		}
@@ -46,7 +47,7 @@ func ApplyConfig(config *model.Config) (before, after DecorateFunc, err error) {
 }
 
 type DecorateFunc func(conn.ICtxConn) conn.ICtxConn
-type NewFunc func(map[string]string) (DecorateFunc, error)
+type NewFunc func(context.Context, map[string]string) (DecorateFunc, error)
 
 func NopConn(conn conn.ICtxConn) conn.ICtxConn {
 	return conn
@@ -60,10 +61,10 @@ func RegisterStream(key string, f NewFunc) {
 }
 
 // Get: get filter by key
-func GetDecorateFunc(typ string, params map[string]string) (DecorateFunc, error) {
+func GetDecorateFunc(ctx context.Context, typ string, params map[string]string) (DecorateFunc, error) {
 	f, ok := streamMap[typ]
 	if !ok {
 		return nil, fmt.Errorf("stream not support: %s", typ)
 	}
-	return f(params)
+	return f(ctx, params)
 }
