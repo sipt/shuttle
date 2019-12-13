@@ -19,6 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	connpkg "github.com/sipt/shuttle/conn"
+	ctxpkg "github.com/sipt/shuttle/pkg/context"
 )
 
 const (
@@ -92,7 +93,7 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle typ.HandleFun
 				return
 			}
 			if req.Method == http.MethodConnect {
-				conn.WithValue(constant.KeyProtocol, "https")
+				conn.WithContext(ctxpkg.WithProtocol(conn, constant.ProtocolHTTPS))
 				c, err := httpsHandshake(req, conn)
 				if err != nil {
 					logrus.WithError(err).Error("[http.Inbound] https handshake failed")
@@ -101,7 +102,7 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle typ.HandleFun
 				handle(c)
 				return
 			} else {
-				conn.WithValue(constant.KeyProtocol, "http")
+				conn.WithContext(ctxpkg.WithProtocol(conn, constant.ProtocolHTTP))
 				c, err := httpHandshake(req, conn)
 				if err != nil {
 					logrus.WithError(err).Error("[http.Inbound] http handshake failed")
@@ -157,7 +158,7 @@ func httpHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, err
 	filterProxyHeader(req)
 	hc := &httpConn{
 		req:      req,
-		ICtxConn: connpkg.NewConn(c, context.WithValue(c, constant.KeyRequestInfo, ctxReq)),
+		ICtxConn: connpkg.NewConn(c, ctxpkg.WithRequestInfo(c, ctxReq)),
 		Mutex:    &sync.Mutex{},
 	}
 	return hc, nil
@@ -189,7 +190,7 @@ func httpsHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, er
 	} else {
 		ctxReq.SetPort(443)
 	}
-	c.WithValue(constant.KeyRequestInfo, ctxReq)
+	c.WithContext(ctxpkg.WithRequestInfo(c, ctxReq))
 	return c, nil
 }
 
