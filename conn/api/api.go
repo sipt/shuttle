@@ -30,13 +30,15 @@ func connectionsHandleFunc(c *gin.Context) {
 				LocalAddr:  link.Input.LocalAddr().String(),
 				RemoteAddr: link.Input.RemoteAddr().String(),
 			}
+		}
+		if link.Output != nil {
 			l.Output = &ConnEntity{
 				ID:         link.Output.GetConnID(),
 				LocalAddr:  link.Output.LocalAddr().String(),
 				RemoteAddr: link.Output.RemoteAddr().String(),
 			}
-			list = append(list, l)
 		}
+		list = append(list, l)
 		return false
 	})
 	c.JSON(200, list)
