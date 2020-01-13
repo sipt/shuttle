@@ -109,6 +109,7 @@ func namespaceHandle(next typ.HandleFunc) typ.HandleFunc {
 
 func ruleHandle(next typ.HandleFunc) typ.HandleFunc {
 	return func(conn connpkg.ICtxConn) {
+		connpkg.PushInputConn(conn)
 		reqInfo := conn.Value(constant.KeyRequestInfo).(global.RequestInfo)
 		profile := conn.Value(constant.KeyProfile).(*global.Profile)
 		var rule *rulepkg.Rule
