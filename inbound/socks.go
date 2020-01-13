@@ -7,12 +7,12 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/pkg/socks"
 	"github.com/sirupsen/logrus"
 
 	connpkg "github.com/sipt/shuttle/conn"
-	ctxpkg "github.com/sipt/shuttle/pkg/context"
 )
 
 func init() {
@@ -129,7 +129,7 @@ func NewCmdFunc(ctx context.Context, addr *socks.Addr, handle typ.HandleFunc) fu
 			if err != nil {
 				return err
 			}
-			ctx = ctxpkg.WithRequestInfo(ctx, req)
+			ctx = context.WithValue(ctx, constant.KeyRequestInfo, req)
 			handle(connpkg.NewConn(conn, ctx))
 		case socks.CmdUDPAssociate:
 			req.network = "udp"
@@ -158,7 +158,7 @@ func udpAssociate(ctx context.Context, conn net.Conn, req *request, handle typ.H
 		req.ip = addr.IP
 		req.domain = addr.Name
 		req.port = addr.Port
-		ctx = ctxpkg.WithRequestInfo(ctx, req)
+		ctx = context.WithValue(ctx, constant.KeyRequestInfo, req)
 		handle(connpkg.NewUDPConn(pc, ctx, remote, b))
 		return nil
 	})

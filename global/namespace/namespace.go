@@ -8,12 +8,6 @@ import (
 	"github.com/sipt/shuttle/global"
 )
 
-type ctxMarker struct{}
-
-var (
-	ctxMarkerKey = &ctxMarker{}
-)
-
 func init() {
 	namespace = make(map[string]*Namespace)
 }
@@ -74,7 +68,7 @@ func (n *Namespace) SetMode(mode string) {
 func NamespaceWithContext(ctx context.Context) *Namespace {
 	mutex.RLock()
 	defer mutex.RUnlock()
-	name, ok := ctx.Value(ctxMarkerKey).(string)
+	name, ok := ctx.Value(constant.KeyNamespace).(string)
 	if !ok || len(name) == 0 {
 		return namespace[defaultName]
 	}
@@ -88,8 +82,4 @@ func NamespaceWithName(name ...string) *Namespace {
 		return namespace[defaultName]
 	}
 	return namespace[name[0]]
-}
-
-func SetNamespaceToContext(ctx context.Context, v string) context.Context {
-	return context.WithValue(ctx, ctxMarkerKey, v)
 }

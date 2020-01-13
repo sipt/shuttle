@@ -10,8 +10,10 @@ import (
 	"github.com/sipt/shuttle/cmd/api"
 	"github.com/sipt/shuttle/conf"
 	"github.com/sipt/shuttle/conf/logger"
+	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/controller"
+	"github.com/sipt/shuttle/global"
 	"github.com/sipt/shuttle/global/namespace"
 	"github.com/sipt/shuttle/inbound"
 	"github.com/sipt/shuttle/pkg/debug"
@@ -20,7 +22,6 @@ import (
 
 	connpkg "github.com/sipt/shuttle/conn"
 	closepkg "github.com/sipt/shuttle/pkg/close"
-	ctxpkg "github.com/sipt/shuttle/pkg/context"
 	rulepkg "github.com/sipt/shuttle/rule"
 )
 
@@ -98,9 +99,9 @@ func handle() typ.HandleFunc {
 
 func namespaceHandle(next typ.HandleFunc) typ.HandleFunc {
 	return func(conn connpkg.ICtxConn) {
-		if p, ok := ctxpkg.ExtractProfile(conn); !ok || p == nil {
+		if p, ok := conn.Value(constant.KeyProfile).(*global.Profile); !ok || p == nil {
 			np := namespace.NamespaceWithContext(conn)
-			conn.WithContext(ctxpkg.WithProfile(conn, np.Profile()))
+			conn.WithValue(constant.KeyProfile, np.Profile())
 		}
 		next(conn)
 	}
@@ -108,8 +109,8 @@ func namespaceHandle(next typ.HandleFunc) typ.HandleFunc {
 
 func ruleHandle(next typ.HandleFunc) typ.HandleFunc {
 	return func(conn connpkg.ICtxConn) {
-		reqInfo, _ := ctxpkg.ExtractRequestInfo(conn)
-		profile, _ := ctxpkg.ExtractProfile(conn)
+		reqInfo := conn.Value(constant.KeyRequestInfo).(global.RequestInfo)
+		profile := conn.Value(constant.KeyProfile).(*global.Profile)
 		var rule *rulepkg.Rule
 		if reqInfo.Network() == "udp" {
 			rule = profile.UDPRuleHandle()(conn, reqInfo)
@@ -125,7 +126,7 @@ func ruleHandle(next typ.HandleFunc) typ.HandleFunc {
 		}
 		rule = profile.RuleHandle()(conn, reqInfo)
 		logrus.Infof("Match Rule [%s, %s, %s]", rule.Typ, rule.Value, rule.Proxy)
-		conn.WithContext(ctxpkg.WithRule(conn, rule))
+		conn.WithValue(constant.KeyRule, rule)
 		next = profile.Filter()(next)
 		next(conn)
 	}
@@ -133,9 +134,9 @@ func ruleHandle(next typ.HandleFunc) typ.HandleFunc {
 
 func outboundHandle() typ.HandleFunc {
 	return func(lc connpkg.ICtxConn) {
-		reqInfo, _ := ctxpkg.ExtractRequestInfo(lc)
-		rule, _ := ctxpkg.ExtractRule(lc)
-		profile, _ := ctxpkg.ExtractProfile(lc)
+		reqInfo := lc.Value(constant.KeyRequestInfo).(global.RequestInfo)
+		rule := lc.Value(constant.KeyRule).(*rulepkg.Rule)
+		profile := lc.Value(constant.KeyProfile).(*global.Profile)
 
 		var s server.IServer
 		g := profile.Group()[rule.Proxy]
