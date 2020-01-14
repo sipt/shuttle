@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/constant"
@@ -225,7 +226,16 @@ func (w *writer) Write(b []byte) (n int, err error) {
 	return n, err
 }
 
+var (
+	requestID int64 = 0
+)
+
+func GetRequestID() int64 {
+	return atomic.AddInt64(&requestID, 1)
+}
+
 type request struct {
+	id          int64
 	network     string
 	domain      string
 	uri         string
@@ -234,6 +244,12 @@ type request struct {
 	countryCode string
 }
 
+func (r *request) ID() int64 {
+	if r.id == 0 {
+		r.id = GetRequestID()
+	}
+	return r.id
+}
 func (r *request) Network() string {
 	return r.network
 }

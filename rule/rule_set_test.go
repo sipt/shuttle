@@ -50,6 +50,9 @@ type request struct {
 	countryCode string
 }
 
+func (r *request) ID() int64 {
+	return 0
+}
 func (r *request) Network() string {
 	return r.network
 }

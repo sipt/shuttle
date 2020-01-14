@@ -7,6 +7,8 @@ import (
 	"net"
 	"os"
 
+	"github.com/sipt/shuttle/events"
+
 	"github.com/sipt/shuttle/cmd/api"
 	"github.com/sipt/shuttle/conf"
 	"github.com/sipt/shuttle/conf/logger"
@@ -76,6 +78,11 @@ func Start() (err error) {
 		logrus.WithError(err).Error("start inbound failed")
 		return err
 	}
+	err = events.AutoDial(ctx)
+	if err != nil {
+		logrus.WithError(err).Error("start events failed")
+		return err
+	}
 
 	logrus.Info("server starting...")
 	closepkg.AppendCloser(func() error {
@@ -109,7 +116,7 @@ func namespaceHandle(next typ.HandleFunc) typ.HandleFunc {
 
 func ruleHandle(next typ.HandleFunc) typ.HandleFunc {
 	return func(conn connpkg.ICtxConn) {
-		reqInfo := conn.Value(constant.KeyRequestInfo).(global.RequestInfo)
+		reqInfo := conn.Value(constant.KeyRequestInfo).(typ.RequestInfo)
 		profile := conn.Value(constant.KeyProfile).(*global.Profile)
 		var rule *rulepkg.Rule
 		if reqInfo.Network() == "udp" {
@@ -134,7 +141,7 @@ func ruleHandle(next typ.HandleFunc) typ.HandleFunc {
 
 func outboundHandle() typ.HandleFunc {
 	return func(lc connpkg.ICtxConn) {
-		reqInfo := lc.Value(constant.KeyRequestInfo).(global.RequestInfo)
+		reqInfo := lc.Value(constant.KeyRequestInfo).(typ.RequestInfo)
 		rule := lc.Value(constant.KeyRule).(*rulepkg.Rule)
 		profile := lc.Value(constant.KeyProfile).(*global.Profile)
 
