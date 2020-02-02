@@ -24,18 +24,20 @@ func RegisterEvent(typ EventType, f func(context.Context, interface{}) error) {
 
 func AutoDial(ctx context.Context) error {
 	go func() {
-		select {
-		case e := <-Bus:
-			if f, ok := eventMap[e.Typ]; ok {
-				err := f(e.Ctx, e.Value)
-				if err != nil {
-					logrus.WithField("event-type", e.Typ).WithField("event-value", e.Value).Error("fail to deal with event")
+		for {
+			select {
+			case e := <-Bus:
+				if f, ok := eventMap[e.Typ]; ok {
+					err := f(e.Ctx, e.Value)
+					if err != nil {
+						logrus.WithField("event-type", e.Typ).WithError(err).WithField("event-value", e.Value).Error("fail to deal with event")
+					}
+				} else {
+					logrus.WithField("event-type", e.Typ).WithField("event-value", e.Value).Error("not found")
 				}
-			} else {
-				logrus.WithField("event-type", e.Typ).WithField("event-value", e.Value).Error("not found")
+			case <-ctx.Done():
+				return
 			}
-		case <-ctx.Done():
-			return
 		}
 	}()
 	return nil

@@ -118,6 +118,7 @@ func NewCmdFunc(ctx context.Context, addr *socks.Addr, handle typ.HandleFunc) fu
 			ip:     cmdReq.Addr.IP,
 			port:   cmdReq.Addr.Port,
 		}
+		ctx = context.WithValue(ctx, constant.KeyProtocol, "socks")
 		switch cmdReq.Cmd {
 		case socks.CmdConnect:
 			req.network = "tcp"

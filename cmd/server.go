@@ -7,14 +7,13 @@ import (
 	"net"
 	"os"
 
-	"github.com/sipt/shuttle/events"
-
 	"github.com/sipt/shuttle/cmd/api"
 	"github.com/sipt/shuttle/conf"
 	"github.com/sipt/shuttle/conf/logger"
 	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/controller"
+	"github.com/sipt/shuttle/events"
 	"github.com/sipt/shuttle/global"
 	"github.com/sipt/shuttle/global/namespace"
 	"github.com/sipt/shuttle/inbound"
@@ -25,6 +24,8 @@ import (
 	connpkg "github.com/sipt/shuttle/conn"
 	closepkg "github.com/sipt/shuttle/pkg/close"
 	rulepkg "github.com/sipt/shuttle/rule"
+
+	_ "github.com/sipt/shuttle/events/include"
 )
 
 var Path = flag.String("c", os.Getenv("CONFIG_PATH"), "config file Path")
@@ -134,8 +135,7 @@ func ruleHandle(next typ.HandleFunc) typ.HandleFunc {
 		rule = profile.RuleHandle()(conn, reqInfo)
 		logrus.Infof("Match Rule [%s, %s, %s]", rule.Typ, rule.Value, rule.Proxy)
 		conn.WithValue(constant.KeyRule, rule)
-		next = profile.Filter()(next)
-		next(conn)
+		profile.Filter()(next)(conn)
 	}
 }
 

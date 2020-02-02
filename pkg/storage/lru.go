@@ -52,3 +52,9 @@ func (l *LRUList) RangeForUpdate(f func(v interface{}) bool) {
 		}
 	}
 }
+
+func (l *LRUList) Len() int {
+	l.RLock()
+	defer l.RUnlock()
+	return l.list.Len()
+}

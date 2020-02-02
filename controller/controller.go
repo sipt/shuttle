@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/conf/logger"
 	"github.com/sipt/shuttle/conf/model"
+	"github.com/sipt/shuttle/events/record"
 
 	capi "github.com/sipt/shuttle/cmd/api"
 	tws "github.com/sipt/shuttle/conn/stream/traffic"
@@ -21,6 +22,7 @@ func init() {
 	dnsapi.InitAPI(e) // init dns api
 	rapi.InitAPI(e)   // init rule api
 	capi.InitAPI(e)   // cmd api
+	record.InitAPI(e) // record api
 
 	// ws
 	tws.InitAPI(e)
