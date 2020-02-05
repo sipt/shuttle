@@ -18,13 +18,39 @@ func init() {
 
 func newRecordTrafficMetrics(ctx context.Context, _ map[string]string) (stream.DecorateFunc, error) {
 	return func(c conn.ICtxConn) conn.ICtxConn {
+		rc := &recordTrafficConn{
+			ICtxConn: c,
+		}
+		var wt io.WriterTo
+		var rf io.ReaderFrom
 		if _, ok := c.(io.WriterTo); ok {
-			return &recordTrafficConnWithWriteTo{
-				ICtxConn: c,
+			wt = &recordTrafficConnWithWriteTo{
+				ICtxConn: rc,
+				WriterTo: &writeTo{
+					ICtxConn: c,
+				},
 			}
-		} else {
-			return &recordTrafficConn{
-				ICtxConn: c,
+		}
+		if _, ok := c.(io.ReaderFrom); ok {
+			rf = &recordTrafficConnWithReadFrom{
+				ICtxConn: rc,
+				ReaderFrom: &readFrom{
+					ICtxConn: c,
+				},
+			}
+		}
+		switch {
+		case wt == nil && rf == nil:
+			return rc
+		case wt != nil && rf == nil:
+			return wt.(conn.ICtxConn)
+		case wt == nil && rf != nil:
+			return rf.(conn.ICtxConn)
+		default:
+			return &recordTrafficConnWithWriteToAndReadFrom{
+				ICtxConn:   rc,
+				WriterTo:   wt,
+				ReaderFrom: rf,
 			}
 		}
 	}, nil
@@ -78,60 +104,37 @@ func (t *recordTrafficConn) Close() (err error) {
 
 type recordTrafficConnWithWriteTo struct {
 	conn.ICtxConn
+	io.WriterTo
 }
 
-func (r *recordTrafficConnWithWriteTo) WriteTo(w io.Writer) (n int64, err error) {
+type recordTrafficConnWithReadFrom struct {
+	conn.ICtxConn
+	io.ReaderFrom
+}
+type recordTrafficConnWithWriteToAndReadFrom struct {
+	conn.ICtxConn
+	io.WriterTo
+	io.ReaderFrom
+}
+
+type writeTo struct {
+	conn.ICtxConn
+}
+
+func (r *writeTo) WriteTo(w io.Writer) (n int64, err error) {
 	wr := &writer{Writer: w, ICtxConn: r.ICtxConn}
 	n, err = r.ICtxConn.(io.WriterTo).WriteTo(wr)
 	return n, err
 }
 
-func (r *recordTrafficConnWithWriteTo) ReadFrom(re io.Reader) (n int64, err error) {
+type readFrom struct {
+	conn.ICtxConn
+}
+
+func (r *readFrom) ReadFrom(re io.Reader) (n int64, err error) {
 	rr := &reader{Reader: re, ICtxConn: r.ICtxConn}
 	n, err = r.ICtxConn.(io.ReaderFrom).ReadFrom(rr)
 	return n, err
-}
-
-func (r *recordTrafficConnWithWriteTo) Read(b []byte) (n int, err error) {
-	n, err = r.ICtxConn.Read(b)
-	if reqInfo, ok := r.Value(constant.KeyRequestInfo).(typ.RequestInfo); ok {
-		events.Bus <- &events.Event{
-			Typ: record.UpdateRecordUpEvent,
-			Value: &record.RecordEntity{
-				ID: reqInfo.ID(),
-				Up: int64(n),
-			},
-		}
-	}
-	return
-}
-
-func (r *recordTrafficConnWithWriteTo) Write(b []byte) (n int, err error) {
-	n, err = r.ICtxConn.Write(b)
-	if reqInfo, ok := r.Value(constant.KeyRequestInfo).(typ.RequestInfo); ok {
-		events.Bus <- &events.Event{
-			Typ: record.UpdateRecordDownEvent,
-			Value: &record.RecordEntity{
-				ID:   reqInfo.ID(),
-				Down: int64(n),
-			},
-		}
-	}
-	return
-}
-
-func (r *recordTrafficConnWithWriteTo) Close() (err error) {
-	err = r.ICtxConn.Close()
-	if reqInfo, ok := r.Value(constant.KeyRequestInfo).(typ.RequestInfo); ok {
-		events.Bus <- &events.Event{
-			Typ: record.UpdateRecordStatusEvent,
-			Value: &record.RecordEntity{
-				ID:     reqInfo.ID(),
-				Status: record.CompletedStatus,
-			},
-		}
-	}
-	return err
 }
 
 type writer struct {
