@@ -33,7 +33,9 @@ func DefaultDial(ctx context.Context, network string, addr, port string) (ICtxCo
 		return nil, err
 	}
 	logrus.WithField("network", network).WithField("addr", addr+":"+port).Debug("connect to server")
-	return WrapConn(conn), nil
+	c := WrapConn(conn)
+	PushOutputConn(c)
+	return c, nil
 }
 
 type ICtxConn interface {
@@ -69,6 +71,7 @@ func (c *ctxConn) GetConnID() int64 {
 }
 
 func (c *ctxConn) Close() error {
+	Remove(c)
 	logrus.WithField("conn-id", c.GetConnID()).Debug("close the connection")
 	return c.Conn.Close()
 }

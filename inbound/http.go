@@ -108,7 +108,7 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle typ.HandleFun
 					logrus.WithError(err).Error("[http.Inbound] http handshake failed")
 					return
 				}
-				go handle(c)
+				handle(c)
 			}
 		}
 	}
@@ -145,6 +145,9 @@ func httpHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, err
 		network: "tcp",
 		uri:     req.URL.String(),
 		domain:  req.URL.Hostname(),
+	}
+	if len(ctxReq.domain) == 0 {
+		ctxReq.domain = req.Host
 	}
 	var err error
 	if port := req.URL.Port(); port != "" {
@@ -209,6 +212,20 @@ func (h *httpConn) WriteTo(w io.Writer) (n int64, err error) {
 
 func (h *httpConn) Read(b []byte) (int, error) {
 	return 0, errors.New("httpConn not support read")
+}
+
+func (h *httpConn) ReadFrom(r io.Reader) (n int64, err error) {
+	buf := bufio.NewReader(r)
+	resp, err := http.ReadResponse(buf, h.req)
+	if err != nil {
+		return 0, errors.Wrap(err, "httpConn ReadFrom read response failed")
+	}
+	w := &writeCounter{Conn: h.ICtxConn, Mutex: &sync.Mutex{}}
+	err = resp.Write(w)
+	if err != nil {
+		return 0, errors.Wrap(err, "httpConn ReadFrom write response failed")
+	}
+	return int64(w.size), nil
 }
 
 func (h *httpConn) Close() error {
@@ -276,4 +293,21 @@ func (r *request) SetPort(in int) {
 }
 func (r *request) SetCountryCode(in string) {
 	r.countryCode = in
+}
+
+type writeCounter struct {
+	net.Conn
+	size int
+	*sync.Mutex
+}
+
+func (w *writeCounter) Write(b []byte) (n int, err error) {
+	n, err = w.Conn.Write(b)
+	if err != nil {
+		return n, err
+	}
+	w.Lock()
+	w.size += n
+	w.Unlock()
+	return n, err
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/sipt/shuttle/events/record"
 
 	capi "github.com/sipt/shuttle/cmd/api"
+	connapi "github.com/sipt/shuttle/conn/api"
 	tws "github.com/sipt/shuttle/conn/stream/traffic"
 	dnsapi "github.com/sipt/shuttle/dns/api"
 	gapi "github.com/sipt/shuttle/group/api"
@@ -17,12 +18,13 @@ import (
 func init() {
 	e.Use(gin.LoggerWithWriter(logger.Std))
 	// api
-	sapi.InitAPI(e)   // init server api
-	gapi.InitAPI(e)   // init group api
-	dnsapi.InitAPI(e) // init dns api
-	rapi.InitAPI(e)   // init rule api
-	capi.InitAPI(e)   // cmd api
-	record.InitAPI(e) // record api
+	sapi.InitAPI(e)    // init server api
+	gapi.InitAPI(e)    // init group api
+	dnsapi.InitAPI(e)  // init dns api
+	rapi.InitAPI(e)    // init rule api
+	capi.InitAPI(e)    // cmd api
+	record.InitAPI(e)  // record api
+	connapi.InitAPI(e) // conn api
 
 	// ws
 	tws.InitAPI(e)

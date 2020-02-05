@@ -119,6 +119,7 @@ func namespaceHandle(next typ.HandleFunc) typ.HandleFunc {
 func ruleHandle(next typ.HandleFunc) typ.HandleFunc {
 	return func(conn connpkg.ICtxConn) {
 		reqInfo := conn.Value(constant.KeyRequestInfo).(typ.RequestInfo)
+		connpkg.PushInputConn(conn)
 		profile := conn.Value(constant.KeyProfile).(*global.Profile)
 		var rule *rulepkg.Rule
 		if reqInfo.Network() == "udp" {
