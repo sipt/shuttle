@@ -65,6 +65,7 @@ func init() {
 		UpdateRecord(ctx, r.ID, func(re *RecordEntity) {
 			re.Status = r.Status
 		})
+		notifyClient(UpdateRecordDownEvent, r)
 		return nil
 	})
 }

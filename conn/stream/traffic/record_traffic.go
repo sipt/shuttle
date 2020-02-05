@@ -86,6 +86,12 @@ func (r *recordTrafficConnWithWriteTo) WriteTo(w io.Writer) (n int64, err error)
 	return n, err
 }
 
+func (r *recordTrafficConnWithWriteTo) ReadFrom(re io.Reader) (n int64, err error) {
+	rr := &reader{Reader: re, ICtxConn: r.ICtxConn}
+	n, err = r.ICtxConn.(io.ReaderFrom).ReadFrom(rr)
+	return n, err
+}
+
 func (r *recordTrafficConnWithWriteTo) Read(b []byte) (n int, err error) {
 	n, err = r.ICtxConn.Read(b)
 	if reqInfo, ok := r.Value(constant.KeyRequestInfo).(typ.RequestInfo); ok {
@@ -141,6 +147,25 @@ func (w *writer) Write(b []byte) (n int, err error) {
 			Value: &record.RecordEntity{
 				ID: reqInfo.ID(),
 				Up: int64(n),
+			},
+		}
+	}
+	return n, err
+}
+
+type reader struct {
+	io.Reader
+	conn.ICtxConn
+}
+
+func (r *reader) Read(b []byte) (n int, err error) {
+	n, err = r.Reader.Read(b)
+	if reqInfo, ok := r.Value(constant.KeyRequestInfo).(typ.RequestInfo); ok {
+		events.Bus <- &events.Event{
+			Typ: record.UpdateRecordDownEvent,
+			Value: &record.RecordEntity{
+				ID:   reqInfo.ID(),
+				Down: int64(n),
 			},
 		}
 	}

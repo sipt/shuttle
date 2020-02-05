@@ -169,8 +169,7 @@ func outboundHandle() typ.HandleFunc {
 			return conn, nil
 		})
 		recordEntity := &record.RecordEntity{
-			ID:     reqInfo.ID(),
-			Status: record.CompletedStatus,
+			ID: reqInfo.ID(),
 		}
 		if err != nil {
 			logrus.WithField("proxy", rule.Proxy).WithError(err).Errorf("remote to server failed")
@@ -190,10 +189,10 @@ func outboundHandle() typ.HandleFunc {
 		err = connpkg.Transfer(lc, sc)
 		if err != nil {
 			recordEntity.Status = record.FailedStatus
-		}
-		events.Bus <- &events.Event{
-			Typ:   record.UpdateRecordStatusEvent,
-			Value: recordEntity,
+			events.Bus <- &events.Event{
+				Typ:   record.UpdateRecordStatusEvent,
+				Value: recordEntity,
+			}
 		}
 	}
 }

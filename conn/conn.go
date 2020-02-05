@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/sipt/shuttle/constant"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -176,21 +178,19 @@ func Transfer(from, to ICtxConn) error {
 	end := make(chan error, 1)
 	go func() {
 		_, err := io.Copy(to, from)
-		if err != nil {
+		if protocol, ok := from.Value(constant.KeyProtocol).(string); ok && protocol != constant.ProtocolHTTP {
 			end <- err
-			logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
-				Debug("io.copy failed")
 		}
 	}()
 	go func() {
 		_, err := io.Copy(from, to)
-		if err != nil {
-			logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
-				Debug("io.copy failed")
-		}
 		end <- err
 	}()
 	err := <-end
+	if err != nil {
+		logrus.WithError(err).WithField("from", from.GetConnID()).WithField("to", to.GetConnID()).
+			Debug("io.copy failed")
+	}
 	_ = from.Close()
 	_ = to.Close()
 	return err

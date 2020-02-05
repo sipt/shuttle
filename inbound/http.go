@@ -69,7 +69,12 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle typ.HandleFun
 		authFunc = func(r *http.Request) bool { return true }
 	}
 	return func(conn connpkg.ICtxConn) {
-		defer conn.Close()
+		isHTTP := false
+		defer func() {
+			if isHTTP {
+				_ = conn.Close()
+			}
+		}()
 		for {
 			req, err := http.ReadRequest(bufio.NewReader(conn))
 			if err != nil {
@@ -102,6 +107,7 @@ func newHttpHandleFunc(authFunc func(r *http.Request) bool, handle typ.HandleFun
 				handle(c)
 				return
 			} else {
+				isHTTP = true
 				conn.WithValue(constant.KeyProtocol, "http")
 				c, err := httpHandshake(req, conn)
 				if err != nil {
