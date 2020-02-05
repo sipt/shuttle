@@ -14,6 +14,7 @@ import (
 	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/controller"
 	"github.com/sipt/shuttle/events"
+	"github.com/sipt/shuttle/events/record"
 	"github.com/sipt/shuttle/global"
 	"github.com/sipt/shuttle/global/namespace"
 	"github.com/sipt/shuttle/inbound"
@@ -166,13 +167,33 @@ func outboundHandle() typ.HandleFunc {
 			conn = profile.AfterStream()(conn)
 			return conn, nil
 		})
+		recordEntity := &record.RecordEntity{
+			ID:     reqInfo.ID(),
+			Status: record.CompletedStatus,
+		}
 		if err != nil {
 			logrus.WithField("proxy", rule.Proxy).WithError(err).Errorf("remote to server failed")
 			_ = lc.Close()
+			if err == server.ErrRejected {
+				recordEntity.Status = record.RejectedStatus
+			} else {
+				recordEntity.Status = record.FailedStatus
+			}
+			events.Bus <- &events.Event{
+				Typ:   record.UpdateRecordStatusEvent,
+				Value: recordEntity,
+			}
 			return
 		}
 		lc = profile.BeforeStream()(lc)
-		connpkg.Transfer(lc, sc)
+		err = connpkg.Transfer(lc, sc)
+		if err != nil {
+			recordEntity.Status = record.FailedStatus
+		}
+		events.Bus <- &events.Event{
+			Typ:   record.UpdateRecordStatusEvent,
+			Value: recordEntity,
+		}
 	}
 }
 

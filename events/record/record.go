@@ -3,6 +3,7 @@ package record
 import (
 	"context"
 	"reflect"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -26,6 +27,7 @@ func init() {
 			return errors.Errorf("[%s] is not RecordEntity", reflect.TypeOf(v).Kind().String())
 		}
 		AppendRecord(ctx, r)
+		notifyClient(AppendRecordEvent, r)
 		return nil
 	})
 	// update record up
@@ -35,8 +37,10 @@ func init() {
 			return errors.Errorf("[%s] is not RecordEntity", reflect.TypeOf(v).Kind().String())
 		}
 		UpdateRecord(ctx, r.ID, func(re *RecordEntity) {
-			re.Up += r.Up
+			atomic.AddInt64(&re.Up, r.Up)
+			r.Up = re.Up
 		})
+		notifyClient(UpdateRecordUpEvent, r)
 		return nil
 	})
 	// update record down
@@ -46,8 +50,10 @@ func init() {
 			return errors.Errorf("[%s] is not RecordEntity", reflect.TypeOf(v).Kind().String())
 		}
 		UpdateRecord(ctx, r.ID, func(re *RecordEntity) {
-			re.Down += r.Down
+			atomic.AddInt64(&re.Down, r.Down)
+			r.Down = re.Down
 		})
+		notifyClient(UpdateRecordDownEvent, r)
 		return nil
 	})
 	// update record status
@@ -64,35 +70,35 @@ func init() {
 }
 
 type ConnEntity struct {
-	ID         int64
-	SourceAddr string
-	DestAddr   string
+	ID         int64  `json:"id"`
+	SourceAddr string `json:"source_addr"`
+	DestAddr   string `json:"dest_addr"`
 }
 
-type RecordStatus struct {
-	Text string
-}
+type RecordStatus string
 
 func (r *RecordStatus) String() string {
-	return r.Text
+	return string(*r)
 }
 
 var (
-	ActiveStatus    = &RecordStatus{"Active"}
-	CompletedStatus = &RecordStatus{"Completed"}
+	ActiveStatus    RecordStatus = "Active"
+	CompletedStatus RecordStatus = "Completed"
+	FailedStatus    RecordStatus = "Failed"
+	RejectedStatus  RecordStatus = "Rejected"
 )
 
 type RecordEntity struct {
-	ID        int64
-	DestAddr  string
-	Policy    string
-	Up        int64
-	Down      int64
-	Status    *RecordStatus
-	Timestamp time.Time
-	Protocol  string
-	Duration  time.Duration
-	Conn      ConnEntity
+	ID        int64         `json:"id,omitempty"`
+	DestAddr  string        `json:"dest_addr,omitempty"`
+	Policy    string        `json:"policy,omitempty"`
+	Up        int64         `json:"up"`
+	Down      int64         `json:"down"`
+	Status    RecordStatus  `json:"status,omitempty"`
+	Timestamp time.Time     `json:"timestamp,omitempty"`
+	Protocol  string        `json:"protocol,omitempty"`
+	Duration  time.Duration `json:"duration,omitempty"`
+	Conn      *ConnEntity   `json:"conn,omitempty"`
 }
 
 var recordStarge = storage.NewLRUList(1000)
