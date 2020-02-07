@@ -15,6 +15,16 @@ func init() {
 	stream.RegisterStream("data-dump", newHTTPDump)
 }
 
+func checkAllowDump(c context.Context, protocol ...string) bool {
+	if len(protocol) > 0 && len(protocol[0]) > 0 {
+		p := protocol[0]
+		return allowDump && (p == constant.ProtocolHTTP || p == constant.ProtocolHTTPS && mitm)
+	} else {
+		p, ok := c.Value(constant.KeyProtocol).(string)
+		return ok && allowDump && (p == constant.ProtocolHTTP || p == constant.ProtocolHTTPS && mitm)
+	}
+}
+
 func newHTTPDump(ctx context.Context, params map[string]string) (stream.DecorateFunc, error) {
 	allowDump = params["enabled"] == "true"
 	err := InitDumpStorage(params["dump_path"])
@@ -23,6 +33,9 @@ func newHTTPDump(ctx context.Context, params map[string]string) (stream.Decorate
 	}
 	go AutoSave(ctx)
 	return func(c conn.ICtxConn) conn.ICtxConn {
+		if !checkAllowDump(c) {
+			return c
+		}
 		rc := &httpDumpConn{
 			ICtxConn: c,
 		}

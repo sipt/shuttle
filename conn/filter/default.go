@@ -37,7 +37,7 @@ func newRecorder(ctx context.Context, _ map[string]string, next typ.HandleFunc) 
 				Protocol:  c.Value(constant.KeyProtocol).(string),
 			},
 		}
-		err := dump.InitFiles(req.ID())
+		err := dump.InitFiles(c, req.ID())
 		if err != nil {
 			logrus.WithField("record_id", req.ID()).WithError(err).Error("[data_dump] init files failed")
 		}

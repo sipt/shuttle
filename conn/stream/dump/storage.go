@@ -58,8 +58,8 @@ func (m *Manager) InitFiles(id int64) error {
 	return nil
 }
 
-func InitFiles(id int64) error {
-	if !allowDump {
+func InitFiles(ctx context.Context, id int64) error {
+	if !checkAllowDump(ctx) {
 		return nil
 	}
 	return manager.InitFiles(id)
