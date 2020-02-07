@@ -17,6 +17,7 @@ const (
 	UpdateRecordUpEvent     events.EventType = 2
 	UpdateRecordDownEvent   events.EventType = 3
 	UpdateRecordStatusEvent events.EventType = 4
+	UpdateDumpStatusEvent   events.EventType = 5
 )
 
 func init() {
@@ -68,6 +69,18 @@ func init() {
 		notifyClient(UpdateRecordDownEvent, r)
 		return nil
 	})
+	// update record dump status
+	events.RegisterEvent(UpdateDumpStatusEvent, func(ctx context.Context, v interface{}) error {
+		r, ok := v.(*RecordEntity)
+		if !ok {
+			return errors.Errorf("[%s] is not RecordEntity", reflect.TypeOf(v).Kind().String())
+		}
+		UpdateRecord(ctx, r.ID, func(re *RecordEntity) {
+			re.Dumped = r.Dumped
+		})
+		notifyClient(UpdateDumpStatusEvent, r)
+		return nil
+	})
 }
 
 type ConnEntity struct {
@@ -100,6 +113,7 @@ type RecordEntity struct {
 	Protocol  string        `json:"protocol,omitempty"`
 	Duration  time.Duration `json:"duration,omitempty"`
 	Conn      *ConnEntity   `json:"conn,omitempty"`
+	Dumped    bool          `json:"dumped"`
 }
 
 var recordStarge = storage.NewLRUList(1000)

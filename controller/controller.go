@@ -13,6 +13,8 @@ import (
 	gapi "github.com/sipt/shuttle/group/api"
 	rapi "github.com/sipt/shuttle/rule/api"
 	sapi "github.com/sipt/shuttle/server/api"
+
+	_ "github.com/sipt/shuttle/conn/stream/dump"
 )
 
 func init() {

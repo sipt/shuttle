@@ -90,6 +90,7 @@ func notifyClient(eventType events.EventType, r *RecordEntity) {
 			Protocol: r.Protocol,
 			Duration: r.Duration.Nanoseconds() / int64(time.Millisecond),
 			Conn:     r.Conn,
+			Dumped:   r.Dumped,
 		},
 	}
 	if !r.Timestamp.IsZero() {
@@ -115,4 +116,5 @@ type RecordResponse struct {
 	Protocol  string       `json:"protocol,omitempty"`
 	Duration  int64        `json:"duration,omitempty"`
 	Conn      *ConnEntity  `json:"conn,omitempty"`
+	Dumped    bool         `json:"dumped,omitempty"`
 }

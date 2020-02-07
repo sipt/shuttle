@@ -6,6 +6,7 @@ import (
 
 	"github.com/sipt/shuttle/conf/model"
 	"github.com/sipt/shuttle/conn"
+	"github.com/sirupsen/logrus"
 )
 
 func ApplyConfig(ctx context.Context, config *model.Config) (before, after DecorateFunc, err error) {
@@ -19,6 +20,7 @@ func ApplyConfig(ctx context.Context, config *model.Config) (before, after Decor
 			return
 		}
 		bs = append(bs, decorate)
+		logrus.WithField("stream-before", v.Typ).Info("init stream-before success")
 	}
 	if len(bs) > 0 {
 		before = func(conn conn.ICtxConn) conn.ICtxConn {
@@ -34,6 +36,7 @@ func ApplyConfig(ctx context.Context, config *model.Config) (before, after Decor
 			return
 		}
 		as = append(as, decorate)
+		logrus.WithField("stream-after", v.Typ).Info("init stream-after success")
 	}
 	if len(as) > 0 {
 		after = func(conn conn.ICtxConn) conn.ICtxConn {

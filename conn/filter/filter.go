@@ -7,6 +7,7 @@ import (
 	"github.com/sipt/shuttle/conf/model"
 	"github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/constant/typ"
+	"github.com/sirupsen/logrus"
 )
 
 func ApplyConfig(ctx context.Context, config *model.Config) (filter FilterFunc, err error) {
@@ -16,6 +17,7 @@ func ApplyConfig(ctx context.Context, config *model.Config) (filter FilterFunc, 
 		if err != nil {
 			return
 		}
+		logrus.WithField("filter", v.Typ).Info("init filter success")
 	}
 	return func(next typ.HandleFunc) typ.HandleFunc {
 		return func(c conn.ICtxConn) {

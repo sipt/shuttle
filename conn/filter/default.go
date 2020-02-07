@@ -4,6 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/sipt/shuttle/conn/stream/dump"
+
 	"github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/constant/typ"
@@ -32,6 +36,10 @@ func newRecorder(ctx context.Context, _ map[string]string, next typ.HandleFunc) 
 				Timestamp: time.Now(),
 				Protocol:  c.Value(constant.KeyProtocol).(string),
 			},
+		}
+		err := dump.InitFiles(req.ID())
+		if err != nil {
+			logrus.WithField("record_id", req.ID()).WithError(err).Error("[data_dump] init files failed")
 		}
 		next(c)
 	}, nil
