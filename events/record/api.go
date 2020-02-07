@@ -5,6 +5,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/sipt/shuttle/conn/stream/dump"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/sipt/shuttle/controller/model"
@@ -33,6 +37,10 @@ func recordsHandleFunc(c *gin.Context) {
 
 func clearRecordsHandleFunc(c *gin.Context) {
 	recordStarge.Clear()
+	err := dump.ClearFiles()
+	if err != nil {
+		logrus.WithError(err).Error("clear dump files failed")
+	}
 	c.JSON(http.StatusOK, &model.Response{
 		Code: 0,
 	})
