@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"net"
@@ -154,12 +155,12 @@ func outboundHandle() typ.HandleFunc {
 		} else {
 			s = g.Server()
 		}
-		logrus.WithField("network", reqInfo.Network()).
+		log := logrus.WithField("network", reqInfo.Network()).
 			WithField("domain", reqInfo.Domain()).
 			WithField("addr", fmt.Sprintf("%s:%d", reqInfo.IP(), reqInfo.Port())).
 			WithField("country-code", reqInfo.CountryCode()).
-			WithField("rule", rule.String()).
-			Infof("URI: %s", reqInfo.URI())
+			WithField("rule", rule.String())
+		log.Infof("URI: %s", reqInfo.URI())
 		sc, err := s.Dial(lc, reqInfo.Network(), reqInfo, func(ctx context.Context, network string, addr, port string) (conn connpkg.ICtxConn, e error) {
 			conn, err := connpkg.DefaultDial(ctx, network, addr, port)
 			if err != nil {
@@ -186,6 +187,14 @@ func outboundHandle() typ.HandleFunc {
 			return
 		}
 		lc = profile.BeforeStream()(lc)
+		// 开启mitm时，要模拟tls连接
+		if useTLS, ok := lc.Value(constant.KeyUseTLS).(bool); ok && useTLS {
+			scTls := tls.Client(sc, &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				InsecureSkipVerify: true,
+			})
+			sc = connpkg.NewConn(scTls, sc.GetContext())
+		}
 		err = connpkg.Transfer(lc, sc)
 		if err != nil {
 			recordEntity.Status = record.FailedStatus

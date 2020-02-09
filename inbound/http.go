@@ -17,6 +17,7 @@ import (
 	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/listener"
+	"github.com/sipt/shuttle/pkg/pool"
 	"github.com/sirupsen/logrus"
 
 	connpkg "github.com/sipt/shuttle/conn"
@@ -201,6 +202,34 @@ func httpsHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, er
 	}
 	c.WithValue(constant.KeyRequestInfo, ctxReq)
 	return c, nil
+}
+
+type wsConn struct {
+	*httpConn
+}
+
+func (wc *wsConn) WriteTo(w io.Writer) (n int64, err error) {
+	wr := &writer{Writer: w}
+	err = wc.req.Write(wr)
+	n = wr.length
+	b := pool.GetBuf()
+	for {
+		wn, err := wc.ICtxConn.Read(b)
+		if wn > 0 {
+			_, err := w.Write(b)
+			if err != nil {
+				return n, err
+			}
+		}
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return n, err
+		}
+		n += int64(wn)
+	}
+	return n, err
 }
 
 type httpConn struct {

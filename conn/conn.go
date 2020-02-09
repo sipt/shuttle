@@ -48,6 +48,7 @@ type ICtxConn interface {
 	WithContext(ctx context.Context)
 	GetContext() context.Context
 	WithValue(interface{}, interface{})
+	SetConn(net.Conn)
 }
 
 type ctxConn struct {
@@ -85,6 +86,12 @@ func (c *ctxConn) Read(b []byte) (int, error) {
 func (c *ctxConn) Write(b []byte) (int, error) {
 	n, err := c.Conn.Write(b)
 	return n, err
+}
+func (c *ctxConn) SetConn(conn net.Conn) {
+	if conn == nil {
+		return
+	}
+	c.Conn = conn
 }
 
 func WrapConn(conn net.Conn) ICtxConn {
@@ -160,6 +167,9 @@ func (u *udpConn) WithValue(k interface{}, v interface{}) {
 func (u *udpConn) GetConnID() int64 {
 	id, _ := u.Value(KeyConnID).(int64)
 	return id
+}
+func (u *udpConn) SetConn(net.Conn) {
+	return
 }
 func NewUDPConn(pc net.PacketConn, ctx context.Context, remoteAddr net.Addr, data []byte) ICtxConn {
 	if ctx.Value(KeyConnID) == nil {
