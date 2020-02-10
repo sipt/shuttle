@@ -21,12 +21,17 @@ import (
 	"github.com/sipt/shuttle/conn"
 )
 
-var mitmEabled = true
+var (
+	mitmEnabled = false
+	domainRules []string
+)
 var ca *x509.Certificate
 var caBytes []byte
 var key *rsa.PrivateKey
 
-func InitMITM(keyEncode, caEncode string) error {
+func InitMITM(keyEncode, caEncode string, enable bool, domains []string) error {
+	mitmEnabled = enable
+	domainRules = domains
 	if len(keyEncode) == 0 || len(caEncode) == 0 {
 		return nil
 	}
@@ -40,6 +45,20 @@ func InitMITM(keyEncode, caEncode string) error {
 	}
 	ca, key, err = LoadCA(caBytes, keyBytes)
 	return err
+}
+
+func mitmIsEnabled(domain string) bool {
+	if !mitmEnabled {
+		return false
+	}
+	for _, v := range domainRules {
+		if v[0] == '*' {
+			return strings.HasSuffix(domain, v[1:])
+		} else {
+			return v == domain
+		}
+	}
+	return false
 }
 
 func GetCACert() []byte {
