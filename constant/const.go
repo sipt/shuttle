@@ -8,8 +8,13 @@ const (
 	KeyProfile     = "__profile"
 	KeyUseTLS      = "__tls" // 当开启mitm时，存在ctx中，type：bool
 
-	ProtocolHTTP  = "http"
-	ProtocolHTTPS = "https"
+	ProtocolHTTP            = "http"
+	ProtocolHTTPS           = "https"
+	ProtocolSOCKS           = "socks"
+	ProtocolSOCKS_HTTP      = "socks(http)"
+	ProtocolSOCKS_HTTPS     = "socks(https)"
+	ProtocolSOCKS_TLS       = "socks(tls)"
+	ProtocolSOCKS_Websocket = "socks(ws)"
 
 	ModeDirect = "ModeDirect"
 	ModeGlobal = "ModeGlobal"

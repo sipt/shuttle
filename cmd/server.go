@@ -27,6 +27,7 @@ import (
 	closepkg "github.com/sipt/shuttle/pkg/close"
 	rulepkg "github.com/sipt/shuttle/rule"
 
+	_ "github.com/sipt/shuttle/conn/stream/include"
 	_ "github.com/sipt/shuttle/events/include"
 )
 

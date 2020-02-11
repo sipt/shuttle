@@ -2,6 +2,7 @@ package dump
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"strings"
 
@@ -30,9 +31,9 @@ func checkAllowDump(c context.Context, protocol ...string) bool {
 			return false
 		}
 	}
-	if p == constant.ProtocolHTTP {
+	if p == constant.ProtocolHTTP || p == constant.ProtocolSOCKS_HTTP {
 		return true
-	} else if p == constant.ProtocolHTTPS {
+	} else if p == constant.ProtocolHTTPS || p == constant.ProtocolSOCKS_HTTPS {
 		if reqInfo, ok := c.Value(constant.KeyRequestInfo).(typ.RequestInfo); ok {
 			return mitmIsEnabled(reqInfo.Domain())
 		}
@@ -63,7 +64,8 @@ func newHTTPDump(ctx context.Context, params map[string]string) (stream.Decorate
 		if !checkAllowDump(c, p) {
 			return c
 		}
-		if p == constant.ProtocolHTTPS {
+		fmt.Println(p)
+		if p == constant.ProtocolHTTPS || p == constant.ProtocolSOCKS_HTTPS {
 			lc, err := Mitm(c)
 			if err != nil {
 				logrus.WithError(err).Error("call mitm failed")
