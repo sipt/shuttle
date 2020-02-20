@@ -24,3 +24,8 @@ type RequestInfo interface {
 	SetPort(int)
 	SetCountryCode(string)
 }
+
+type Runtime interface {
+	Get(string) interface{}
+	Set(string, interface{}) error
+}

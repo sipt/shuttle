@@ -27,6 +27,10 @@ func ApplyConfig(ctx context.Context, config *model.Config) (filter FilterFunc, 
 	}, nil
 }
 
+func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
+	return nil
+}
+
 type FilterFunc func(typ.HandleFunc) typ.HandleFunc
 type NewFunc func(context.Context, map[string]string, typ.HandleFunc) (typ.HandleFunc, error)
 

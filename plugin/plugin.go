@@ -1,10 +1,13 @@
 package plugin
 
 import (
+	"context"
 	"flag"
 	"os"
 	"path"
 	"plugin"
+
+	"github.com/sipt/shuttle/constant/typ"
 
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conf/model"
@@ -61,5 +64,9 @@ func ApplyConfig(config *model.Config) error {
 			}
 		}
 	}
+	return nil
+}
+
+func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
 	return nil
 }

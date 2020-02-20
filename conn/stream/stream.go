@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sipt/shuttle/constant/typ"
+
 	"github.com/sipt/shuttle/conf/model"
 	"github.com/sipt/shuttle/conn"
 	"github.com/sirupsen/logrus"
@@ -47,6 +49,10 @@ func ApplyConfig(ctx context.Context, config *model.Config) (before, after Decor
 		}
 	}
 	return
+}
+
+func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
+	return nil
 }
 
 type DecorateFunc func(conn.ICtxConn) conn.ICtxConn

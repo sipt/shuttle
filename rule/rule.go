@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/sipt/shuttle/constant/typ"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/pkg/errors"
@@ -40,6 +42,10 @@ func ApplyConfig(ctx context.Context, config *model.Config, isUDP bool, proxyNam
 		}
 	}
 	return
+}
+
+func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
+	return nil
 }
 
 // simple of RequestInfo

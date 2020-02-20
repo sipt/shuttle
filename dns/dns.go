@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sipt/shuttle/constant/typ"
+
 	"github.com/miekg/dns"
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conf/model"
@@ -49,6 +51,10 @@ func ApplyConfig(config *model.Config, fallback Handle) (handle Handle, cache IC
 		}
 	}
 	return
+}
+
+func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
+	return nil
 }
 
 func newGeneralHandle(servers []string, timeout time.Duration, next Handle) (Handle, error) {

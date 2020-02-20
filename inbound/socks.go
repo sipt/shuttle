@@ -118,6 +118,9 @@ func NewCmdFunc(ctx context.Context, addr *socks.Addr, handle typ.HandleFunc) fu
 			ip:     cmdReq.Addr.IP,
 			port:   cmdReq.Addr.Port,
 		}
+		if req.IP().String() == "180.101.49.12" {
+			req.domain = "www.baidu.com"
+		}
 		ctx = context.WithValue(ctx, constant.KeyProtocol, constant.ProtocolSOCKS)
 		switch cmdReq.Cmd {
 		case socks.CmdConnect:

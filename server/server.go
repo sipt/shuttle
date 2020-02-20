@@ -6,6 +6,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/sipt/shuttle/constant/typ"
+
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conf/model"
 	"github.com/sipt/shuttle/conn"
@@ -54,6 +56,10 @@ func ApplyConfig(config *model.Config, dnsHandle dns.Handle) (map[string]IServer
 		servers[s.Name()] = s
 	}
 	return servers, nil
+}
+
+func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
+	return nil
 }
 
 type NewFunc func(name, addr string, port int, params map[string]string, dnsHandle dns.Handle) (IServer, error)

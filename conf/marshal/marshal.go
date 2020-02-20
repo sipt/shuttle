@@ -2,8 +2,6 @@ package marshal
 
 import (
 	"fmt"
-
-	"github.com/sipt/shuttle/conf/model"
 )
 
 type NewFunc func(map[string]string) (IMarshal, error)
@@ -25,6 +23,6 @@ func Get(key string, params map[string]string) (IMarshal, error) {
 }
 
 type IMarshal interface {
-	Marshal(*model.Config) ([]byte, error)
-	UnMarshal([]byte) (*model.Config, error)
+	Marshal(interface{}) ([]byte, error)
+	UnMarshal([]byte, interface{}) (interface{}, error)
 }

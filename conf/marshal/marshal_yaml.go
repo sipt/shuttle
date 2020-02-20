@@ -4,7 +4,6 @@ import (
 	"bytes"
 
 	"github.com/pkg/errors"
-	"github.com/sipt/shuttle/conf/model"
 	"github.com/sipt/yaml"
 )
 
@@ -18,18 +17,17 @@ func newYamlMarshal(_ map[string]string) (IMarshal, error) {
 
 type yamlMarshal struct{}
 
-func (t *yamlMarshal) Marshal(config *model.Config) ([]byte, error) {
+func (t *yamlMarshal) Marshal(entity interface{}) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	if err := yaml.NewEncoder(buf).Encode(config); err != nil {
-		return nil, errors.Wrap(err, "marshal config failed")
+	if err := yaml.NewEncoder(buf).Encode(entity); err != nil {
+		return nil, errors.Wrap(err, "marshal entity failed")
 	}
 	return buf.Bytes(), nil
 }
 
-func (t *yamlMarshal) UnMarshal(data []byte) (*model.Config, error) {
-	config := &model.Config{}
-	if err := yaml.Unmarshal(data, config); err != nil {
-		return nil, errors.Wrap(err, "unmarshal config failed")
+func (t *yamlMarshal) UnMarshal(data []byte, entity interface{}) (interface{}, error) {
+	if err := yaml.Unmarshal(data, entity); err != nil {
+		return nil, errors.Wrap(err, "unmarshal entity failed")
 	}
-	return config, nil
+	return entity, nil
 }

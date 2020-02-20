@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/sipt/shuttle/constant/typ"
+
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conf/marshal"
 	"github.com/sipt/shuttle/conf/model"
@@ -35,7 +37,8 @@ func LoadConfig(ctx context.Context, typ, encode string, params map[string]strin
 	if err != nil {
 		return nil, err
 	}
-	config, err := m.UnMarshal(data)
+	config := new(model.Config)
+	_, err = m.UnMarshal(data, config)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +63,7 @@ func LoadConfig(ctx context.Context, typ, encode string, params map[string]strin
 			return nil, err
 		}
 	}
-	config, err = m.UnMarshal(buffer.Bytes())
+	_, err = m.UnMarshal(buffer.Bytes(), config)
 	if err != nil {
 		return nil, err
 	}
@@ -160,4 +163,64 @@ func ruleModeHandle(r *rule.Rule, next rule.Handle, _ dns.Handle) rule.Handle {
 			return next(ctx, info)
 		}
 	}
+}
+
+func LoadRuntime(ctx context.Context, typ, encode string, params map[string]string) (map[string]interface{}, error) {
+	s, err := storage.Get(typ, params)
+	if err != nil {
+		return nil, err
+	}
+	data, err := s.Load()
+	if err != nil {
+		return nil, err
+	}
+	m, err := marshal.Get(encode, params)
+	if err != nil {
+		return nil, err
+	}
+	config := make(map[string]interface{})
+	_, err = m.UnMarshal(data, config)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func ApplyRuntime(ctx context.Context, config typ.Runtime) error {
+	// apply plugin config
+	err := plugin.ApplyRuntime(ctx, config)
+	if err != nil {
+		return errors.Wrapf(err, "[plugin.ApplyRuntime] failed")
+	}
+	// apply dns config
+	err = dns.ApplyRuntime(ctx, config)
+	if err != nil {
+		return errors.Wrapf(err, "[dns.ApplyRuntime] failed")
+	}
+	// apply server config
+	err = server.ApplyRuntime(ctx, config)
+	if err != nil {
+		return err
+	}
+	// apply server_group config
+	err = group.ApplyRuntime(ctx, config)
+	if err != nil {
+		return err
+	}
+	// apply rule config
+	err = rule.ApplyRuntime(ctx, config)
+	if err != nil {
+		return errors.Wrapf(err, "[rule.ApplyRuntime] failed")
+	}
+	// apply filter config
+	err = filter.ApplyRuntime(ctx, config)
+	if err != nil {
+		return errors.Wrapf(err, "[filter.ApplyRuntime] failed")
+	}
+	// apply stream filter config
+	err = stream.ApplyRuntime(ctx, config)
+	if err != nil {
+		return errors.Wrapf(err, "[stream.ApplyRuntime] failed")
+	}
+	return nil
 }

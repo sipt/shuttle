@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sipt/shuttle/constant/typ"
+
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conf/model"
 	"github.com/sipt/shuttle/dns"
@@ -67,6 +69,10 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 	gl.Append(gs)
 	groups[Global] = gl
 	return groups, nil
+}
+
+func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
+	return nil
 }
 
 type NewFunc func(ctx context.Context, name string, params map[string]string, dnsHandle dns.Handle) (IGroup, error)
