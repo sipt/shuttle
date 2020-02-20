@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sipt/shuttle/constant/typ"
+
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/dns"
@@ -31,7 +33,7 @@ func init() {
 	Register(TypRTT, newRttGroup)
 }
 
-func newRttGroup(ctx context.Context, name string, params map[string]string, _ dns.Handle) (group IGroup, err error) {
+func newRttGroup(ctx context.Context, runtime typ.Runtime, name string, params map[string]string, _ dns.Handle) (group IGroup, err error) {
 	rtt := &rttGroup{
 		ctx:     ctx,
 		name:    name,

@@ -14,7 +14,7 @@ import (
 	"github.com/sipt/shuttle/dns"
 )
 
-func ApplyConfig(ctx context.Context, config *model.Config, isUDP bool, proxyName map[string]bool, fallback Handle, dnsHandle dns.Handle) (handle Handle, err error) {
+func ApplyConfig(ctx context.Context, config *model.Config, _ typ.Runtime, isUDP bool, proxyName map[string]bool, fallback Handle, dnsHandle dns.Handle) (handle Handle, err error) {
 	handle = fallback
 	rules := config.Rule
 	if isUDP {
@@ -42,10 +42,6 @@ func ApplyConfig(ctx context.Context, config *model.Config, isUDP bool, proxyNam
 		}
 	}
 	return
-}
-
-func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
-	return nil
 }
 
 // simple of RequestInfo

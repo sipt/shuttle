@@ -32,6 +32,7 @@ import (
 )
 
 var Path = flag.String("c", os.Getenv("CONFIG_PATH"), "config file Path")
+var RuntimePath = flag.String("r", os.Getenv("RUNTIME_PATH"), "runtime file Path")
 var Encoding = flag.String("e", os.Getenv("ENCODING"), "config file Encoding")
 var LogPath = flag.String("logpath", os.Getenv("LOGGER_PATH"), "logger file")
 
@@ -58,6 +59,12 @@ func Start() (err error) {
 		logrus.WithError(err).Error("load config failed")
 		return err
 	}
+	params = map[string]string{"path": *RuntimePath}
+	runtime, err := conf.LoadRuntime(ctx, "file", *Encoding, params)
+	if err != nil {
+		logrus.WithError(err).Error("load runtime failed")
+		return err
+	}
 	l, err := logrus.ParseLevel(config.General.LoggerLevel)
 	if err != nil {
 		l = logrus.DebugLevel
@@ -67,7 +74,7 @@ func Start() (err error) {
 		logrus.WithError(err).Error("load config failed")
 		return err
 	}
-	err = conf.ApplyConfig(ctx, config)
+	err = conf.ApplyConfig(ctx, config, runtime)
 	if err != nil {
 		logrus.WithError(err).Error("apply config failed")
 		return err

@@ -14,7 +14,7 @@ import (
 
 var Global = "GLOBAL"
 
-func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]server.IServer, dnsHandle dns.Handle) (map[interface{}]IGroup, error) {
+func ApplyConfig(ctx context.Context, config *model.Config, runtime typ.Runtime, servers map[string]server.IServer, dnsHandle dns.Handle) (map[interface{}]IGroup, error) {
 	serverMap := make(map[string]IServerX)
 	for _, v := range servers {
 		serverMap[v.Name()] = WrapServer(v)
@@ -25,6 +25,10 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 		err error
 		ok  bool
 	)
+	getRuntime, err := ApplyRuntime(ctx, runtime)
+	if err != nil {
+		return nil, err
+	}
 	for name, v := range config.ServerGroup {
 		if name == Global {
 			return nil, errors.Errorf("group name [%s] is reserved", name)
@@ -34,7 +38,7 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 		} else if _, ok := v.Params[ParamsKeyTestURI]; !ok {
 			v.Params[ParamsKeyTestURI] = config.General.DefaultTestURI
 		}
-		g, err = Get(ctx, v.Typ, name, v.Params, dnsHandle)
+		g, err = Get(ctx, v.Typ, getRuntime(name), name, v.Params, dnsHandle)
 		if err != nil {
 			return nil, err
 		}
@@ -45,7 +49,7 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 		groups[name] = g
 	}
 	// global group, when in GLOBAL_MODE
-	gl, err := Get(ctx, TypSelect, Global, map[string]string{ParamsKeyTestURI: config.General.DefaultTestURI}, dnsHandle)
+	gl, err := Get(ctx, TypSelect, getRuntime(Global), Global, map[string]string{ParamsKeyTestURI: config.General.DefaultTestURI}, dnsHandle)
 	if err != nil {
 		return nil, err
 	}
@@ -71,11 +75,41 @@ func ApplyConfig(ctx context.Context, config *model.Config, servers map[string]s
 	return groups, nil
 }
 
-func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
-	return nil
+func ApplyRuntime(ctx context.Context, rt typ.Runtime) (func(string) typ.Runtime, error) {
+	rt = newRuntime("group", rt)
+	return func(name string) typ.Runtime {
+		return newRuntime(name, rt)
+	}, nil
 }
 
-type NewFunc func(ctx context.Context, name string, params map[string]string, dnsHandle dns.Handle) (IGroup, error)
+func newRuntime(name string, rt typ.Runtime) typ.Runtime {
+	r := &runtime{
+		name:    name,
+		Runtime: rt,
+	}
+	var ok bool
+	r.current, ok = rt.Get(name).(map[string]interface{})
+	if !ok {
+		r.current = make(map[string]interface{})
+	}
+	return r
+}
+
+type runtime struct {
+	name    string
+	current map[string]interface{}
+	typ.Runtime
+}
+
+func (r *runtime) Get(key string) interface{} {
+	return r.current[key]
+}
+func (r *runtime) Set(key string, value interface{}) error {
+	r.current[key] = value
+	return r.Runtime.Set(r.name, r.current)
+}
+
+type NewFunc func(ctx context.Context, runtime typ.Runtime, name string, params map[string]string, dnsHandle dns.Handle) (IGroup, error)
 
 var creator = make(map[string]NewFunc)
 
@@ -85,12 +119,12 @@ func Register(key string, f NewFunc) {
 }
 
 // Get: get group by key
-func Get(ctx context.Context, typ string, name string, params map[string]string, dnsHandle dns.Handle) (IGroup, error) {
+func Get(ctx context.Context, typ string, runtime typ.Runtime, name string, params map[string]string, dnsHandle dns.Handle) (IGroup, error) {
 	f, ok := creator[typ]
 	if !ok {
 		return nil, fmt.Errorf("server not support: %s", typ)
 	}
-	return f(ctx, name, params, dnsHandle)
+	return f(ctx, runtime, name, params, dnsHandle)
 }
 
 type IGroup interface {

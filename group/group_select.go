@@ -5,6 +5,9 @@ import (
 	"net/url"
 	"sync"
 
+	"github.com/sipt/shuttle/constant/typ"
+	"github.com/sirupsen/logrus"
+
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/server"
@@ -13,12 +16,13 @@ import (
 const TypSelect = "select"
 
 func init() {
-	Register(TypSelect, func(ctx context.Context, name string, params map[string]string, _ dns.Handle) (group IGroup, e error) {
+	Register(TypSelect, func(ctx context.Context, runtime typ.Runtime, name string, params map[string]string, _ dns.Handle) (group IGroup, e error) {
 		s := &SelectGroup{
 			name:     name,
 			RWMutex:  &sync.RWMutex{},
 			testUrl:  params[ParamsKeyTestURI],
 			udpRelay: params[ParamsKeyUdpRelay] == "true",
+			runtime:  runtime,
 		}
 		if s.testUrl == "" {
 			s.testUrl = DefaultTestURL
@@ -36,6 +40,7 @@ type SelectGroup struct {
 	current  IServerX
 	testUrl  string
 	udpRelay bool
+	runtime  typ.Runtime
 	*sync.RWMutex
 }
 
@@ -50,7 +55,24 @@ func (s *SelectGroup) Append(servers []IServerX) {
 	} else {
 		s.servers = append(s.servers, servers...)
 	}
-	s.current = s.servers[0]
+	selected, ok := s.runtime.Get("selected").(string)
+	if !ok {
+		s.current = s.servers[0]
+	} else {
+		for i, v := range s.servers {
+			if v.Name() == selected {
+				s.current = s.servers[i]
+				break
+			}
+		}
+		if s.current == nil {
+			s.current = s.servers[0]
+		}
+	}
+	err := s.runtime.Set("selected", s.current.Name())
+	if err != nil {
+		logrus.WithField("select_group", s.name).WithError(err).Error("save runtime failed")
+	}
 }
 func (s *SelectGroup) Items() []IServerX {
 	return s.servers
@@ -100,6 +122,10 @@ func (s *SelectGroup) Select(name string) error {
 	for i, v := range s.servers {
 		if v.Name() == name {
 			s.current = s.servers[i]
+			err := s.runtime.Set(s.name, s.current.Name())
+			if err != nil {
+				logrus.WithField("select_group", s.name).WithError(err).Error("save runtime failed")
+			}
 			return nil
 		}
 	}

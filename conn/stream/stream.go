@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ApplyConfig(ctx context.Context, config *model.Config) (before, after DecorateFunc, err error) {
+func ApplyConfig(ctx context.Context, _ typ.Runtime, config *model.Config) (before, after DecorateFunc, err error) {
 	before, after = NopConn, NopConn
 	var bs = make([]DecorateFunc, 0, len(config.Stream.Before))
 	var as = make([]DecorateFunc, 0, len(config.Stream.After))
@@ -49,10 +49,6 @@ func ApplyConfig(ctx context.Context, config *model.Config) (before, after Decor
 		}
 	}
 	return
-}
-
-func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
-	return nil
 }
 
 type DecorateFunc func(conn.ICtxConn) conn.ICtxConn

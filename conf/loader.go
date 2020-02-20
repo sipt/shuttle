@@ -3,6 +3,8 @@ package conf
 import (
 	"bytes"
 	"context"
+	"os"
+	"sync"
 
 	"github.com/sipt/shuttle/constant/typ"
 
@@ -71,24 +73,24 @@ func LoadConfig(ctx context.Context, typ, encode string, params map[string]strin
 	return config, nil
 }
 
-func ApplyConfig(ctx context.Context, config *model.Config) error {
+func ApplyConfig(ctx context.Context, config *model.Config, runtime typ.Runtime) error {
 	// apply plugin config
-	err := plugin.ApplyConfig(config)
+	err := plugin.ApplyConfig(config, runtime)
 	if err != nil {
 		return errors.Wrapf(err, "[plugin.ApplyConfig] failed")
 	}
 	// apply dns config
-	dnsHandle, dnsCache, err := dns.ApplyConfig(config, func(ctx context.Context, domain string) *dns.DNS { return nil })
+	dnsHandle, dnsCache, err := dns.ApplyConfig(config, runtime, func(ctx context.Context, domain string) *dns.DNS { return nil })
 	if err != nil {
 		return errors.Wrapf(err, "[dns.ApplyConfig] failed")
 	}
 	// apply server config
-	servers, err := server.ApplyConfig(config, dnsHandle)
+	servers, err := server.ApplyConfig(config, runtime, dnsHandle)
 	if err != nil {
 		return err
 	}
 	// apply server_group config
-	groups, err := group.ApplyConfig(ctx, config, servers, dnsHandle)
+	groups, err := group.ApplyConfig(ctx, config, runtime, servers, dnsHandle)
 	if err != nil {
 		return err
 	}
@@ -106,7 +108,7 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 	}
 
 	// TCP rules
-	ruleHandle, err := rule.ApplyConfig(ctx, config, false, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
+	ruleHandle, err := rule.ApplyConfig(ctx, config, runtime, false, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
 		return defaultRule
 	}, dnsHandle)
 	if err != nil {
@@ -116,7 +118,7 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 	ruleHandle = ruleModeHandle(&rule.Rule{Profile: config.Info.Name}, ruleHandle, nil)
 
 	// UDP rules
-	udpRuleHandle, err := rule.ApplyConfig(ctx, config, true, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
+	udpRuleHandle, err := rule.ApplyConfig(ctx, config, runtime, true, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
 		return defaultRule
 	}, dnsHandle)
 	if err != nil {
@@ -126,12 +128,12 @@ func ApplyConfig(ctx context.Context, config *model.Config) error {
 	udpRuleHandle = ruleModeHandle(&rule.Rule{Profile: config.Info.Name}, udpRuleHandle, nil)
 
 	// apply filter config
-	filterHandle, err := filter.ApplyConfig(ctx, config)
+	filterHandle, err := filter.ApplyConfig(ctx, runtime, config)
 	if err != nil {
 		return errors.Wrapf(err, "[filter.ApplyConfig] failed")
 	}
 	// apply stream filter config
-	before, after, err := stream.ApplyConfig(ctx, config)
+	before, after, err := stream.ApplyConfig(ctx, runtime, config)
 	if err != nil {
 		return errors.Wrapf(err, "[stream.ApplyConfig] failed")
 	}
@@ -165,62 +167,59 @@ func ruleModeHandle(r *rule.Rule, next rule.Handle, _ dns.Handle) rule.Handle {
 	}
 }
 
-func LoadRuntime(ctx context.Context, typ, encode string, params map[string]string) (map[string]interface{}, error) {
+func LoadRuntime(ctx context.Context, typ, encode string, params map[string]string) (typ.Runtime, error) {
 	s, err := storage.Get(typ, params)
 	if err != nil {
 		return nil, err
 	}
 	data, err := s.Load()
 	if err != nil {
-		return nil, err
+		if os.IsNotExist(errors.Cause(err)) {
+			err = s.Save([]byte{})
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	m, err := marshal.Get(encode, params)
 	if err != nil {
 		return nil, err
 	}
 	config := make(map[string]interface{})
-	_, err = m.UnMarshal(data, config)
-	if err != nil {
-		return nil, err
+	if len(data) > 0 {
+		_, err = m.UnMarshal(data, &config)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return config, nil
+	return &runtime{
+		value: config,
+		s:     s,
+		m:     m,
+		Mutex: &sync.Mutex{},
+	}, nil
 }
 
-func ApplyRuntime(ctx context.Context, config typ.Runtime) error {
-	// apply plugin config
-	err := plugin.ApplyRuntime(ctx, config)
-	if err != nil {
-		return errors.Wrapf(err, "[plugin.ApplyRuntime] failed")
-	}
-	// apply dns config
-	err = dns.ApplyRuntime(ctx, config)
-	if err != nil {
-		return errors.Wrapf(err, "[dns.ApplyRuntime] failed")
-	}
-	// apply server config
-	err = server.ApplyRuntime(ctx, config)
-	if err != nil {
-		return err
-	}
-	// apply server_group config
-	err = group.ApplyRuntime(ctx, config)
+type runtime struct {
+	value map[string]interface{}
+	s     storage.IStorage
+	m     marshal.IMarshal
+	*sync.Mutex
+}
+
+func (r *runtime) Get(key string) interface{} {
+	return r.value[key]
+}
+
+func (r *runtime) Set(key string, value interface{}) error {
+	r.value[key] = value
+	data, err := r.m.Marshal(r.value)
 	if err != nil {
 		return err
 	}
-	// apply rule config
-	err = rule.ApplyRuntime(ctx, config)
+	err = r.s.Save(data)
 	if err != nil {
-		return errors.Wrapf(err, "[rule.ApplyRuntime] failed")
-	}
-	// apply filter config
-	err = filter.ApplyRuntime(ctx, config)
-	if err != nil {
-		return errors.Wrapf(err, "[filter.ApplyRuntime] failed")
-	}
-	// apply stream filter config
-	err = stream.ApplyRuntime(ctx, config)
-	if err != nil {
-		return errors.Wrapf(err, "[stream.ApplyRuntime] failed")
+		return err
 	}
 	return nil
 }

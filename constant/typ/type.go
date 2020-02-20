@@ -2,6 +2,7 @@ package typ
 
 import (
 	"net"
+	"sync"
 
 	"github.com/sipt/shuttle/conn"
 )
@@ -26,6 +27,7 @@ type RequestInfo interface {
 }
 
 type Runtime interface {
+	sync.Locker
 	Get(string) interface{}
 	Set(string, interface{}) error
 }

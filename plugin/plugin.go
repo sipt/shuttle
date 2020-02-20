@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"context"
 	"flag"
 	"os"
 	"path"
@@ -21,7 +20,7 @@ const (
 
 var PluginsDir = flag.String("plugins", os.Getenv("PLUGINS_DIR"), "plugins dir")
 
-func ApplyConfig(config *model.Config) error {
+func ApplyConfig(config *model.Config, _ typ.Runtime) error {
 	if *PluginsDir == "" {
 		return nil
 	}
@@ -64,9 +63,5 @@ func ApplyConfig(config *model.Config) error {
 			}
 		}
 	}
-	return nil
-}
-
-func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
 	return nil
 }

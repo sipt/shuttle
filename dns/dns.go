@@ -27,7 +27,7 @@ const (
 
 type Handle func(ctx context.Context, domain string) *DNS
 
-func ApplyConfig(config *model.Config, fallback Handle) (handle Handle, cache ICache, err error) {
+func ApplyConfig(config *model.Config, _ typ.Runtime, fallback Handle) (handle Handle, cache ICache, err error) {
 	timeout := dnsTimeout
 	if config.DNS.TimeoutSec != 0 {
 		timeout = time.Second * time.Duration(config.DNS.TimeoutSec)
@@ -51,10 +51,6 @@ func ApplyConfig(config *model.Config, fallback Handle) (handle Handle, cache IC
 		}
 	}
 	return
-}
-
-func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
-	return nil
 }
 
 func newGeneralHandle(servers []string, timeout time.Duration, next Handle) (Handle, error) {

@@ -28,7 +28,7 @@ var (
 	defaults    = []string{Direct, Reject}
 )
 
-func ApplyConfig(config *model.Config, dnsHandle dns.Handle) (map[string]IServer, error) {
+func ApplyConfig(config *model.Config, _ typ.Runtime, dnsHandle dns.Handle) (map[string]IServer, error) {
 	servers := make(map[string]IServer, len(config.Server)+len(defaults))
 	var (
 		s   IServer
@@ -56,10 +56,6 @@ func ApplyConfig(config *model.Config, dnsHandle dns.Handle) (map[string]IServer
 		servers[s.Name()] = s
 	}
 	return servers, nil
-}
-
-func ApplyRuntime(_ context.Context, _ typ.Runtime) error {
-	return nil
 }
 
 type NewFunc func(name, addr string, port int, params map[string]string, dnsHandle dns.Handle) (IServer, error)
