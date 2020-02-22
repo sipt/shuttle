@@ -74,23 +74,26 @@ func LoadConfig(ctx context.Context, typ, encode string, params map[string]strin
 }
 
 func ApplyConfig(ctx context.Context, config *model.Config, runtime typ.Runtime) error {
+	// namespace
+	name := "default"
+	runtime = typ.NewRuntime(name, runtime)
 	// apply plugin config
 	err := plugin.ApplyConfig(config, runtime)
 	if err != nil {
 		return errors.Wrapf(err, "[plugin.ApplyConfig] failed")
 	}
 	// apply dns config
-	dnsHandle, dnsCache, err := dns.ApplyConfig(config, runtime, func(ctx context.Context, domain string) *dns.DNS { return nil })
+	dnsHandle, dnsCache, err := dns.ApplyConfig(config, typ.NewRuntime("dns", runtime), func(ctx context.Context, domain string) *dns.DNS { return nil })
 	if err != nil {
 		return errors.Wrapf(err, "[dns.ApplyConfig] failed")
 	}
 	// apply server config
-	servers, err := server.ApplyConfig(config, runtime, dnsHandle)
+	servers, err := server.ApplyConfig(config, typ.NewRuntime("server", runtime), dnsHandle)
 	if err != nil {
 		return err
 	}
 	// apply server_group config
-	groups, err := group.ApplyConfig(ctx, config, runtime, servers, dnsHandle)
+	groups, err := group.ApplyConfig(ctx, config, typ.NewRuntime("group", runtime), servers, dnsHandle)
 	if err != nil {
 		return err
 	}
@@ -108,7 +111,7 @@ func ApplyConfig(ctx context.Context, config *model.Config, runtime typ.Runtime)
 	}
 
 	// TCP rules
-	ruleHandle, err := rule.ApplyConfig(ctx, config, runtime, false, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
+	ruleHandle, err := rule.ApplyConfig(ctx, config, typ.NewRuntime("rule", runtime), false, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
 		return defaultRule
 	}, dnsHandle)
 	if err != nil {
@@ -118,7 +121,7 @@ func ApplyConfig(ctx context.Context, config *model.Config, runtime typ.Runtime)
 	ruleHandle = ruleModeHandle(&rule.Rule{Profile: config.Info.Name}, ruleHandle, nil)
 
 	// UDP rules
-	udpRuleHandle, err := rule.ApplyConfig(ctx, config, runtime, true, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
+	udpRuleHandle, err := rule.ApplyConfig(ctx, config, typ.NewRuntime("rule", runtime), true, proxyName, func(ctx context.Context, info rule.RequestInfo) *rule.Rule {
 		return defaultRule
 	}, dnsHandle)
 	if err != nil {
@@ -128,12 +131,12 @@ func ApplyConfig(ctx context.Context, config *model.Config, runtime typ.Runtime)
 	udpRuleHandle = ruleModeHandle(&rule.Rule{Profile: config.Info.Name}, udpRuleHandle, nil)
 
 	// apply filter config
-	filterHandle, err := filter.ApplyConfig(ctx, runtime, config)
+	filterHandle, err := filter.ApplyConfig(ctx, typ.NewRuntime("filter", runtime), config)
 	if err != nil {
 		return errors.Wrapf(err, "[filter.ApplyConfig] failed")
 	}
 	// apply stream filter config
-	before, after, err := stream.ApplyConfig(ctx, runtime, config)
+	before, after, err := stream.ApplyConfig(ctx, typ.NewRuntime("stream", runtime), config)
 	if err != nil {
 		return errors.Wrapf(err, "[stream.ApplyConfig] failed")
 	}
@@ -145,7 +148,7 @@ func ApplyConfig(ctx context.Context, config *model.Config, runtime typ.Runtime)
 	global.AddProfile(config.Info.Name, profile)
 	// TODO multiple profile
 	// set profile to namespace
-	namespace.AddNamespace("default", ctx, profile)
+	namespace.AddNamespace(name, ctx, profile, runtime)
 	return nil
 }
 

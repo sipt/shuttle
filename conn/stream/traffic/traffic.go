@@ -7,6 +7,7 @@ import (
 
 	"github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/conn/stream"
+	"github.com/sipt/shuttle/constant/typ"
 )
 
 var down, up int64 = 0, 0
@@ -15,7 +16,7 @@ func init() {
 	stream.RegisterStream("traffic", newTrafficMetrics)
 }
 
-func newTrafficMetrics(ctx context.Context, _ map[string]string) (stream.DecorateFunc, error) {
+func newTrafficMetrics(ctx context.Context, _ typ.Runtime, _ map[string]string) (typ.DecorateFunc, error) {
 	ticker := time.NewTicker(time.Second)
 	go func() {
 		for {

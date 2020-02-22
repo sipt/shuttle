@@ -31,3 +31,6 @@ type Runtime interface {
 	Get(string) interface{}
 	Set(string, interface{}) error
 }
+
+type FilterFunc func(HandleFunc) HandleFunc
+type DecorateFunc func(conn.ICtxConn) conn.ICtxConn

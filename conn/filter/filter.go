@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ApplyConfig(ctx context.Context, _ typ.Runtime, config *model.Config) (filter FilterFunc, err error) {
+func ApplyConfig(ctx context.Context, _ typ.Runtime, config *model.Config) (filter typ.FilterFunc, err error) {
 	hf := func(conn.ICtxConn) {}
 	for _, v := range config.Filter {
 		hf, err = Get(ctx, v.Typ, v.Params, hf)
@@ -27,7 +27,6 @@ func ApplyConfig(ctx context.Context, _ typ.Runtime, config *model.Config) (filt
 	}, nil
 }
 
-type FilterFunc func(typ.HandleFunc) typ.HandleFunc
 type NewFunc func(context.Context, map[string]string, typ.HandleFunc) (typ.HandleFunc, error)
 
 func Nop(h typ.HandleFunc) typ.HandleFunc {

@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/conf/logger"
 	"github.com/sipt/shuttle/conf/model"
+	"github.com/sipt/shuttle/conn/stream/dump"
 	"github.com/sipt/shuttle/events/record"
 
 	capi "github.com/sipt/shuttle/cmd/api"
@@ -27,6 +28,7 @@ func init() {
 	capi.InitAPI(e)    // cmd api
 	record.InitAPI(e)  // record api
 	connapi.InitAPI(e) // conn api
+	dump.InitAPI(e)    // dump api
 
 	// ws
 	tws.InitAPI(e)

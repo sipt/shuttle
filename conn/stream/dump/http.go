@@ -2,14 +2,15 @@ package dump
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"strings"
+
+	"github.com/sipt/shuttle/events/record"
 
 	"github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/conn/stream"
 	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/constant/typ"
+	"github.com/sipt/shuttle/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,21 +42,15 @@ func checkAllowDump(c context.Context, protocol ...string) bool {
 	return false
 }
 
-func newHTTPDump(ctx context.Context, params map[string]string) (stream.DecorateFunc, error) {
-	allowDump = params["enabled"] == "true"
-	err := InitDumpStorage(params["dump_path"])
-	if err != nil {
-		return nil, err
-	}
-	mitmEnabled := params["mitm_enable"] == "true"
-	domains := strings.Split(params["domains"], ",")
-	keyEncode := params["key"]
-	caEncode := params["ca"]
-	err = InitMITM(keyEncode, caEncode, mitmEnabled, domains)
+func newHTTPDump(ctx context.Context, runtime typ.Runtime, _ map[string]string) (typ.DecorateFunc, error) {
+	err := applyRuntime(ctx, runtime)
 	if err != nil {
 		return nil, err
 	}
 	go AutoSave(ctx)
+	record.RegisterClearCallback(func() error {
+		return ClearFiles()
+	})
 	return func(c conn.ICtxConn) conn.ICtxConn {
 		p, ok := c.Value(constant.KeyProtocol).(string)
 		if !ok {
@@ -64,7 +59,6 @@ func newHTTPDump(ctx context.Context, params map[string]string) (stream.Decorate
 		if !checkAllowDump(c, p) {
 			return c
 		}
-		fmt.Println(p)
 		if p == constant.ProtocolHTTPS || p == constant.ProtocolSOCKS_HTTPS {
 			lc, err := Mitm(c)
 			if err != nil {
@@ -109,6 +103,37 @@ func newHTTPDump(ctx context.Context, params map[string]string) (stream.Decorate
 			}
 		}
 	}, nil
+}
+
+func applyRuntime(ctx context.Context, runtime typ.Runtime) error {
+	allowDump, _ = runtime.Get("dump").(bool)
+	dumpPath, _ := runtime.Get("dump_path").(string)
+	err := InitDumpStorage(dumpPath)
+	if err != nil {
+		return err
+	}
+	mitmEnabled, _ := runtime.Get("mitm").(bool)
+	domains, _ := runtime.Get("domains").([]interface{})
+	keyEncode, _ := runtime.Get("key").(string)
+	caEncode, _ := runtime.Get("ca").(string)
+	err = InitMITM(keyEncode, caEncode, mitmEnabled, util.InterfaceSliceToStringSlice(domains))
+	if err != nil {
+		return err
+	}
+	if len(keyEncode) == 0 || len(caEncode) == 0 {
+		keyEncode, caEncode, err = GenerateCA()
+		if err != nil {
+			logrus.WithError(err).Error("generate ca failed")
+		} else {
+			if err = runtime.Set("key", keyEncode); err != nil {
+				logrus.WithError(err).Error("set generate key failed")
+			}
+			if err = runtime.Set("ca", caEncode); err != nil {
+				logrus.WithError(err).Error("set generate ca failed")
+			}
+		}
+	}
+	return nil
 }
 
 type httpDumpConn struct {

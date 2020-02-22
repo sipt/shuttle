@@ -11,13 +11,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ApplyConfig(ctx context.Context, _ typ.Runtime, config *model.Config) (before, after DecorateFunc, err error) {
+func ApplyConfig(ctx context.Context, runtime typ.Runtime, config *model.Config) (before, after typ.DecorateFunc, err error) {
 	before, after = NopConn, NopConn
-	var bs = make([]DecorateFunc, 0, len(config.Stream.Before))
-	var as = make([]DecorateFunc, 0, len(config.Stream.After))
-	var decorate DecorateFunc
+	var bs = make([]typ.DecorateFunc, 0, len(config.Stream.Before))
+	var as = make([]typ.DecorateFunc, 0, len(config.Stream.After))
+	var decorate typ.DecorateFunc
 	for _, v := range config.Stream.Before {
-		decorate, err = GetDecorateFunc(ctx, v.Typ, v.Params)
+		decorate, err = GetDecorateFunc(ctx, v.Typ, typ.NewRuntime(v.Typ, runtime), v.Params)
 		if err != nil {
 			return
 		}
@@ -33,7 +33,7 @@ func ApplyConfig(ctx context.Context, _ typ.Runtime, config *model.Config) (befo
 		}
 	}
 	for _, v := range config.Stream.After {
-		decorate, err = GetDecorateFunc(ctx, v.Typ, v.Params)
+		decorate, err = GetDecorateFunc(ctx, v.Typ, typ.NewRuntime(v.Typ, runtime), v.Params)
 		if err != nil {
 			return
 		}
@@ -51,8 +51,7 @@ func ApplyConfig(ctx context.Context, _ typ.Runtime, config *model.Config) (befo
 	return
 }
 
-type DecorateFunc func(conn.ICtxConn) conn.ICtxConn
-type NewFunc func(context.Context, map[string]string) (DecorateFunc, error)
+type NewFunc func(context.Context, typ.Runtime, map[string]string) (typ.DecorateFunc, error)
 
 func NopConn(conn conn.ICtxConn) conn.ICtxConn {
 	return conn
@@ -66,10 +65,10 @@ func RegisterStream(key string, f NewFunc) {
 }
 
 // Get: get filter by key
-func GetDecorateFunc(ctx context.Context, typ string, params map[string]string) (DecorateFunc, error) {
+func GetDecorateFunc(ctx context.Context, typ string, runtime typ.Runtime, params map[string]string) (typ.DecorateFunc, error) {
 	f, ok := streamMap[typ]
 	if !ok {
 		return nil, fmt.Errorf("stream not support: %s", typ)
 	}
-	return f(ctx, params)
+	return f(ctx, runtime, params)
 }

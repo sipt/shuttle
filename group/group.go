@@ -76,37 +76,9 @@ func ApplyConfig(ctx context.Context, config *model.Config, runtime typ.Runtime,
 }
 
 func ApplyRuntime(ctx context.Context, rt typ.Runtime) (func(string) typ.Runtime, error) {
-	rt = newRuntime("group", rt)
 	return func(name string) typ.Runtime {
-		return newRuntime(name, rt)
+		return typ.NewRuntime(name, rt)
 	}, nil
-}
-
-func newRuntime(name string, rt typ.Runtime) typ.Runtime {
-	r := &runtime{
-		name:    name,
-		Runtime: rt,
-	}
-	var ok bool
-	r.current, ok = rt.Get(name).(map[string]interface{})
-	if !ok {
-		r.current = make(map[string]interface{})
-	}
-	return r
-}
-
-type runtime struct {
-	name    string
-	current map[string]interface{}
-	typ.Runtime
-}
-
-func (r *runtime) Get(key string) interface{} {
-	return r.current[key]
-}
-func (r *runtime) Set(key string, value interface{}) error {
-	r.current[key] = value
-	return r.Runtime.Set(r.name, r.current)
 }
 
 type NewFunc func(ctx context.Context, runtime typ.Runtime, name string, params map[string]string, dnsHandle dns.Handle) (IGroup, error)

@@ -4,6 +4,10 @@ import (
 	"context"
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/sipt/shuttle/constant/typ"
+
 	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/global"
 )
@@ -17,12 +21,28 @@ const defaultName = "default"
 var namespace map[string]*Namespace
 var mutex = &sync.RWMutex{}
 
-func AddNamespace(name string, ctx context.Context, profile *global.Profile) {
+func AddNamespace(name string, ctx context.Context, profile *global.Profile, runtime typ.Runtime) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	n := &Namespace{
 		profile: profile,
 		mode:    constant.ModeRule,
+		runtime: runtime,
+	}
+	needSave := true
+	if mode, ok := runtime.Get("mode").(string); ok && len(mode) > 0 {
+		switch mode {
+		case constant.ModeRule, constant.ModeDirect, constant.ModeGlobal:
+			n.mode = mode
+			needSave = false
+		default:
+		}
+	}
+	if needSave {
+		err := runtime.Set("mode", n.mode)
+		if err != nil {
+			logrus.WithError(err).Error("set namespace mode failed")
+		}
 	}
 	n.ctx, n.cancel = context.WithCancel(ctx)
 	namespace[name] = n
@@ -38,6 +58,7 @@ type Namespace struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	profile *global.Profile
+	runtime typ.Runtime
 	mode    string
 }
 
@@ -61,8 +82,16 @@ func (n *Namespace) SetMode(mode string) {
 	switch mode {
 	case constant.ModeRule, constant.ModeDirect, constant.ModeGlobal:
 		n.mode = mode
+		err := n.runtime.Set("mode", n.mode)
+		if err != nil {
+			logrus.WithError(err).Error("set mode failed")
+		}
 	default:
 	}
+}
+
+func (n *Namespace) Runtime() typ.Runtime {
+	return n.runtime
 }
 
 func NamespaceWithContext(ctx context.Context) *Namespace {

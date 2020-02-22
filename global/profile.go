@@ -4,8 +4,7 @@ import (
 	"sync"
 
 	"github.com/sipt/shuttle/conf/model"
-	"github.com/sipt/shuttle/conn/filter"
-	"github.com/sipt/shuttle/conn/stream"
+	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/group"
 	"github.com/sipt/shuttle/rule"
@@ -41,8 +40,8 @@ func NewProfile(
 	udpRuleHandle rule.Handle,
 	group map[interface{}]group.IGroup,
 	server map[string]server.IServer,
-	filter filter.FilterFunc,
-	before, after stream.DecorateFunc) (*Profile, error) {
+	filter typ.FilterFunc,
+	before, after typ.DecorateFunc) (*Profile, error) {
 	return &Profile{
 		uri:           config.Info.URI,
 		config:        config,
@@ -67,8 +66,8 @@ type Profile struct {
 	udpRuleHandle rule.Handle
 	group         map[interface{}]group.IGroup
 	server        map[string]server.IServer
-	filter        filter.FilterFunc
-	before, after stream.DecorateFunc
+	filter        typ.FilterFunc
+	before, after typ.DecorateFunc
 }
 
 func (p *Profile) URI() string {
@@ -103,14 +102,14 @@ func (p *Profile) Server() map[string]server.IServer {
 	return p.server
 }
 
-func (p *Profile) Filter() filter.FilterFunc {
+func (p *Profile) Filter() typ.FilterFunc {
 	return p.filter
 }
 
-func (p *Profile) BeforeStream() stream.DecorateFunc {
+func (p *Profile) BeforeStream() typ.DecorateFunc {
 	return p.before
 }
 
-func (p *Profile) AfterStream() stream.DecorateFunc {
+func (p *Profile) AfterStream() typ.DecorateFunc {
 	return p.after
 }

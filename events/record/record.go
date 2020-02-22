@@ -136,3 +136,9 @@ func UpdateRecord(ctx context.Context, id int64, f func(*RecordEntity)) {
 		return false
 	})
 }
+
+var clearCallbacks = make([]func() error, 0)
+
+func RegisterClearCallback(f func() error) {
+	clearCallbacks = append(clearCallbacks, f)
+}

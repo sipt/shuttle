@@ -16,7 +16,7 @@ func init() {
 	stream.RegisterStream("record-traffic", newRecordTrafficMetrics)
 }
 
-func newRecordTrafficMetrics(ctx context.Context, _ map[string]string) (stream.DecorateFunc, error) {
+func newRecordTrafficMetrics(ctx context.Context, _ typ.Runtime, _ map[string]string) (typ.DecorateFunc, error) {
 	return func(c conn.ICtxConn) conn.ICtxConn {
 		rc := &recordTrafficConn{
 			ICtxConn: c,
