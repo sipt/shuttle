@@ -139,9 +139,10 @@ func makeGroupResp(g group.IGroup) *Group {
 
 	for i, s := range g.Items() {
 		resp.Servers[i] = Server{
-			Name: s.Name(),
-			Typ:  s.Typ(),
-			RTT:  formatRtt(s.Server().Rtt(resp.Name)),
+			Name:     s.Name(),
+			Typ:      s.Typ(),
+			RTT:      formatRtt(s.Server().Rtt(resp.Name)),
+			Selected: g.Selected().Name() == s.Name(),
 		}
 	}
 	return resp
@@ -155,9 +156,10 @@ type Group struct {
 }
 
 type Server struct {
-	Name string `json:"name"`
-	Typ  string `json:"typ"`
-	RTT  string `json:"rtt"`
+	Name     string `json:"name"`
+	Typ      string `json:"typ"`
+	RTT      string `json:"rtt"`
+	Selected bool   `json:"selected"`
 }
 
 func formatRtt(t time.Duration) string {
