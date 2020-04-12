@@ -53,6 +53,7 @@ func ruleSetHandle(ctx context.Context, rule *Rule, next Handle, dnsHandle dns.H
 				select {
 				case <-timer.C:
 				case <-ctx.Done():
+					return
 				}
 			}
 			rules, modified, etag, err = downloadRuleSet(ctx, rule, etag)

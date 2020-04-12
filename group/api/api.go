@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,9 +14,9 @@ import (
 
 func InitAPI(e *gin.Engine) {
 	e.GET("/api/groups", listHandleFunc)
-	e.GET("/api/groups/:name", groupHandleFunc)
-	e.PUT("/api/groups/:name/rtt", resetHandleFunc)
-	e.PUT("/api/groups/:name/select/:sub_name", selectHandleFunc)
+	e.GET("/api/group", groupHandleFunc)
+	e.PUT("/api/group/rtt", resetHandleFunc)
+	e.PUT("/api/group/select", selectHandleFunc)
 }
 
 func listHandleFunc(c *gin.Context) {
@@ -28,6 +29,7 @@ func listHandleFunc(c *gin.Context) {
 		}
 		list = append(list, makeGroupResp(v))
 	}
+	sort.Sort(SortableGroups(list))
 	c.JSON(http.StatusOK, &model.Response{
 		Code: 0,
 		Data: list,
@@ -37,7 +39,7 @@ func listHandleFunc(c *gin.Context) {
 func groupHandleFunc(c *gin.Context) {
 	np := namespace.NamespaceWithContext(c)
 	groups := np.Profile().Group()
-	name := c.Param("name")
+	name := c.Query("group")
 	if len(name) == 0 {
 		c.JSON(http.StatusBadRequest, &model.Response{
 			Code:    1,
@@ -62,7 +64,7 @@ func groupHandleFunc(c *gin.Context) {
 func selectHandleFunc(c *gin.Context) {
 	np := namespace.NamespaceWithContext(c)
 	groups := np.Profile().Group()
-	name := c.Param("name")
+	name := c.Query("group")
 	if len(name) == 0 {
 		c.JSON(http.StatusBadRequest, &model.Response{
 			Code:    1,
@@ -70,7 +72,7 @@ func selectHandleFunc(c *gin.Context) {
 		})
 		return
 	}
-	subName := c.Param("sub_name")
+	subName := c.Query("server")
 	if len(subName) == 0 {
 		c.JSON(http.StatusBadRequest, &model.Response{
 			Code:    1,
@@ -102,7 +104,7 @@ func selectHandleFunc(c *gin.Context) {
 func resetHandleFunc(c *gin.Context) {
 	np := namespace.NamespaceWithContext(c)
 	groups := np.Profile().Group()
-	name := c.Param("name")
+	name := c.Query("group")
 	if len(name) == 0 {
 		c.JSON(http.StatusBadRequest, &model.Response{
 			Code:    1,
@@ -146,6 +148,18 @@ func makeGroupResp(g group.IGroup) *Group {
 		}
 	}
 	return resp
+}
+
+type SortableGroups []*Group
+
+func (sg SortableGroups) Len() int {
+	return len(sg)
+}
+func (sg SortableGroups) Less(i, j int) bool {
+	return sg[i].Name < sg[j].Name
+}
+func (sg SortableGroups) Swap(i, j int) {
+	sg[i], sg[j] = sg[j], sg[i]
 }
 
 type Group struct {

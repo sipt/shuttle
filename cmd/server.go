@@ -36,6 +36,13 @@ var RuntimePath = flag.String("r", os.Getenv("RUNTIME_PATH"), "runtime file Path
 var Encoding = flag.String("e", os.Getenv("ENCODING"), "config file Encoding")
 var LogPath = flag.String("logpath", os.Getenv("LOGGER_PATH"), "logger file")
 
+func init() {
+	// register func to api
+	api.StartFunc = Start
+	api.CloseFunc = Close
+	api.CheckConfig = CheckConfig
+}
+
 func Start() (err error) {
 	api.Status = api.StatusStarting
 	defer func() {
@@ -104,6 +111,24 @@ func Start() (err error) {
 		closer()
 		return nil
 	})
+	return nil
+}
+
+func CheckConfig() error {
+	params := map[string]string{"path": *Path}
+	_, err := conf.LoadConfig(context.Background(), "file", *Encoding, params, func() {
+		fmt.Println("config file change")
+	})
+	if err != nil {
+		logrus.WithError(err).Error("load config failed")
+		return err
+	}
+	return nil
+}
+
+func Close() error {
+	_ = closepkg.Close(true)
+	api.Status = api.StatusStopped
 	return nil
 }
 
