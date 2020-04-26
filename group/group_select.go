@@ -78,13 +78,7 @@ func (s *SelectGroup) Items() []IServerX {
 	return s.servers
 }
 func (s *SelectGroup) Reset() {
-	for _, v := range s.servers {
-		if g, ok := v.(IGroup); ok {
-			g.Reset()
-		} else {
-			v.Server().TestRtt(s.name, s.testUrl)
-		}
-	}
+	s.testAllRTT()
 }
 func (s *SelectGroup) Typ() string {
 	return TypSelect
@@ -138,4 +132,23 @@ func (s *SelectGroup) Clear() {
 	s.Lock()
 	defer s.Unlock()
 	s.servers = nil // clear all
+}
+
+func (s *SelectGroup) testAllRTT() {
+	if len(s.servers) == 0 {
+		return
+	}
+	var wg = &sync.WaitGroup{}
+	for _, v := range s.servers {
+		wg.Add(1)
+		go func(sx IServerX) {
+			if g, ok := v.(IGroup); ok {
+				g.Reset()
+			} else {
+				v.Server().TestRtt(s.name, s.testUrl)
+			}
+			wg.Done()
+		}(v)
+	}
+	wg.Wait()
 }

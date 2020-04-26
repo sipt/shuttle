@@ -1,15 +1,22 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 	"sort"
+	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/controller/model"
+	"github.com/sipt/shuttle/events"
 	"github.com/sipt/shuttle/global/namespace"
 	"github.com/sipt/shuttle/group"
+	"github.com/sirupsen/logrus"
 )
 
 func InitAPI(e *gin.Engine) {
@@ -17,6 +24,8 @@ func InitAPI(e *gin.Engine) {
 	e.GET("/api/group", groupHandleFunc)
 	e.PUT("/api/group/rtt", resetHandleFunc)
 	e.PUT("/api/group/select", selectHandleFunc)
+
+	e.GET("/ws/rtt", rttEventsHandleFunc)
 }
 
 func listHandleFunc(c *gin.Context) {
@@ -184,5 +193,72 @@ func formatRtt(t time.Duration) string {
 		return "no rtt"
 	} else {
 		return "failed"
+	}
+}
+
+var (
+	wsConnID  int64 = 0
+	wsConnMap       = make(map[int64]*websocket.Conn)
+)
+
+var wsUpgrader = websocket.Upgrader{
+	ReadBufferSize:   2048,
+	WriteBufferSize:  2048,
+	HandshakeTimeout: 5 * time.Second,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func rttEventsHandleFunc(c *gin.Context) {
+	conn, err := wsUpgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		return
+	}
+	id := atomic.AddInt64(&wsConnID, 1)
+	go func() {
+		defer conn.Close()
+		for {
+			typ, _, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
+			if typ == websocket.CloseMessage {
+				delete(wsConnMap, id)
+				return
+			}
+		}
+	}()
+	wsConnMap[id] = conn
+}
+
+func init() {
+	events.RegisterEvent(events.GroupRttEvent, func(ctx context.Context, v interface{}) error {
+		r, ok := v.(string)
+		if !ok {
+			return errors.Errorf("[%s] is not GroupName", reflect.TypeOf(v).Kind().String())
+		}
+		notifyClient(ctx, r)
+		return nil
+	})
+}
+
+func notifyClient(ctx context.Context, name string) {
+	if len(wsConnMap) == 0 {
+		return
+	}
+	np := namespace.NamespaceWithContext(ctx)
+	groups := np.Profile().Group()
+	g, ok := groups[name]
+	if !ok || g == nil {
+		return
+	}
+	resp := makeGroupResp(g)
+	var err error
+	for _, conn := range wsConnMap {
+		err = conn.WriteJSON(resp)
+		if err != nil {
+			logrus.WithError(err).Error("[group] [rtt.notifyClient] failed")
+		}
 	}
 }

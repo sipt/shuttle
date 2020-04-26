@@ -65,7 +65,7 @@ func (t *recordTrafficConn) Read(b []byte) (n int, err error) {
 	if n > 0 {
 		if reqInfo, ok := t.Value(constant.KeyRequestInfo).(typ.RequestInfo); ok {
 			events.Bus <- &events.Event{
-				Typ: record.UpdateRecordUpEvent,
+				Typ: events.UpdateRecordUpEvent,
 				Value: &record.RecordEntity{
 					ID: reqInfo.ID(),
 					Up: int64(n),
@@ -81,7 +81,7 @@ func (t *recordTrafficConn) Write(b []byte) (n int, err error) {
 	if n > 0 {
 		if reqInfo, ok := t.Value(constant.KeyRequestInfo).(typ.RequestInfo); ok {
 			events.Bus <- &events.Event{
-				Typ: record.UpdateRecordDownEvent,
+				Typ: events.UpdateRecordDownEvent,
 				Value: &record.RecordEntity{
 					ID:   reqInfo.ID(),
 					Down: int64(n),
@@ -96,7 +96,7 @@ func (t *recordTrafficConn) Close() (err error) {
 	err = t.ICtxConn.Close()
 	if reqInfo, ok := t.Value(constant.KeyRequestInfo).(typ.RequestInfo); ok {
 		events.Bus <- &events.Event{
-			Typ: record.UpdateRecordStatusEvent,
+			Typ: events.UpdateRecordStatusEvent,
 			Value: &record.RecordEntity{
 				ID:     reqInfo.ID(),
 				Status: record.CompletedStatus,
@@ -150,7 +150,7 @@ func (w *writer) Write(b []byte) (n int, err error) {
 	n, err = w.Writer.Write(b)
 	if reqInfo, ok := w.Value(constant.KeyRequestInfo).(typ.RequestInfo); ok {
 		events.Bus <- &events.Event{
-			Typ: record.UpdateRecordUpEvent,
+			Typ: events.UpdateRecordUpEvent,
 			Value: &record.RecordEntity{
 				ID: reqInfo.ID(),
 				Up: int64(n),
@@ -169,7 +169,7 @@ func (r *reader) Read(b []byte) (n int, err error) {
 	n, err = r.Reader.Read(b)
 	if reqInfo, ok := r.Value(constant.KeyRequestInfo).(typ.RequestInfo); ok {
 		events.Bus <- &events.Event{
-			Typ: record.UpdateRecordDownEvent,
+			Typ: events.UpdateRecordDownEvent,
 			Value: &record.RecordEntity{
 				ID:   reqInfo.ID(),
 				Down: int64(n),

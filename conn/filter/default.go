@@ -4,15 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/sipt/shuttle/conn/stream/dump"
-
 	"github.com/sipt/shuttle/conn"
+	"github.com/sipt/shuttle/conn/stream/dump"
 	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/events"
 	"github.com/sipt/shuttle/events/record"
+	"github.com/sirupsen/logrus"
 
 	rulepkg "github.com/sipt/shuttle/rule"
 )
@@ -27,7 +25,7 @@ func newRecorder(ctx context.Context, _ map[string]string, next typ.HandleFunc) 
 		req := c.Value(constant.KeyRequestInfo).(typ.RequestInfo)
 		rule := c.Value(constant.KeyRule).(*rulepkg.Rule)
 		events.Bus <- &events.Event{
-			Typ: record.AppendRecordEvent,
+			Typ: events.AppendRecordEvent,
 			Value: &record.RecordEntity{
 				ID:        req.ID(),
 				DestAddr:  req.URI(),

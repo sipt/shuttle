@@ -110,7 +110,7 @@ func NewRttServer(server IServer, params map[string]string) IServer {
 				if len(req.ip) == 0 {
 					req.domain = host
 				}
-				ctx, _ = context.WithTimeout(ctx, time.Second*5)
+				ctx, _ = context.WithTimeout(ctx, time.Second*3)
 				conn, err := rtt.Dial(ctx, "tcp", req, conn.DefaultDial)
 				return conn, err
 			},

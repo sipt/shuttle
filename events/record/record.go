@@ -12,27 +12,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	AppendRecordEvent       events.EventType = 1
-	UpdateRecordUpEvent     events.EventType = 2
-	UpdateRecordDownEvent   events.EventType = 3
-	UpdateRecordStatusEvent events.EventType = 4
-	UpdateDumpStatusEvent   events.EventType = 5
-)
-
 func init() {
 	// append record
-	events.RegisterEvent(AppendRecordEvent, func(ctx context.Context, v interface{}) error {
+	events.RegisterEvent(events.AppendRecordEvent, func(ctx context.Context, v interface{}) error {
 		r, ok := v.(*RecordEntity)
 		if !ok {
 			return errors.Errorf("[%s] is not RecordEntity", reflect.TypeOf(v).Kind().String())
 		}
 		AppendRecord(ctx, r)
-		notifyClient(AppendRecordEvent, r)
+		notifyClient(events.AppendRecordEvent, r)
 		return nil
 	})
 	// update record up
-	events.RegisterEvent(UpdateRecordUpEvent, func(ctx context.Context, v interface{}) error {
+	events.RegisterEvent(events.UpdateRecordUpEvent, func(ctx context.Context, v interface{}) error {
 		r, ok := v.(*RecordEntity)
 		if !ok {
 			return errors.Errorf("[%s] is not RecordEntity", reflect.TypeOf(v).Kind().String())
@@ -41,11 +33,11 @@ func init() {
 			atomic.AddInt64(&re.Up, r.Up)
 			r.Up = re.Up
 		})
-		notifyClient(UpdateRecordUpEvent, r)
+		notifyClient(events.UpdateRecordUpEvent, r)
 		return nil
 	})
 	// update record down
-	events.RegisterEvent(UpdateRecordDownEvent, func(ctx context.Context, v interface{}) error {
+	events.RegisterEvent(events.UpdateRecordDownEvent, func(ctx context.Context, v interface{}) error {
 		r, ok := v.(*RecordEntity)
 		if !ok {
 			return errors.Errorf("[%s] is not RecordEntity", reflect.TypeOf(v).Kind().String())
@@ -54,11 +46,11 @@ func init() {
 			atomic.AddInt64(&re.Down, r.Down)
 			r.Down = re.Down
 		})
-		notifyClient(UpdateRecordDownEvent, r)
+		notifyClient(events.UpdateRecordDownEvent, r)
 		return nil
 	})
 	// update record status
-	events.RegisterEvent(UpdateRecordStatusEvent, func(ctx context.Context, v interface{}) error {
+	events.RegisterEvent(events.UpdateRecordStatusEvent, func(ctx context.Context, v interface{}) error {
 		r, ok := v.(*RecordEntity)
 		if !ok {
 			return errors.Errorf("[%s] is not RecordEntity", reflect.TypeOf(v).Kind().String())
@@ -66,11 +58,11 @@ func init() {
 		UpdateRecord(ctx, r.ID, func(re *RecordEntity) {
 			re.Status = r.Status
 		})
-		notifyClient(UpdateRecordDownEvent, r)
+		notifyClient(events.UpdateRecordDownEvent, r)
 		return nil
 	})
 	// update record dump status
-	events.RegisterEvent(UpdateDumpStatusEvent, func(ctx context.Context, v interface{}) error {
+	events.RegisterEvent(events.UpdateDumpStatusEvent, func(ctx context.Context, v interface{}) error {
 		r, ok := v.(*RecordEntity)
 		if !ok {
 			return errors.Errorf("[%s] is not RecordEntity", reflect.TypeOf(v).Kind().String())
@@ -78,7 +70,7 @@ func init() {
 		UpdateRecord(ctx, r.ID, func(re *RecordEntity) {
 			re.Dumped = r.Dumped
 		})
-		notifyClient(UpdateDumpStatusEvent, r)
+		notifyClient(events.UpdateDumpStatusEvent, r)
 		return nil
 	})
 }

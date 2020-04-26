@@ -214,7 +214,7 @@ func outboundHandle() typ.HandleFunc {
 				recordEntity.Status = record.FailedStatus
 			}
 			events.Bus <- &events.Event{
-				Typ:   record.UpdateRecordStatusEvent,
+				Typ:   events.UpdateRecordStatusEvent,
 				Value: recordEntity,
 			}
 			return
@@ -232,7 +232,7 @@ func outboundHandle() typ.HandleFunc {
 		if err != nil {
 			recordEntity.Status = record.FailedStatus
 			events.Bus <- &events.Event{
-				Typ:   record.UpdateRecordStatusEvent,
+				Typ:   events.UpdateRecordStatusEvent,
 				Value: recordEntity,
 			}
 		}

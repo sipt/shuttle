@@ -6,6 +6,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	AppendRecordEvent       EventType = 1
+	UpdateRecordUpEvent     EventType = 2
+	UpdateRecordDownEvent   EventType = 3
+	UpdateRecordStatusEvent EventType = 4
+	UpdateDumpStatusEvent   EventType = 5
+
+	GroupRttEvent EventType = 6
+)
+
 type EventType int8
 
 type Event struct {

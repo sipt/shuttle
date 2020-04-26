@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sipt/shuttle/constant/typ"
-
 	"github.com/pkg/errors"
 	"github.com/sipt/shuttle/conn"
+	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/dns"
+	"github.com/sipt/shuttle/events"
 	"github.com/sipt/shuttle/server"
 	"github.com/sirupsen/logrus"
 )
@@ -138,11 +138,17 @@ func (r *rttGroup) Reset() {
 
 func (r *rttGroup) autoSelectByRTT(ctx context.Context) {
 	r.testAllRTT()
-	timer := time.NewTimer(r.interval)
+	//timer := time.NewTimer(r.interval)
+	timer := time.NewTimer(time.Second * 60)
 	for {
 		select {
 		case <-timer.C:
 			r.testAllRTT()
+			events.Bus <- &events.Event{
+				Typ:   events.GroupRttEvent,
+				Ctx:   context.WithValue(ctx, "group_name", r.name),
+				Value: r.name,
+			}
 		case <-r.reset:
 			timer.Stop()
 			r.testAllRTT()
