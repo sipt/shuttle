@@ -142,11 +142,7 @@ func (s *SelectGroup) testAllRTT() {
 	for _, v := range s.servers {
 		wg.Add(1)
 		go func(sx IServerX) {
-			if g, ok := v.(IGroup); ok {
-				g.Reset()
-			} else {
-				v.Server().TestRtt(s.name, s.testUrl)
-			}
+			sx.Server().TestRtt(s.name, s.testUrl)
 			wg.Done()
 		}(v)
 	}

@@ -138,8 +138,7 @@ func (r *rttGroup) Reset() {
 
 func (r *rttGroup) autoSelectByRTT(ctx context.Context) {
 	r.testAllRTT()
-	//timer := time.NewTimer(r.interval)
-	timer := time.NewTimer(time.Second * 60)
+	timer := time.NewTimer(r.interval)
 	for {
 		select {
 		case <-timer.C:
