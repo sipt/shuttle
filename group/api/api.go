@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
+	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/controller/model"
 	"github.com/sipt/shuttle/events"
 	"github.com/sipt/shuttle/global/namespace"
@@ -32,13 +33,15 @@ func listHandleFunc(c *gin.Context) {
 	np := namespace.NamespaceWithContext(c)
 	groups := np.Profile().Group()
 	list := make([]*Group, 0, len(groups))
-	for _, v := range groups {
-		if v.Name() == group.Global {
-			continue
+	if np.Mode() != constant.ModeDirect {
+		for _, v := range groups {
+			if v.Name() == group.Global && np.Mode() != constant.ModeGlobal {
+				continue
+			}
+			list = append(list, makeGroupResp(v))
 		}
-		list = append(list, makeGroupResp(v))
+		sort.Sort(SortableGroups(list))
 	}
-	sort.Sort(SortableGroups(list))
 	c.JSON(http.StatusOK, &model.Response{
 		Code: 0,
 		Data: list,
