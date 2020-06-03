@@ -125,10 +125,13 @@ func (u *udpConn) Read(b []byte) (n int, err error) {
 		logrus.WithField("data", b[:n]).Debug("read udp data")
 		return
 	}
-	return 0, io.EOF
+	u.c.SetReadDeadline(time.Now().Add(time.Second * 2))
+	n, _, err = u.c.ReadFrom(b)
+	return
 }
 func (u *udpConn) Write(b []byte) (n int, err error) {
 	if u.c != nil {
+		u.c.SetWriteDeadline(time.Now().Add(time.Second * 2))
 		n, err = u.c.WriteTo(b, u.remote)
 		logrus.WithField("data", b).WithField("remote", u.remote.String()).Debug("read udp data")
 		return
