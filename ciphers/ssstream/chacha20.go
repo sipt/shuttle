@@ -2,7 +2,8 @@ package ssstream
 
 import (
 	"crypto/cipher"
-	"github.com/Yawning/chacha20"
+
+	"gitlab.com/yawning/chacha20.git"
 )
 
 func init() {
@@ -22,8 +23,8 @@ func (a *_chacha20) IVLen() int {
 	return a.ivLen
 }
 func (a *_chacha20) NewEncrypter(key, iv []byte) (cipher.Stream, error) {
-	return chacha20.NewCipher(key, iv)
+	return chacha20.New(key, iv)
 }
 func (a *_chacha20) NewDecrypter(key, iv []byte) (cipher.Stream, error) {
-	return chacha20.NewCipher(key, iv)
+	return chacha20.New(key, iv)
 }
