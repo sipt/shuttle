@@ -85,7 +85,7 @@ func verStr2Int(ver string) (int, error) {
 	}
 	vs := strings.Split(ver, ".")
 	if len(vs) < 3 {
-		return 0, errors.New(fmt.Sprintf("%s version string as : v0.0.1", ver))
+		return 0, fmt.Errorf("%s version string as : v0.0.1", ver)
 	}
 	verStr := ""
 	if len(vs[0]) == 1 {
