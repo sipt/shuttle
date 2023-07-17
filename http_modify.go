@@ -93,7 +93,7 @@ func ApplyHTTPModifyConfig(config IHttpModifyConfig) (err error) {
 				}
 				respps[i].rex, err = regexp.Compile(v.UrlRex)
 				if err != nil {
-					return fmt.Errorf("resolve config file [Http-Map] [%s] failed: %v", err)
+					return fmt.Errorf("resolve config file [Http-Map] [%s] failed: %v", v.Type, err)
 				}
 				if len(v.Items) > 0 {
 					respps[i].MVs = make([]*ModifyValue, len(v.Items))
