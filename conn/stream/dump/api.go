@@ -148,6 +148,7 @@ func dumpSession(c *gin.Context) {
 		}
 		return false
 	})
+	_ = dumped
 	if !found {
 		c.JSON(400, &model.Response{
 			Code:    1,
@@ -252,6 +253,7 @@ func dumpRequest(c *gin.Context) {
 		}
 		return false
 	})
+	_ = dumped
 	if !found {
 		c.JSON(400, &model.Response{
 			Code:    1,
@@ -314,6 +316,7 @@ func dumpResponse(c *gin.Context) {
 		}
 		return false
 	})
+	_ = dumped
 	if !found {
 		c.JSON(400, &model.Response{
 			Code:    1,

@@ -24,3 +24,5 @@ bullets/
 plugins/
 bore
 *.toml
+
+.DS_Store

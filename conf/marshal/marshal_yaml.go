@@ -3,8 +3,8 @@ package marshal
 import (
 	"bytes"
 
+	"github.com/goccy/go-yaml"
 	"github.com/pkg/errors"
-	"github.com/sipt/yaml"
 )
 
 func init() {
