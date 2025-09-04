@@ -27,7 +27,7 @@ func listHandleFunc(c *gin.Context) {
 			CountryCode: v.CurrentCountry,
 		})
 	}
-	c.JSON(http.StatusOK, &model.Response{
+	c.JSON(http.StatusOK, &model.Response[[]*DNS]{
 		Code: 0,
 		Data: list,
 	})
@@ -36,7 +36,7 @@ func clearHandleFunc(c *gin.Context) {
 	np := namespace.NamespaceWithContext(c)
 	cache := np.Profile().DNSCache()
 	cache.Clear()
-	c.JSON(http.StatusOK, &model.Response{})
+	c.JSON(http.StatusOK, &model.Response[interface{}]{})
 }
 
 type DNS struct {

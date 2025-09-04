@@ -27,7 +27,7 @@ func InitAPI(e *gin.Engine) {
 }
 
 func getStatus(c *gin.Context) {
-	c.JSON(http.StatusOK, &model.Response{
+	c.JSON(http.StatusOK, &model.Response[string]{
 		Code: 0,
 		Data: Status,
 	})
@@ -50,7 +50,7 @@ func inbound(c *gin.Context) {
 			Addr: v.Addr,
 		})
 	}
-	c.JSON(http.StatusOK, &model.Response{
+	c.JSON(http.StatusOK, &model.Response[[]*listener]{
 		Code: 0,
 		Data: inbounds,
 	})
@@ -59,12 +59,13 @@ func inbound(c *gin.Context) {
 func reload(c *gin.Context) {
 	err := CheckConfig()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, &model.Response{
+		c.JSON(http.StatusInternalServerError, &model.Response[interface{}]{
 			Code:    1,
 			Message: fmt.Sprintf("load config file failed: %s", err.Error()),
 		})
+		return
 	}
-	c.JSON(http.StatusOK, &model.Response{
+	c.JSON(http.StatusOK, &model.Response[string]{
 		Code: 0,
 		Data: "success",
 	})

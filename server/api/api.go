@@ -23,7 +23,7 @@ func InitAPI(e *gin.Engine) {
 				RTT:  formatRtt(v.Rtt(server.DefaultRttKey)),
 			})
 		}
-		c.JSON(http.StatusOK, &model.Response{
+		c.JSON(http.StatusOK, &model.Response[[]*ItemResponse]{
 			Code: 0,
 			Data: list,
 		})
@@ -33,7 +33,7 @@ func InitAPI(e *gin.Engine) {
 		servers := np.Profile().Server()
 		name := c.Param("name")
 		if len(name) == 0 {
-			c.JSON(http.StatusBadRequest, &model.Response{
+			c.JSON(http.StatusBadRequest, &model.Response[any]{
 				Code:    1,
 				Message: "server name is empty",
 			})
@@ -41,14 +41,14 @@ func InitAPI(e *gin.Engine) {
 		}
 		s, ok := servers[name]
 		if !ok || s == nil {
-			c.JSON(http.StatusBadRequest, &model.Response{
+			c.JSON(http.StatusBadRequest, &model.Response[any]{
 				Code:    1,
 				Message: fmt.Sprintf("server name[%s] not found", name),
 			})
 			return
 		}
 
-		c.JSON(http.StatusOK, &model.Response{
+		c.JSON(http.StatusOK, &model.Response[*ItemResponse]{
 			Data: &ItemResponse{
 				Name: s.Name(),
 				Typ:  s.Typ(),
@@ -61,7 +61,7 @@ func InitAPI(e *gin.Engine) {
 		servers := np.Profile().Server()
 		name := c.Param("name")
 		if len(name) == 0 {
-			c.JSON(http.StatusBadRequest, &model.Response{
+			c.JSON(http.StatusBadRequest, &model.Response[any]{
 				Code:    1,
 				Message: "server name is empty",
 			})
@@ -69,14 +69,14 @@ func InitAPI(e *gin.Engine) {
 		}
 		s, ok := servers[name]
 		if !ok || s == nil {
-			c.JSON(http.StatusBadRequest, &model.Response{
+			c.JSON(http.StatusBadRequest, &model.Response[any]{
 				Code:    1,
 				Message: fmt.Sprintf("server name[%s] not found", name),
 			})
 			return
 		}
 
-		c.JSON(http.StatusOK, &model.Response{
+		c.JSON(http.StatusOK, &model.Response[*ItemResponse]{
 			Data: &ItemResponse{
 				Name: s.Name(),
 				Typ:  s.Typ(),

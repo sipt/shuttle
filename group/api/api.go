@@ -42,7 +42,7 @@ func listHandleFunc(c *gin.Context) {
 		}
 		sort.Sort(SortableGroups(list))
 	}
-	c.JSON(http.StatusOK, &model.Response{
+	c.JSON(http.StatusOK, &model.Response[[]*Group]{
 		Code: 0,
 		Data: list,
 	})
@@ -53,7 +53,7 @@ func groupHandleFunc(c *gin.Context) {
 	groups := np.Profile().Group()
 	name := c.Query("group")
 	if len(name) == 0 {
-		c.JSON(http.StatusBadRequest, &model.Response{
+		c.JSON(http.StatusBadRequest, &model.Response[interface{}]{
 			Code:    1,
 			Message: "group name is empty",
 		})
@@ -61,13 +61,13 @@ func groupHandleFunc(c *gin.Context) {
 	}
 	g, ok := groups[name]
 	if !ok || g == nil {
-		c.JSON(http.StatusBadRequest, &model.Response{
+		c.JSON(http.StatusBadRequest, &model.Response[interface{}]{
 			Code:    1,
 			Message: fmt.Sprintf("group name[%s] not found", name),
 		})
 		return
 	}
-	c.JSON(http.StatusOK, &model.Response{
+	c.JSON(http.StatusOK, &model.Response[*Group]{
 		Code: 0,
 		Data: makeGroupResp(g),
 	})
@@ -78,7 +78,7 @@ func selectHandleFunc(c *gin.Context) {
 	groups := np.Profile().Group()
 	name := c.Query("group")
 	if len(name) == 0 {
-		c.JSON(http.StatusBadRequest, &model.Response{
+		c.JSON(http.StatusBadRequest, &model.Response[interface{}]{
 			Code:    1,
 			Message: "group name is empty",
 		})
@@ -86,7 +86,7 @@ func selectHandleFunc(c *gin.Context) {
 	}
 	subName := c.Query("server")
 	if len(subName) == 0 {
-		c.JSON(http.StatusBadRequest, &model.Response{
+		c.JSON(http.StatusBadRequest, &model.Response[interface{}]{
 			Code:    1,
 			Message: "group sub name is empty",
 		})
@@ -94,7 +94,7 @@ func selectHandleFunc(c *gin.Context) {
 	}
 	g, ok := groups[name]
 	if !ok || g == nil {
-		c.JSON(http.StatusBadRequest, &model.Response{
+		c.JSON(http.StatusBadRequest, &model.Response[interface{}]{
 			Code:    1,
 			Message: fmt.Sprintf("group name[%s] not found", name),
 		})
@@ -102,12 +102,13 @@ func selectHandleFunc(c *gin.Context) {
 	}
 	err := g.Select(subName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, &model.Response{
+		c.JSON(http.StatusBadRequest, &model.Response[interface{}]{
 			Code:    1,
 			Message: fmt.Sprintf("[%s] not found in group[%s]", subName, name),
 		})
+		return
 	}
-	c.JSON(http.StatusOK, &model.Response{
+	c.JSON(http.StatusOK, &model.Response[*Group]{
 		Code: 0,
 		Data: makeGroupResp(g),
 	})
@@ -118,7 +119,7 @@ func resetHandleFunc(c *gin.Context) {
 	groups := np.Profile().Group()
 	name := c.Query("group")
 	if len(name) == 0 {
-		c.JSON(http.StatusBadRequest, &model.Response{
+		c.JSON(http.StatusBadRequest, &model.Response[interface{}]{
 			Code:    1,
 			Message: "group name is empty",
 		})
@@ -126,14 +127,14 @@ func resetHandleFunc(c *gin.Context) {
 	}
 	g, ok := groups[name]
 	if !ok || g == nil {
-		c.JSON(http.StatusBadRequest, &model.Response{
+		c.JSON(http.StatusBadRequest, &model.Response[interface{}]{
 			Code:    1,
 			Message: fmt.Sprintf("group name[%s] not found", name),
 		})
 		return
 	}
 	g.Reset()
-	c.JSON(http.StatusOK, &model.Response{
+	c.JSON(http.StatusOK, &model.Response[*Group]{
 		Code: 0,
 		Data: makeGroupResp(g),
 	})

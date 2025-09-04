@@ -11,7 +11,7 @@ import (
 func InitAPI(e *gin.Engine) {
 	e.GET("/api/rule/mode", func(c *gin.Context) {
 		np := namespace.NamespaceWithContext(c)
-		c.JSON(http.StatusOK, &model.Response{
+		c.JSON(http.StatusOK, &model.Response[string]{
 			Code: 0,
 			Data: np.Mode(),
 		})
@@ -21,13 +21,13 @@ func InitAPI(e *gin.Engine) {
 		np := namespace.NamespaceWithContext(c)
 		mode := c.Param("mode")
 		if len(mode) == 0 {
-			c.JSON(http.StatusBadRequest, &model.Response{
+			c.JSON(http.StatusBadRequest, &model.Response[any]{
 				Code:    1,
 				Message: "mode is empty",
 			})
 			return
 		}
 		np.SetMode(mode)
-		c.JSON(http.StatusOK, &model.Response{})
+		c.JSON(http.StatusOK, &model.Response[any]{})
 	})
 }

@@ -78,7 +78,7 @@ func newBearerAuth(params map[string]string) (gin.HandlerFunc, error) {
 	authorization := "Bearer " + token
 	return func(c *gin.Context) {
 		if c.GetHeader("Authorization") != authorization {
-			c.JSON(http.StatusUnauthorized, &model.Response{
+			c.JSON(http.StatusUnauthorized, &model.Response[any]{
 				Code:    1,
 				Message: "unauthorized",
 			})

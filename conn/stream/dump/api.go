@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -35,19 +34,24 @@ func InitAPI(e *gin.Engine) {
 	r.GET("/response/body/:id", dumpResponse)
 }
 
+type StatusResponse struct {
+	Dump bool `json:"dump"`
+	MITM bool `json:"mitm"`
+}
+
 func getStatus(c *gin.Context) {
-	c.JSON(200, &model.Response{
-		Data: gin.H{
-			"dump": allowDump,
-			"mitm": mitmEnabled,
+	c.JSON(200, &model.Response[StatusResponse]{
+		Data: StatusResponse{
+			Dump: allowDump,
+			MITM: mitmEnabled,
 		},
 	})
 }
 
 func putStatus(c *gin.Context) {
-	data, err := ioutil.ReadAll(c.Request.Body)
+	data, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(500, &model.Response{
+		c.JSON(500, &model.Response[any]{
 			Code:    1,
 			Message: err.Error(),
 		})
@@ -56,7 +60,7 @@ func putStatus(c *gin.Context) {
 	entity := make(map[string]bool)
 	err = json.Unmarshal(data, &entity)
 	if err != nil {
-		c.JSON(400, &model.Response{
+		c.JSON(400, &model.Response[any]{
 			Code:    1,
 			Message: err.Error(),
 		})
@@ -79,13 +83,13 @@ func putStatus(c *gin.Context) {
 			logrus.WithError(err).Error("set stream.data-dump.mitm failed")
 		}
 	}
-	c.JSON(200, &model.Response{})
+	c.JSON(200, &model.Response[any]{})
 }
 
 func generateCA(c *gin.Context) {
 	key, ca, err := GenerateCA()
 	if err != nil {
-		c.JSON(500, &model.Response{
+		c.JSON(500, &model.Response[any]{
 			Code:    1,
 			Message: err.Error(),
 		})
@@ -102,12 +106,12 @@ func generateCA(c *gin.Context) {
 	if err != nil {
 		logrus.WithError(err).Error("set stream.data-dump.ca failed")
 	}
-	c.JSON(200, &model.Response{})
+	c.JSON(200, &model.Response[any]{})
 }
 
 func downloadCA(c *gin.Context) {
 	if len(caBytes) == 0 {
-		c.JSON(500, &model.Response{
+		c.JSON(500, &model.Response[any]{
 			Code:    1,
 			Message: "please generate CA first",
 		})
@@ -119,20 +123,20 @@ func downloadCA(c *gin.Context) {
 	c.Header("content-disposition", "attachment; filename=\"Shuttle.cer\"")
 	_, err := io.Copy(c.Writer, bytes.NewBuffer(bak))
 	if err != nil {
-		c.JSON(500, &model.Response{
+		c.JSON(500, &model.Response[any]{
 			Code:    1,
 			Message: err.Error(),
 		})
 		return
 	}
-	c.JSON(200, &model.Response{})
+	c.JSON(200, &model.Response[any]{})
 }
 
 func dumpSession(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		c.JSON(400, &model.Response{
+		c.JSON(400, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("[%s] not a number", idStr),
 		})
@@ -150,14 +154,14 @@ func dumpSession(c *gin.Context) {
 	})
 	_ = dumped
 	if !found {
-		c.JSON(400, &model.Response{
+		c.JSON(400, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("invalid recordID [%s]", idStr),
 		})
 		return
 	}
 	if status != record.CompletedStatus {
-		c.JSON(400, &model.Response{
+		c.JSON(400, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("record[%s] is not complete", idStr),
 		})
@@ -166,13 +170,13 @@ func dumpSession(c *gin.Context) {
 	reqFile, err := os.Open(path.Join(dirPath, ReqKey(id)))
 	if err != nil {
 		if os.IsNotExist(err) {
-			c.JSON(400, &model.Response{
+			c.JSON(400, &model.Response[any]{
 				Code:    1,
 				Message: fmt.Sprintf("record[%s] is not dumped", idStr),
 			})
 			return
 		} else {
-			c.JSON(500, &model.Response{
+			c.JSON(500, &model.Response[any]{
 				Code:    1,
 				Message: fmt.Sprintf("record[%s] get request data failed", idStr),
 			})
@@ -183,13 +187,13 @@ func dumpSession(c *gin.Context) {
 	respFile, err := os.Open(path.Join(dirPath, RespKey(id)))
 	if err != nil {
 		if os.IsNotExist(err) {
-			c.JSON(400, &model.Response{
+			c.JSON(400, &model.Response[any]{
 				Code:    1,
 				Message: fmt.Sprintf("record[%s] is not dumped", idStr),
 			})
 			return
 		} else {
-			c.JSON(500, &model.Response{
+			c.JSON(500, &model.Response[any]{
 				Code:    1,
 				Message: fmt.Sprintf("record[%s] get response data failed", idStr),
 			})
@@ -199,7 +203,7 @@ func dumpSession(c *gin.Context) {
 	defer respFile.Close()
 	req, err := http.ReadRequest(bufio.NewReader(reqFile))
 	if err != nil {
-		c.JSON(500, &model.Response{
+		c.JSON(500, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("record[%s] get request data failed", idStr),
 		})
@@ -207,7 +211,7 @@ func dumpSession(c *gin.Context) {
 	}
 	resp, err := http.ReadResponse(bufio.NewReader(respFile), req)
 	if err != nil {
-		c.JSON(500, &model.Response{
+		c.JSON(500, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("record[%s] get response data failed", idStr),
 		})
@@ -237,7 +241,7 @@ func dumpRequest(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		c.JSON(400, &model.Response{
+		c.JSON(400, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("[%s] not a number", idStr),
 		})
@@ -255,14 +259,14 @@ func dumpRequest(c *gin.Context) {
 	})
 	_ = dumped
 	if !found {
-		c.JSON(400, &model.Response{
+		c.JSON(400, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("invalid recordID [%s]", idStr),
 		})
 		return
 	}
 	if status != record.CompletedStatus {
-		c.JSON(400, &model.Response{
+		c.JSON(400, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("record[%s] is not complete", idStr),
 		})
@@ -271,13 +275,13 @@ func dumpRequest(c *gin.Context) {
 	reqFile, err := os.Open(path.Join(dirPath, ReqKey(id)))
 	if err != nil {
 		if os.IsNotExist(err) {
-			c.JSON(400, &model.Response{
+			c.JSON(400, &model.Response[any]{
 				Code:    1,
 				Message: fmt.Sprintf("record[%s] is not dumped", idStr),
 			})
 			return
 		} else {
-			c.JSON(500, &model.Response{
+			c.JSON(500, &model.Response[any]{
 				Code:    1,
 				Message: fmt.Sprintf("record[%s] get request data failed", idStr),
 			})
@@ -287,7 +291,7 @@ func dumpRequest(c *gin.Context) {
 	defer reqFile.Close()
 	req, err := http.ReadRequest(bufio.NewReader(reqFile))
 	if err != nil {
-		c.JSON(500, &model.Response{
+		c.JSON(500, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("record[%s] get request data failed", idStr),
 		})
@@ -300,7 +304,7 @@ func dumpResponse(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		c.JSON(400, &model.Response{
+		c.JSON(400, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("[%s] not a number", idStr),
 		})
@@ -318,14 +322,14 @@ func dumpResponse(c *gin.Context) {
 	})
 	_ = dumped
 	if !found {
-		c.JSON(400, &model.Response{
+		c.JSON(400, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("invalid recordID [%s]", idStr),
 		})
 		return
 	}
 	if status != record.CompletedStatus {
-		c.JSON(400, &model.Response{
+		c.JSON(400, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("record[%s] is not complete", idStr),
 		})
@@ -334,13 +338,13 @@ func dumpResponse(c *gin.Context) {
 	respFile, err := os.Open(path.Join(dirPath, RespKey(id)))
 	if err != nil {
 		if os.IsNotExist(err) {
-			c.JSON(400, &model.Response{
+			c.JSON(400, &model.Response[any]{
 				Code:    1,
 				Message: fmt.Sprintf("record[%s] is not dumped", idStr),
 			})
 			return
 		} else {
-			c.JSON(500, &model.Response{
+			c.JSON(500, &model.Response[any]{
 				Code:    1,
 				Message: fmt.Sprintf("record[%s] get response data failed", idStr),
 			})
@@ -350,7 +354,7 @@ func dumpResponse(c *gin.Context) {
 	defer respFile.Close()
 	resp, err := http.ReadResponse(bufio.NewReader(respFile), &http.Request{})
 	if err != nil {
-		c.JSON(500, &model.Response{
+		c.JSON(500, &model.Response[any]{
 			Code:    1,
 			Message: fmt.Sprintf("record[%s] get response data failed", idStr),
 		})

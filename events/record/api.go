@@ -26,7 +26,7 @@ func recordsHandleFunc(c *gin.Context) {
 		list = append(list, *r)
 		return false
 	})
-	c.JSON(http.StatusOK, &model.Response{
+	c.JSON(http.StatusOK, &model.Response[[]RecordEntity]{
 		Code: 0,
 		Data: list,
 	})
@@ -40,7 +40,7 @@ func clearRecordsHandleFunc(c *gin.Context) {
 			logrus.WithError(err).Error("clear callback failed")
 		}
 	}
-	c.JSON(http.StatusOK, &model.Response{
+	c.JSON(http.StatusOK, &model.Response[interface{}]{
 		Code: 0,
 	})
 }
