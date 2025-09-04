@@ -1,0 +1,1032 @@
+openapi: 3.0.3
+info:
+  title: Shuttle Proxy Server API
+  description: |
+    Shuttle 是一个功能完整的网络代理服务器，支持多种协议（HTTP/HTTPS/SOCKS）和灵活的路由规则配置。
+
+    本文档描述了 Shuttle 提供的所有 REST API 接口和 WebSocket 接口。
+
+    ## 认证
+
+    API 支持两种认证方式：
+    - **Basic Auth**: 使用用户名和密码
+    - **Bearer Token**: 使用 Bearer Token
+
+    ## WebSocket 接口
+
+    项目提供了多个 WebSocket 接口用于实时数据推送：
+    - `/ws/rtt` - RTT 延迟测试事件
+    - `/ws/records/events` - 连接记录事件
+    - `/ws/traffic` - 流量统计数据
+
+  version: "2.0"
+  contact:
+    name: Shuttle
+    url: https://github.com/sipt/shuttle
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:8080
+    description: 本地开发服务器
+  - url: https://api.example.com
+    description: 生产环境服务器
+
+paths:
+  # 系统状态 API
+  /api/status:
+    get:
+      tags:
+        - System
+      summary: 获取系统状态
+      description: 获取 Shuttle 服务器的当前运行状态
+      responses:
+        "200":
+          description: 成功获取系统状态
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        type: string
+                        enum: [starting, running, stopped]
+                        description: 系统状态
+              examples:
+                running:
+                  summary: 系统运行中
+                  value:
+                    code: 0
+                    data: "running"
+
+  /api/inbounds:
+    get:
+      tags:
+        - System
+      summary: 获取入站监听器列表
+      description: 获取所有配置的入站监听器信息
+      responses:
+        "200":
+          description: 成功获取监听器列表
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Listener"
+
+  /api/reload:
+    put:
+      tags:
+        - System
+      summary: 重新加载配置
+      description: 重新加载配置文件并重启服务
+      responses:
+        "200":
+          description: 配置重新加载成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        type: string
+                        example: "success"
+        "500":
+          description: 配置加载失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # 服务器管理 API
+  /api/servers:
+    get:
+      tags:
+        - Servers
+      summary: 获取服务器列表
+      description: 获取所有配置的出站服务器信息
+      responses:
+        "200":
+          description: 成功获取服务器列表
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ServerInfo"
+
+  /api/servers/{name}:
+    get:
+      tags:
+        - Servers
+      summary: 获取指定服务器信息
+      description: 根据服务器名称获取服务器详细信息
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: 服务器名称
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功获取服务器信息
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ServerInfo"
+        "400":
+          description: 服务器名称无效或不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/servers/{name}/rtt:
+    put:
+      tags:
+        - Servers
+      summary: 测试服务器延迟
+      description: 执行指定服务器的延迟测试
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: 服务器名称
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 延迟测试完成
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ServerInfo"
+        "400":
+          description: 服务器名称无效或不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # 服务器组管理 API
+  /api/groups:
+    get:
+      tags:
+        - Groups
+      summary: 获取服务器组列表
+      description: 获取所有配置的服务器组信息
+      responses:
+        "200":
+          description: 成功获取服务器组列表
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Group"
+
+  /api/group:
+    get:
+      tags:
+        - Groups
+      summary: 获取指定服务器组信息
+      description: 根据组名获取服务器组详细信息
+      parameters:
+        - name: group
+          in: query
+          required: true
+          description: 服务器组名称
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功获取服务器组信息
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Group"
+        "400":
+          description: 服务器组名称无效或不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/group/select:
+    put:
+      tags:
+        - Groups
+      summary: 选择服务器组中的服务器
+      description: 在指定服务器组中选择特定的服务器
+      parameters:
+        - name: group
+          in: query
+          required: true
+          description: 服务器组名称
+          schema:
+            type: string
+        - name: server
+          in: query
+          required: true
+          description: 要选择的服务器名称
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 服务器选择成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Group"
+        "400":
+          description: 服务器组或服务器名称无效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/group/rtt:
+    put:
+      tags:
+        - Groups
+      summary: 重置服务器组延迟测试
+      description: 重置指定服务器组的延迟测试结果
+      parameters:
+        - name: group
+          in: query
+          required: true
+          description: 服务器组名称
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 延迟测试重置成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Group"
+        "400":
+          description: 服务器组名称无效或不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # DNS 管理 API
+  /api/dns/cache:
+    get:
+      tags:
+        - DNS
+      summary: 获取 DNS 缓存列表
+      description: 获取当前 DNS 解析缓存的所有记录
+      responses:
+        "200":
+          description: 成功获取 DNS 缓存列表
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/DNSRecord"
+    delete:
+      tags:
+        - DNS
+      summary: 清空 DNS 缓存
+      description: 清空所有 DNS 解析缓存记录
+      responses:
+        "200":
+          description: DNS 缓存清空成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response"
+
+  # 规则管理 API
+  /api/rule/mode:
+    get:
+      tags:
+        - Rules
+      summary: 获取当前路由模式
+      description: 获取当前的路由模式（直连、全局代理、规则代理）
+      responses:
+        "200":
+          description: 成功获取路由模式
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        type: string
+                        enum: [ModeDirect, ModeGlobal, ModeRule]
+                        description: 路由模式
+
+  /api/rule/mode/{mode}:
+    put:
+      tags:
+        - Rules
+      summary: 设置路由模式
+      description: 设置系统的路由模式
+      parameters:
+        - name: mode
+          in: path
+          required: true
+          description: 路由模式
+          schema:
+            type: string
+            enum: [ModeDirect, ModeGlobal, ModeRule]
+      responses:
+        "200":
+          description: 路由模式设置成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response"
+        "400":
+          description: 路由模式无效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # 连接记录 API
+  /api/records:
+    get:
+      tags:
+        - Records
+      summary: 获取连接记录列表
+      description: 获取所有连接记录信息
+      responses:
+        "200":
+          description: 成功获取连接记录列表
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RecordEntity"
+    delete:
+      tags:
+        - Records
+      summary: 清空连接记录
+      description: 清空所有连接记录
+      responses:
+        "200":
+          description: 连接记录清空成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response"
+
+  # 连接管理 API
+  /api/conns:
+    get:
+      tags:
+        - Connections
+      summary: 获取当前连接列表
+      description: 获取所有当前活跃的网络连接信息
+      responses:
+        "200":
+          description: 成功获取连接列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LinkResponse"
+
+  # 流量转储 API
+  /api/stream/dump/status:
+    get:
+      tags:
+        - Stream Dump
+      summary: 获取流量转储状态
+      description: 获取当前流量转储和 MITM 的启用状态
+      responses:
+        "200":
+          description: 成功获取转储状态
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Response"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          dump:
+                            type: boolean
+                            description: 流量转储是否启用
+                          mitm:
+                            type: boolean
+                            description: MITM 是否启用
+    put:
+      tags:
+        - Stream Dump
+      summary: 设置流量转储状态
+      description: 启用或禁用流量转储和 MITM 功能
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dump:
+                  type: boolean
+                  description: 是否启用流量转储
+                mitm:
+                  type: boolean
+                  description: 是否启用 MITM
+      responses:
+        "200":
+          description: 设置成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response"
+        "400":
+          description: 请求参数无效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: 内部服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/stream/dump/cert:
+    post:
+      tags:
+        - Stream Dump
+      summary: 生成 CA 证书
+      description: 生成用于 MITM 的 CA 证书和私钥
+      responses:
+        "200":
+          description: CA 证书生成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Response"
+        "500":
+          description: CA 证书生成失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      tags:
+        - Stream Dump
+      summary: 下载 CA 证书
+      description: 下载生成的 CA 证书文件
+      responses:
+        "200":
+          description: CA 证书文件
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "500":
+          description: CA 证书不存在或下载失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/stream/dump/session/{id}:
+    get:
+      tags:
+        - Stream Dump
+      summary: 获取会话转储数据
+      description: 获取指定连接记录的完整 HTTP 会话数据（请求和响应）
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 连接记录 ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: 会话数据（Base64 编码的 JSON）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  request:
+                    type: object
+                    properties:
+                      header:
+                        type: string
+                        description: Base64 编码的请求头
+                      body:
+                        type: string
+                        description: Base64 编码的请求体
+                  response:
+                    type: object
+                    properties:
+                      header:
+                        type: string
+                        description: Base64 编码的响应头
+                      body:
+                        type: string
+                        description: Base64 编码的响应体
+        "400":
+          description: 记录 ID 无效或记录不完整
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: 获取会话数据失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/stream/dump/request/body/{id}:
+    get:
+      tags:
+        - Stream Dump
+      summary: 获取请求体数据
+      description: 获取指定连接记录的 HTTP 请求体原始数据
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 连接记录 ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: 请求体原始数据
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: 记录 ID 无效或记录不完整
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: 获取请求体数据失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/stream/dump/response/body/{id}:
+    get:
+      tags:
+        - Stream Dump
+      summary: 获取响应体数据
+      description: 获取指定连接记录的 HTTP 响应体原始数据
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 连接记录 ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: 响应体原始数据
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: 记录 ID 无效或记录不完整
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: 获取响应体数据失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # WebSocket 接口
+  /ws/rtt:
+    get:
+      tags:
+        - WebSocket
+      summary: RTT 延迟测试事件流
+      description: |
+        WebSocket 连接，用于实时接收服务器组 RTT 延迟测试事件。
+
+        **消息格式:**
+        ```json
+        {
+          "name": "group_name",
+          "typ": "select",
+          "selected": {
+            "name": "server_name",
+            "typ": "socks",
+            "rtt": "100ms"
+          },
+          "servers": [...]
+        }
+        ```
+      responses:
+        "101":
+          description: WebSocket 连接升级成功
+
+  /ws/records/events:
+    get:
+      tags:
+        - WebSocket
+      summary: 连接记录事件流
+      description: |
+        WebSocket 连接，用于实时接收连接记录的创建、更新和状态变化事件。
+
+        **消息格式:**
+        ```json
+        {
+          "typ": "CreateRecordEvent",
+          "value": {
+            "id": 123,
+            "dest_addr": "example.com:443",
+            "policy": "PROXY",
+            "up": 1024,
+            "down": 2048,
+            "status": "completed",
+            "timestamp": 1640995200000,
+            "protocol": "https",
+            "duration": 5000,
+            "dumped": true
+          }
+        }
+        ```
+      responses:
+        "101":
+          description: WebSocket 连接升级成功
+
+  /ws/traffic:
+    get:
+      tags:
+        - WebSocket
+      summary: 实时流量统计数据流
+      description: |
+        WebSocket 连接，每秒推送一次当前的上传和下载流量统计。
+
+        **消息格式:**
+        ```json
+        {
+          "up": 1024000,
+          "down": 2048000
+        }
+        ```
+      responses:
+        "101":
+          description: WebSocket 连接升级成功
+
+components:
+  schemas:
+    Response:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 响应状态码，0 表示成功
+          example: 0
+        message:
+          type: string
+          description: 响应消息
+          example: ""
+        data:
+          description: 响应数据
+      required:
+        - code
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 错误状态码，非 0 表示失败
+          example: 1
+        message:
+          type: string
+          description: 错误消息
+          example: "server name is empty"
+      required:
+        - code
+        - message
+
+    Listener:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 监听器名称
+          example: "http-proxy"
+        typ:
+          type: string
+          description: 监听器类型
+          enum: [http, https, socks]
+          example: "http"
+        addr:
+          type: string
+          description: 监听地址
+          example: ":8080"
+      required:
+        - name
+        - typ
+        - addr
+
+    ServerInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 服务器名称
+          example: "proxy-server-1"
+        typ:
+          type: string
+          description: 服务器类型
+          example: "socks"
+        rtt:
+          type: string
+          description: 延迟时间
+          example: "100ms"
+      required:
+        - name
+        - typ
+        - rtt
+
+    Group:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 服务器组名称
+          example: "auto-select"
+        typ:
+          type: string
+          description: 服务器组类型
+          enum: [select, rtt]
+          example: "select"
+        selected:
+          $ref: "#/components/schemas/Server"
+        servers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Server"
+      required:
+        - name
+        - typ
+        - selected
+        - servers
+
+    Server:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 服务器名称
+          example: "proxy-server-1"
+        typ:
+          type: string
+          description: 服务器类型
+          example: "socks"
+        rtt:
+          type: string
+          description: 延迟时间
+          example: "100ms"
+        selected:
+          type: boolean
+          description: 是否被选中
+          example: true
+      required:
+        - name
+        - typ
+        - rtt
+        - selected
+
+    DNSRecord:
+      type: object
+      properties:
+        typ:
+          type: string
+          description: DNS 记录类型
+          enum: [system, static, dynamic]
+          example: "dynamic"
+        domain:
+          type: string
+          description: 域名
+          example: "example.com"
+        ip:
+          type: string
+          description: 解析的 IP 地址
+          example: "1.2.3.4"
+        expire_at:
+          type: string
+          description: 过期时间
+          example: "2024-01-01T12:00:00Z"
+        dns_server:
+          type: string
+          description: DNS 服务器
+          example: "udp://8.8.8.8:53"
+        country_code:
+          type: string
+          description: 国家代码
+          example: "US"
+      required:
+        - typ
+        - domain
+        - ip
+        - dns_server
+        - country_code
+
+    RecordEntity:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 连接记录 ID
+          example: 12345
+        dest_addr:
+          type: string
+          description: 目标地址
+          example: "example.com:443"
+        policy:
+          type: string
+          description: 应用的策略
+          example: "PROXY"
+        up:
+          type: integer
+          format: int64
+          description: 上传字节数
+          example: 1024
+        down:
+          type: integer
+          format: int64
+          description: 下载字节数
+          example: 2048
+        status:
+          type: string
+          enum: [active, completed, failed, rejected]
+          description: 连接状态
+          example: "completed"
+        timestamp:
+          type: integer
+          format: int64
+          description: 时间戳（毫秒）
+          example: 1640995200000
+        protocol:
+          type: string
+          description: 协议类型
+          example: "https"
+        duration:
+          type: integer
+          format: int64
+          description: 连接持续时间（毫秒）
+          example: 5000
+        conn:
+          $ref: "#/components/schemas/ConnEntity"
+        dumped:
+          type: boolean
+          description: 是否已转储
+          example: true
+      required:
+        - id
+        - up
+        - down
+        - status
+
+    LinkResponse:
+      type: object
+      properties:
+        input:
+          $ref: "#/components/schemas/ConnEntity"
+        output:
+          $ref: "#/components/schemas/ConnEntity"
+
+    ConnEntity:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 连接 ID
+          example: 12345
+        local_addr:
+          type: string
+          description: 本地地址
+          example: "127.0.0.1:8080"
+        remote_addr:
+          type: string
+          description: 远程地址
+          example: "example.com:443"
+      required:
+        - id
+        - local_addr
+        - remote_addr
+
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: HTTP Basic Authentication
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Bearer Token Authentication
+
+security:
+  - BasicAuth: []
+  - BearerAuth: []
+
+tags:
+  - name: System
+    description: 系统状态和配置管理
+  - name: Servers
+    description: 出站服务器管理
+  - name: Groups
+    description: 服务器组管理
+  - name: DNS
+    description: DNS 解析和缓存管理
+  - name: Rules
+    description: 路由规则管理
+  - name: Records
+    description: 连接记录管理
+  - name: Connections
+    description: 活跃连接管理
+  - name: Stream Dump
+    description: 流量转储和 MITM 功能
+  - name: WebSocket
+    description: WebSocket 实时数据接口

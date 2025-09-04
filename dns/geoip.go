@@ -20,11 +20,11 @@ func InitGeoIP() error {
 	var err error
 	geoipFileBytes, err := assets.ReadFile(*GeoipPath)
 	if err != nil {
-		return errors.Errorf("reade geo file [%s] failed: %s", *GeoipPath, err.Error())
+		return errors.Errorf("read geo file [%s] failed: %s", *GeoipPath, err.Error())
 	}
 	geoipDB, err = geoip2.FromBytes(geoipFileBytes)
 	if err != nil {
-		return errors.Errorf("reade geo file [%s] failed: %s", *GeoipPath, err.Error())
+		return errors.Errorf("read geo file [%s] failed: %s", *GeoipPath, err.Error())
 	}
 	close.AppendCloser(CloseGeoDB)
 	return nil

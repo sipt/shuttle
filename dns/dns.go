@@ -41,7 +41,10 @@ func ApplyConfig(config *model.Config, _ typ.Runtime, fallback Handle) (handle H
 		// TODO Read File: hosts
 	}
 	handle = fallback
-	handle, _ = newGeneralHandle(servers, timeout, handle)
+	handle, err = newGeneralHandle(servers, timeout, handle)
+	if err != nil {
+		return
+	}
 	handle, cache, _ = newCacheHandle(handle)
 	for i := len(config.DNS.Mapping) - 1; i >= 0; i-- {
 		v := config.DNS.Mapping[i]
