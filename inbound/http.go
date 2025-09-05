@@ -150,7 +150,7 @@ func newBearerAuth(params map[string]string) (func(*http.Request) bool, error) {
 func httpHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, error) {
 	ctxReq := &request{
 		network: "tcp",
-		uri:     req.URL.String(),
+		uri:     strings.TrimPrefix(req.URL.String(), "//"),
 		domain:  req.URL.Hostname(),
 	}
 	if len(ctxReq.domain) == 0 {
@@ -189,7 +189,7 @@ func httpsHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, er
 	}
 	ctxReq := &request{
 		network: "tcp",
-		uri:     req.URL.String(),
+		uri:     strings.TrimPrefix(req.URL.String(), "//"),
 		domain:  req.URL.Hostname(),
 	}
 	if port := req.URL.Port(); port != "" {
