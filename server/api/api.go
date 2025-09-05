@@ -86,19 +86,18 @@ func InitAPI(e *gin.Engine) {
 	})
 }
 
-func formatRtt(t time.Duration) string {
+func formatRtt(t time.Duration) int64 {
 	if t > 0 {
-		t = t.Round(time.Millisecond)
-		return t.String()
+		return t.Milliseconds()
 	} else if t == 0 {
-		return "no rtt"
+		return 0
 	} else {
-		return "failed"
+		return -1
 	}
 }
 
 type ItemResponse struct {
 	Name string `json:"name"`
 	Typ  string `json:"typ"`
-	RTT  string `json:"rtt"`
+	RTT  int64  `json:"rtt"`
 }
