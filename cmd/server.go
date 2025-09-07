@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 
 	"github.com/sipt/shuttle/cmd/api"
 	"github.com/sipt/shuttle/conf"
@@ -44,6 +45,14 @@ func init() {
 }
 
 func Start() (err error) {
+	configPath := *Path
+	if configPath == "" {
+		return fmt.Errorf("config file path is empty")
+	}
+	runtimePath := *RuntimePath
+	if runtimePath == "" {
+		return fmt.Errorf("runtime file path is empty")
+	}
 	api.Status = api.StatusStarting
 	defer func() {
 		if err != nil {
@@ -57,9 +66,20 @@ func Start() (err error) {
 	if err != nil {
 		panic(err)
 	}
+
+	configEncoding, err := getEncoding(configPath)
+	if err != nil {
+		logrus.WithError(err).Error("get config encoding failed")
+		return err
+	}
+	runtimeEncoding, err := getEncoding(runtimePath)
+	if err != nil {
+		logrus.WithError(err).Error("get runtime encoding failed")
+		return err
+	}
 	ctx, cancel := context.WithCancel(context.Background())
-	params := map[string]string{"path": *Path}
-	config, err := conf.LoadConfig(ctx, "file", *Encoding, params, func() {
+	params := map[string]string{"path": configPath}
+	config, err := conf.LoadConfig(ctx, "file", configEncoding, params, func() {
 		fmt.Println("config file change")
 	})
 	if err != nil {
@@ -67,7 +87,7 @@ func Start() (err error) {
 		return err
 	}
 	params = map[string]string{"path": *RuntimePath}
-	runtime, err := conf.LoadRuntime(ctx, "file", *Encoding, params)
+	runtime, err := conf.LoadRuntime(ctx, "file", runtimeEncoding, params)
 	if err != nil {
 		logrus.WithError(err).Error("load runtime failed")
 		return err
@@ -249,4 +269,22 @@ func recoverHandle(next typ.HandleFunc) typ.HandleFunc {
 		}()
 		next(lc)
 	}
+}
+
+func getEncoding(filePath string) (string, error) {
+	encoding := *Encoding
+	if encoding == "" {
+		ext := filepath.Ext(filePath)
+		switch ext {
+		case ".json":
+			encoding = "json"
+		case ".yaml", ".yml":
+			encoding = "yaml"
+		case ".toml":
+			encoding = "toml"
+		default:
+			return "", fmt.Errorf("unsupported config file extension: %s", ext)
+		}
+	}
+	return encoding, nil
 }

@@ -309,7 +309,19 @@ func (r *request) Domain() string {
 	return r.domain
 }
 func (r *request) URI() string {
-	return r.uri
+	if r.uri != "" {
+		return r.uri
+	}
+	uri := ""
+	if r.domain != "" {
+		uri = r.domain
+	} else if r.ip != nil {
+		uri = r.ip.String()
+	}
+	if r.port > 0 {
+		return fmt.Sprintf("%s:%d", uri, r.port)
+	}
+	return uri
 }
 func (r *request) IP() net.IP {
 	return r.ip

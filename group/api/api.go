@@ -144,20 +144,22 @@ func makeGroupResp(g group.IGroup) *Group {
 	resp := &Group{
 		Name: g.Name(),
 		Typ:  g.Typ(),
-		Selected: Server{
+	}
+	if len(g.Items()) > 0 {
+
+		resp.Selected = Server{
 			Name: g.Selected().Name(),
 			Typ:  g.Selected().Typ(),
 			RTT:  formatRtt(g.Server().Rtt(g.Name())),
-		},
-		Servers: make([]Server, len(g.Items())),
-	}
-
-	for i, s := range g.Items() {
-		resp.Servers[i] = Server{
-			Name:     s.Name(),
-			Typ:      s.Typ(),
-			RTT:      formatRtt(s.Server().Rtt(resp.Name)),
-			Selected: g.Selected().Name() == s.Name(),
+		}
+		resp.Servers = make([]Server, len(g.Items()))
+		for i, s := range g.Items() {
+			resp.Servers[i] = Server{
+				Name:     s.Name(),
+				Typ:      s.Typ(),
+				RTT:      formatRtt(s.Server().Rtt(resp.Name)),
+				Selected: g.Selected().Name() == s.Name(),
+			}
 		}
 	}
 	return resp
