@@ -116,7 +116,7 @@ func (s *SelectGroup) Select(name string) error {
 	for i, v := range s.servers {
 		if v.Name() == name {
 			s.current = s.servers[i]
-			err := s.runtime.Set(s.name, s.current.Name())
+			err := s.runtime.Set("selected", s.current.Name())
 			if err != nil {
 				logrus.WithField("select_group", s.name).WithError(err).Error("save runtime failed")
 			}
