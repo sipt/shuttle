@@ -45,7 +45,6 @@ func ApplyConfig(config *model.Config, _ typ.Runtime, fallback Handle) (handle H
 	if err != nil {
 		return
 	}
-	handle, cache, _ = newCacheHandle(handle)
 	for i := len(config.DNS.Mapping) - 1; i >= 0; i-- {
 		v := config.DNS.Mapping[i]
 		handle, err = newMappingHandle(v.Domain, v.Server, v.IP, timeout, handle)
@@ -53,6 +52,7 @@ func ApplyConfig(config *model.Config, _ typ.Runtime, fallback Handle) (handle H
 			return
 		}
 	}
+	handle, cache, _ = newCacheHandle(handle)
 	return
 }
 

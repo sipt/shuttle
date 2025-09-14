@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sipt/shuttle/controller/model"
+	"github.com/sipt/shuttle/dns"
 	"github.com/sipt/shuttle/global/namespace"
 )
 
@@ -19,13 +20,16 @@ func listHandleFunc(c *gin.Context) {
 	cacheList := cache.List()
 	list := make([]*DNS, 0, len(cacheList))
 	for _, v := range cacheList {
-		list = append(list, &DNS{
+		item := &DNS{
 			Typ:         v.Typ,
 			Domain:      v.Domain,
 			IP:          v.CurrentIP.String(),
-			DNSServer:   v.CurrentServer.String(),
 			CountryCode: v.CurrentCountry,
-		})
+		}
+		if item.Typ == dns.TypDynamic {
+			item.DNSServer = v.CurrentServer.String()
+		}
+		list = append(list, item)
 	}
 	c.JSON(http.StatusOK, &model.Response[[]*DNS]{
 		Code: 0,

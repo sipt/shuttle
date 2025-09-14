@@ -135,8 +135,17 @@ func Start() (err error) {
 }
 
 func CheckConfig() error {
-	params := map[string]string{"path": *Path}
-	_, err := conf.LoadConfig(context.Background(), "file", *Encoding, params, func() {
+	configPath := *Path
+	if configPath == "" {
+		return fmt.Errorf("config file path is empty")
+	}
+	configEncoding, err := getEncoding(configPath)
+	if err != nil {
+		logrus.WithError(err).Error("get config encoding failed")
+		return err
+	}
+	params := map[string]string{"path": configPath}
+	_, err = conf.LoadConfig(context.Background(), "file", configEncoding, params, func() {
 		fmt.Println("config file change")
 	})
 	if err != nil {
