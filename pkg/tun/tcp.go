@@ -3,6 +3,7 @@ package tun
 import (
 	"context"
 	"io"
+	"net"
 
 	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
@@ -16,9 +17,7 @@ type TcpListener interface {
 	Accept() (TcpConn, error)
 }
 
-type TcpConn interface {
-	io.ReadWriteCloser
-}
+type TcpConn net.Conn
 
 func newTcpListener(ctx context.Context, bufferSize int) *tcpListener {
 	return &tcpListener{

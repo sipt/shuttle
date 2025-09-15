@@ -13,6 +13,8 @@ const (
 	ProtocolTCP_HTTP  = "http"
 	ProtocolTCP_HTTPS = "https"
 	ProtocolUDP_DNS   = "dns"
+	ProtocolTCP       = "tcp"
+	ProtocolUDP       = "udp"
 )
 
 var (

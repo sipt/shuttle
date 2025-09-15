@@ -4,8 +4,6 @@ import (
 	"context"
 	"net"
 	"sync"
-
-	"github.com/sipt/shuttle/pkg/dns"
 )
 
 const (
@@ -133,7 +131,7 @@ func (m *DNSMock) ListMappings() map[string]string {
 }
 
 // NewMockHandle 创建DNS Mock处理器
-func NewMockHandle() dns.DNSHandler {
+func NewMockHandle() *DNSMock {
 	return NewDNSMock()
 }
 
