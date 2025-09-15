@@ -1,12 +1,11 @@
-package mock
+package mockdns
 
 import (
 	"context"
 	"net"
 	"sync"
-	"time"
 
-	"github.com/sipt/shuttle/dns"
+	"github.com/sipt/shuttle/pkg/dns"
 )
 
 const (
@@ -134,58 +133,25 @@ func (m *DNSMock) ListMappings() map[string]string {
 }
 
 // NewMockHandle 创建DNS Mock处理器
-func NewMockHandle(next dns.Handle) dns.Handle {
-	mock := NewDNSMock()
-
-	return func(ctx context.Context, domain string) *dns.DNS {
-		// 分配或获取Mock IP
-		mockIP := mock.GetOrAllocateIP(domain)
-
-		return &dns.DNS{
-			Typ:            "mock",
-			Domain:         domain,
-			IP:             []net.IP{mockIP},
-			CurrentIP:      mockIP,
-			CurrentCountry: "Mock",                         // Mock IP没有真实的地理位置
-			ExpireAt:       time.Now().Add(24 * time.Hour), // Mock IP 24小时过期
-		}
-	}
+func NewMockHandle() dns.DNSHandler {
+	return NewDNSMock()
 }
 
-// NewMockHandleWithInstance 使用指定的DNSMock实例创建处理器
-func NewMockHandleWithInstance(mock *DNSMock, next dns.Handle) dns.Handle {
-	return func(ctx context.Context, domain string) *dns.DNS {
-		// 分配或获取Mock IP
-		mockIP := mock.GetOrAllocateIP(domain)
-
-		return &dns.DNS{
-			Typ:            "mock",
-			Domain:         domain,
-			IP:             []net.IP{mockIP},
-			CurrentIP:      mockIP,
-			CurrentCountry: "Mock",                         // Mock IP没有真实的地理位置
-			ExpireAt:       time.Now().Add(24 * time.Hour), // Mock IP 24小时过期
-		}
-	}
+// HandleQuery 处理DNS查询
+func (m *DNSMock) HandleQuery(ctx context.Context, domain string, qtype uint16) ([]net.IP, error) {
+	return []net.IP{m.GetOrAllocateIP(domain)}, nil
 }
 
 // ReverseLookup 反向DNS查询，根据IP查找域名
-func (m *DNSMock) ReverseLookup(ip net.IP) *dns.DNS {
+func (m *DNSMock) ReverseLookup(ip net.IP) (string, bool) {
 	if !m.IsMockIP(ip) {
-		return nil
+		return "", false
 	}
 
 	domain, exists := m.GetDomainByIP(ip)
 	if !exists {
-		return nil
+		return "", false
 	}
 
-	return &dns.DNS{
-		Typ:            "mock",
-		Domain:         domain,
-		IP:             []net.IP{ip},
-		CurrentIP:      ip,
-		CurrentCountry: "Mock",
-		ExpireAt:       time.Now().Add(24 * time.Hour),
-	}
+	return domain, true
 }

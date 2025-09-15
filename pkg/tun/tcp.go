@@ -1,15 +1,15 @@
-package stack
+package tun
 
 import (
-	"gvisor.dev/gvisor/pkg/tcpip"
-	"gvisor.dev/gvisor/pkg/tcpip/header"
-	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
-	"gvisor.dev/gvisor/pkg/waiter"
+	"context"
 	"io"
 
-	"gvisor.dev/gvisor/pkg/tcpip/stack"
-
+	"gvisor.dev/gvisor/pkg/tcpip"
 	"gvisor.dev/gvisor/pkg/tcpip/adapters/gonet"
+	"gvisor.dev/gvisor/pkg/tcpip/header"
+	"gvisor.dev/gvisor/pkg/tcpip/stack"
+	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
+	"gvisor.dev/gvisor/pkg/waiter"
 )
 
 type TcpListener interface {
@@ -20,22 +20,28 @@ type TcpConn interface {
 	io.ReadWriteCloser
 }
 
-func newTcpListener(bufferSize int) *tcpListener {
+func newTcpListener(ctx context.Context, bufferSize int) *tcpListener {
 	return &tcpListener{
 		connPool: make(chan TcpConn, bufferSize),
+		ctx:      ctx,
 	}
 }
 
 type tcpListener struct {
 	connPool chan TcpConn
+	ctx      context.Context
 }
 
 func (t *tcpListener) Accept() (TcpConn, error) {
-	conn, ok := <-t.connPool
-	if !ok {
-		return nil, io.EOF
+	select {
+	case <-t.ctx.Done():
+		return nil, t.ctx.Err()
+	case conn, ok := <-t.connPool:
+		if !ok {
+			return nil, io.EOF
+		}
+		return conn, nil
 	}
-	return conn, nil
 }
 
 type tcpConn struct {
@@ -43,8 +49,8 @@ type tcpConn struct {
 	id stack.TransportEndpointID
 }
 
-func TcpForward(s *stack.Stack, bufferSize int) (TcpListener, error) {
-	var tcpListener = newTcpListener(bufferSize)
+func TcpForward(ctx context.Context, s *stack.Stack, bufferSize int) (TcpListener, error) {
+	var tcpListener = newTcpListener(ctx, bufferSize)
 	forwarder := tcp.NewForwarder(s, 0, 1<<16, func(r *tcp.ForwarderRequest) {
 		wq := &waiter.Queue{}
 		ep, err := r.CreateEndpoint(wq)

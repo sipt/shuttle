@@ -3,6 +3,7 @@ package dns
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 	"time"
@@ -197,18 +198,19 @@ func (h *DefaultDNSHandler) HandleQuery(ctx context.Context, domain string, qtyp
 
 // ServeDNSOverUDP serves DNS requests over UDP using a custom connection
 func (s *DNSServer) ServeDNSOverUDP(conn net.PacketConn) error {
-	s.logger.Info("Starting DNS server over UDP")
-
-	for {
-		buf := make([]byte, 512) // Standard DNS message size
-		n, addr, err := conn.ReadFrom(buf)
-		if err != nil {
-			s.logger.WithError(err).Error("Failed to read from UDP connection")
-			continue
+	buf := make([]byte, 1024) // Standard DNS message size
+	n, addr, err := conn.ReadFrom(buf)
+	if err != nil {
+		if err == io.EOF {
+			s.logger.Info("UDP connection closed")
+			return nil
 		}
-
-		go s.handleUDPRequest(conn, addr, buf[:n])
+		s.logger.WithError(err).Error("Failed to read from UDP connection")
+		return err
 	}
+
+	s.handleUDPRequest(conn, addr, buf[:n])
+	return nil
 }
 
 // handleUDPRequest processes a single UDP DNS request
@@ -280,7 +282,7 @@ func NewFixedIPDNSHandler(ip string) *FixedIPDNSHandler {
 	if fixedIP == nil {
 		panic(fmt.Sprintf("Invalid IP address: %s", ip))
 	}
-	
+
 	return &FixedIPDNSHandler{
 		fixedIP: fixedIP,
 		logger:  logrus.New(),
@@ -294,17 +296,17 @@ func (h *FixedIPDNSHandler) HandleQuery(ctx context.Context, domain string, qtyp
 		"type":   dns.TypeToString[qtype],
 		"ip":     h.fixedIP.String(),
 	}).Info("Returning fixed IP for DNS query")
-	
+
 	// Only return IP for A records (IPv4) if our fixed IP is IPv4
 	if qtype == dns.TypeA && h.fixedIP.To4() != nil {
 		return []net.IP{h.fixedIP}, nil
 	}
-	
+
 	// Only return IP for AAAA records (IPv6) if our fixed IP is IPv6
 	if qtype == dns.TypeAAAA && h.fixedIP.To4() == nil && h.fixedIP.To16() != nil {
 		return []net.IP{h.fixedIP}, nil
 	}
-	
+
 	// For other query types or mismatched IP versions, return empty
 	return []net.IP{}, nil
 }

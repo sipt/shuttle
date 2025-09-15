@@ -1,6 +1,7 @@
 package tun
 
 import (
+	"context"
 	"io"
 	"net"
 
@@ -15,27 +16,33 @@ type UdpListener interface {
 }
 
 type UdpConn interface {
+	net.PacketConn
 	io.ReadWriteCloser
-	LocalAddr() net.Addr
 	RemoteAddr() net.Addr
 }
 
-func newUdpListener(bufferSize int) *udpListener {
+func newUdpListener(ctx context.Context, bufferSize int) *udpListener {
 	return &udpListener{
 		connPool: make(chan UdpConn, bufferSize),
+		ctx:      ctx,
 	}
 }
 
 type udpListener struct {
 	connPool chan UdpConn
+	ctx      context.Context
 }
 
 func (t *udpListener) Accept() (UdpConn, error) {
-	conn, ok := <-t.connPool
-	if !ok {
-		return nil, io.EOF
+	select {
+	case <-t.ctx.Done():
+		return nil, t.ctx.Err()
+	case conn, ok := <-t.connPool:
+		if !ok {
+			return nil, io.EOF
+		}
+		return conn, nil
 	}
-	return conn, nil
 }
 
 type udpConn struct {
@@ -63,8 +70,8 @@ func (c *udpConn) IsDNSQuery() bool {
 	return false
 }
 
-func UdpForward(s *stack.Stack, bufferSize int) (UdpListener, error) {
-	listener := newUdpListener(bufferSize)
+func UdpForward(ctx context.Context, s *stack.Stack, bufferSize int) (UdpListener, error) {
+	listener := newUdpListener(ctx, bufferSize)
 	forwarder := udp.NewForwarder(s, func(r *udp.ForwarderRequest) (handled bool) {
 		wq := &waiter.Queue{}
 		ep, err := r.CreateEndpoint(wq)

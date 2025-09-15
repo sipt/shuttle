@@ -1,67 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"time"
 
 	"github.com/sipt/shuttle/pkg/dns"
+	"github.com/sipt/shuttle/pkg/enhance"
 	"github.com/sipt/shuttle/pkg/tun"
 )
 
 func main() {
-	// 1. 打开TUN接口
-	listener, err := tun.OpenTun()
-	if err != nil {
-		log.Fatalf("Failed to open TUN: %v", err)
-	}
-	fmt.Println("TUN opened successfully")
-
-	// 2. 创建固定IP的DNS处理器，所有DNS查询都返回 10.0.0.12
-	dnsHandler := dns.NewFixedIPDNSHandler("10.0.0.12")
-	dnsServer := dns.NewDNSServer(dnsHandler)
-
-	fmt.Println("DNS server created with fixed IP: 10.0.0.12")
-
-	// 3. 启动DNS服务器处理循环
-	go func() {
-		for {
-			// 接受UDP连接
-			conn, err := listener.UdpListener.Accept()
-			if err != nil {
-				log.Printf("Failed to accept UDP connection: %v", err)
-				continue
-			}
-
-			fmt.Printf("New UDP connection: %s -> %s\n",
-				conn.RemoteAddr(), conn.LocalAddr())
-
-			// 检查是否是DNS查询（端口53）
-			isDNS := false
-			if localAddr := conn.LocalAddr(); localAddr != nil {
-				if udpAddr, ok := localAddr.(*net.UDPAddr); ok {
-					isDNS = udpAddr.Port == 53
-				}
-			}
-
-			if isDNS {
-				fmt.Printf("DNS query detected from %s\n", conn.RemoteAddr())
-
-				// 处理DNS连接
-				go handleDNSConnection(dnsServer, conn)
-			} else {
-				// 非DNS连接，简单回复并关闭
-				fmt.Printf("Non-DNS UDP connection from %s\n", conn.RemoteAddr())
-				conn.Write([]byte("Hello from TUN interface!"))
-				conn.Close()
-			}
-		}
-	}()
-
-	fmt.Println("DNS server is running...")
-	fmt.Println("All DNS queries will be resolved to 10.0.0.12")
-	fmt.Println("Press Ctrl+C to stop")
+	enhance.NewEnhanceMode().Start()
 
 	// 保持程序运行
 	select {}

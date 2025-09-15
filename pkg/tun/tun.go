@@ -1,8 +1,8 @@
 package tun
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"net"
 	"net/netip"
 
@@ -17,12 +17,20 @@ import (
 
 const NetCidr = "198.18.0.1/8"
 
+type TunDevice struct {
+	Device   overlay.Device
+	Listener *Listener
+
+	s      *stack.Stack
+	linkEP *channel.Endpoint
+}
+
 type Listener struct {
 	UdpListener UdpListener
 	TcpListener TcpListener
 }
 
-func OpenTun() (*Listener, error) {
+func OpenTun(ctx context.Context) (*TunDevice, error) {
 	// 创建 logger
 	logger := logrus.WithField("method", "open-tun").Logger
 
@@ -49,7 +57,12 @@ func OpenTun() (*Listener, error) {
 		logger.WithError(err).Error("Failed to create TUN device")
 		return nil, fmt.Errorf("Failed to create TUN device: %v", err)
 	}
-	defer tun.Close()
+	logger.Info("Activating TUN device...")
+	err = tun.Activate()
+	if err != nil {
+		logger.Errorf("Failed to activate TUN device: %v", err)
+		return nil, fmt.Errorf("Failed to activate TUN device: %v", err)
+	}
 
 	linkEP := channel.New(1024, 4000, "")
 	// 创建栈
@@ -70,14 +83,12 @@ func OpenTun() (*Listener, error) {
 		for {
 			n, err := tun.Read(buf)
 			if err != nil {
-				log.Printf("tun read err: %v", err)
-				continue
+				logger.Errorf("tun read err: %v", err)
+				break
 			}
 			vv := stack.NewPacketBuffer(stack.PacketBufferOptions{
 				Payload: buffer.MakeWithData(buf[:n]),
 			})
-			log.Printf("TUN -> netstack: received %d bytes: %v", n, buf[:n])
-
 			linkEP.InjectInbound(ipv4.ProtocolNumber, vv)
 		}
 	}()
@@ -91,10 +102,9 @@ func OpenTun() (*Listener, error) {
 			}
 			vv := pkt.ToView()
 			data := vv.AsSlice()
-			log.Printf("netstack -> TUN: sending %d bytes: %v", len(data), data)
 			_, err := tun.Write(data)
 			if err != nil {
-				log.Printf("tun write err: %v", err)
+				logger.Errorf("tun write err: %v", err)
 			}
 			pkt.DecRef()
 		}
@@ -103,14 +113,34 @@ func OpenTun() (*Listener, error) {
 	var listener = new(Listener)
 
 	// 5. 启动 UDP 代理 - 拦截所有UDP连接
-	go func() {
-		udpListener, err := UdpForward(s, 1024)
-		if err != nil {
-			log.Fatalf("udp forwarder error: %v", err)
-		}
-		log.Println("UDP proxy started - intercepting all UDP connections")
-		listener.UdpListener = udpListener
-	}()
+	udpListener, err := UdpForward(ctx, s, 1024)
+	if err != nil {
+		logger.Errorf("udp forwarder error: %v", err)
+		return nil, fmt.Errorf("udp forwarder error: %v", err)
+	}
+	logger.Info("UDP proxy started - intercepting all UDP connections")
+	listener.UdpListener = udpListener
 
-	return listener, nil
+	// 6. 启动 TCP 代理 - 拦截所有TCP连接
+	tcpListener, err := TcpForward(ctx, s, 1024)
+	if err != nil {
+		logger.Errorf("tcp forwarder error: %v", err)
+		return nil, fmt.Errorf("tcp forwarder error: %v", err)
+	}
+	logger.Info("TCP proxy started - intercepting all TCP connections")
+	listener.TcpListener = tcpListener
+
+	return &TunDevice{
+		Device:   tun,
+		Listener: listener,
+		s:        s,
+		linkEP:   linkEP,
+	}, nil
+}
+
+func (t *TunDevice) Close() error {
+	t.Device.Close()
+	t.linkEP.Close()
+	t.s.Close()
+	return nil
 }
