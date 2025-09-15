@@ -93,11 +93,12 @@ func OpenTun(ctx context.Context) (*TunDevice, error) {
 		}
 	}()
 
-	// 4. goroutine: netstack → TUN
+	// // 4. goroutine: netstack → TUN
 	go func() {
 		for {
-			pkt := linkEP.Read()
+			pkt := linkEP.ReadContext(ctx)
 			if pkt == nil {
+				logger.Info("linkEP read nil")
 				continue
 			}
 			vv := pkt.ToView()

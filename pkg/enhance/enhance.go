@@ -53,6 +53,7 @@ func (e *EnhanceMode) Start() error {
 	e.dnsServer = dns.NewDNSServer(dnsHandler)
 
 	go e.handleUdp()
+	go e.handleTcp()
 
 	return nil
 }
@@ -103,5 +104,15 @@ func (e *EnhanceMode) handleDnsPacketConn(conn tun.UdpConn) {
 	err := e.dnsServer.ServeDNSOverUDP(conn)
 	if err != nil {
 		logger.Errorf("DNS server error: %v", err)
+	}
+}
+
+func (e *EnhanceMode) handleTcp() {
+	for {
+		conn, err := e.tunDevice.Listener.TcpListener.Accept()
+		if err != nil {
+			return
+		}
+		conn.Close()
 	}
 }
