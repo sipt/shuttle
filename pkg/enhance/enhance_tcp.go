@@ -90,7 +90,6 @@ func (e *EnhanceMode) handleTcpConn(conn tun.TcpConn) {
 	logger.Debugf("handleTcpConn: %v", conn.LocalAddr())
 	req := &tcpRequest{
 		network: conn.RemoteAddr().Network(),
-		domain:  conn.RemoteAddr().String(),
 	}
 	var localIP net.IP
 	if tcpAddr, ok := conn.LocalAddr().(*net.TCPAddr); ok {
