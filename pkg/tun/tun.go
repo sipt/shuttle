@@ -98,8 +98,8 @@ func OpenTun(ctx context.Context) (*TunDevice, error) {
 		for {
 			pkt := linkEP.ReadContext(ctx)
 			if pkt == nil {
-				logger.Info("linkEP read nil")
-				continue
+				logger.Info("linkEP read nil, exit")
+				return
 			}
 			vv := pkt.ToView()
 			data := vv.AsSlice()

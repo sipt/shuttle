@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/sipt/shuttle/constant/typ"
 	"github.com/sipt/shuttle/pkg/dns"
 	mockdns "github.com/sipt/shuttle/pkg/dns/mock"
 	"github.com/sipt/shuttle/pkg/tun"
@@ -17,6 +18,8 @@ const (
 	EnhanceModeStateStopped
 )
 
+var EnhanceModeInstance *EnhanceMode = NewEnhanceMode()
+
 type EnhanceMode struct {
 	mu     sync.Mutex
 	ctx    context.Context
@@ -26,10 +29,20 @@ type EnhanceMode struct {
 	tunDevice  *tun.TunDevice
 	dnsServer  *dns.DNSServer
 	dnsHandler *mockdns.DNSMock
+
+	handle typ.HandleFunc
 }
 
 func NewEnhanceMode() *EnhanceMode {
 	return &EnhanceMode{state: EnhanceModeStateInit}
+}
+
+func (e *EnhanceMode) SetHandle(handle typ.HandleFunc) {
+	e.handle = handle
+}
+
+func (e *EnhanceMode) GetState() EnhanceModeState {
+	return e.state
 }
 
 func (e *EnhanceMode) Start() error {

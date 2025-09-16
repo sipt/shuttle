@@ -112,13 +112,9 @@ func Start() (err error) {
 		logrus.WithError(err).Error("start events failed")
 		return err
 	}
-	// start enhance mode
-	enhanceMode := enhance.NewEnhanceMode()
-	err = enhanceMode.Start()
-	if err != nil {
-		logrus.WithError(err).Error("start enhance mode failed")
-		return err
-	}
+
+	// enhance mode
+	enhance.EnhanceModeInstance.SetHandle(handle.Handle())
 
 	logrus.Info("server starting...")
 	closepkg.AppendCloser(func() error {
@@ -126,7 +122,6 @@ func Start() (err error) {
 		return nil
 	})
 	closepkg.AppendCloser(func() error {
-		enhanceMode.Stop()
 		closer()
 		return nil
 	})

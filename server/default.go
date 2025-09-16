@@ -119,6 +119,9 @@ func NewRttServer(server IServer, params map[string]string) IServer {
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 	return rtt
 }
@@ -143,7 +146,7 @@ func (r *RttServer) TestRtt(key, uri string) time.Duration {
 		return r.Rtt(key)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+	if resp.StatusCode >= 200 && resp.StatusCode <= 399 {
 		r.SetRtt(key, time.Now().Sub(start))
 		log.WithField("rtt", r.Rtt(key).Round(time.Millisecond).String()).Debug("rtt test success")
 	} else {

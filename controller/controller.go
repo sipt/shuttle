@@ -6,6 +6,7 @@ import (
 	"github.com/sipt/shuttle/conf/model"
 	"github.com/sipt/shuttle/conn/stream/dump"
 	"github.com/sipt/shuttle/events/record"
+	"github.com/sipt/shuttle/pkg/enhance"
 
 	capi "github.com/sipt/shuttle/cmd/api"
 	connapi "github.com/sipt/shuttle/conn/api"
@@ -29,6 +30,7 @@ func init() {
 	record.InitAPI(e)  // record api
 	connapi.InitAPI(e) // conn api
 	dump.InitAPI(e)    // dump api
+	enhance.InitAPI(e) // enhance api
 
 	// ws
 	tws.InitAPI(e)

@@ -9,7 +9,6 @@ import (
 
 	connpkg "github.com/sipt/shuttle/conn"
 	"github.com/sipt/shuttle/constant"
-	"github.com/sipt/shuttle/handle"
 	"github.com/sipt/shuttle/inbound"
 	"github.com/sipt/shuttle/pkg/tun"
 	"github.com/sirupsen/logrus"
@@ -110,6 +109,7 @@ func (e *EnhanceMode) handleTcpConn(conn tun.TcpConn) {
 
 	ctx := context.WithValue(e.ctx, constant.KeyRequestInfo, req)
 	ctx = context.WithValue(ctx, constant.KeyProtocol, inbound.ProtocolTCP)
-	handle := handle.Handle()
-	handle(connpkg.NewConn(conn, ctx))
+	if e.handle != nil {
+		e.handle(connpkg.NewConn(conn, ctx))
+	}
 }
