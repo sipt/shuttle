@@ -183,17 +183,17 @@ func (sg SortableGroups) Swap(i, j int) {
 }
 
 type Group struct {
-	Name     string   `json:"name"`
-	Typ      string   `json:"typ"`
-	Selected Server   `json:"selected"`
-	Servers  []Server `json:"servers"`
+	Name     string   `json:"name,omitempty"`
+	Typ      string   `json:"typ,omitempty"`
+	Selected Server   `json:"selected,omitempty"`
+	Servers  []Server `json:"servers,omitempty"`
 }
 
 type Server struct {
-	Name     string `json:"name"`
-	Typ      string `json:"typ"`
-	RTT      int64  `json:"rtt"`
-	Selected bool   `json:"selected"`
+	Name     string `json:"name,omitempty"`
+	Typ      string `json:"typ,omitempty"`
+	RTT      int64  `json:"rtt,omitempty"`
+	Selected bool   `json:"selected,omitempty"`
 }
 
 func formatRtt(t time.Duration) int64 {
