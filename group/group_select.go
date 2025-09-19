@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/sipt/shuttle/constant/typ"
+	"github.com/sipt/shuttle/events"
 	"github.com/sirupsen/logrus"
 
 	"github.com/pkg/errors"
@@ -135,6 +136,7 @@ func (s *SelectGroup) Clear() {
 }
 
 func (s *SelectGroup) testAllRTT() {
+	ctx := context.Background()
 	if len(s.servers) == 0 {
 		return
 	}
@@ -143,6 +145,11 @@ func (s *SelectGroup) testAllRTT() {
 		wg.Add(1)
 		go func(sx IServerX) {
 			sx.Server().TestRtt(s.name, s.testUrl)
+			events.Bus <- &events.Event{
+				Typ:   events.GroupServerRttEvent,
+				Ctx:   context.WithValue(ctx, "group_name", s.name),
+				Value: []string{s.name, sx.Name()},
+			}
 			wg.Done()
 		}(v)
 	}

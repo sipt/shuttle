@@ -13,7 +13,8 @@ const (
 	UpdateRecordStatusEvent EventType = 4
 	UpdateDumpStatusEvent   EventType = 5
 
-	GroupRttEvent EventType = 6
+	GroupRttEvent       EventType = 6
+	GroupServerRttEvent EventType = 7
 )
 
 type EventType int8

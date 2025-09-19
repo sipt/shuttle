@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/sipt/shuttle/constant"
 	"github.com/sipt/shuttle/controller/model"
 	"github.com/sipt/shuttle/events"
@@ -133,7 +134,11 @@ func resetHandleFunc(c *gin.Context) {
 		})
 		return
 	}
-	g.Reset()
+	if c.Query("async") == "true" {
+		go g.Reset()
+	} else {
+		g.Reset()
+	}
 	c.JSON(http.StatusOK, &model.Response[*Group]{
 		Code: 0,
 		Data: makeGroupResp(g),
@@ -243,12 +248,23 @@ func init() {
 		if !ok {
 			return errors.Errorf("[%s] is not GroupName", reflect.TypeOf(v).Kind().String())
 		}
-		notifyClient(ctx, r)
+		notifyClientGroupRtt(ctx, r)
+		return nil
+	})
+	events.RegisterEvent(events.GroupServerRttEvent, func(ctx context.Context, v interface{}) error {
+		r, ok := v.([]string)
+		if !ok {
+			return errors.Errorf("[event: %d] [%s] is not [GroupName,ServerName]", events.GroupServerRttEvent, reflect.TypeOf(v).Kind().String())
+		}
+		if len(r) != 2 {
+			return errors.Errorf("[event: %d] [%d != 2] is not valid", events.GroupServerRttEvent, len(r))
+		}
+		notifyClientGroupServerRtt(ctx, r)
 		return nil
 	})
 }
 
-func notifyClient(ctx context.Context, name string) {
+func notifyClientGroupRtt(ctx context.Context, name string) {
 	if len(wsConnMap) == 0 {
 		return
 	}
@@ -259,6 +275,46 @@ func notifyClient(ctx context.Context, name string) {
 		return
 	}
 	resp := makeGroupResp(g)
+	var err error
+	for _, conn := range wsConnMap {
+		err = conn.WriteJSON(resp)
+		if err != nil {
+			logrus.WithError(err).Error("[group] [rtt.notifyClient] failed")
+		}
+	}
+}
+
+func notifyClientGroupServerRtt(ctx context.Context, names []string) {
+	if len(wsConnMap) == 0 {
+		return
+	}
+	np := namespace.NamespaceWithContext(ctx)
+	groups := np.Profile().Group()
+
+	g, ok := groups[names[0]]
+	if !ok || g == nil {
+		return
+	}
+	s, ok := lo.Find(g.Items(), func(s group.IServerX) bool {
+		return s.Name() == names[1]
+	})
+	if !ok || s == nil {
+		return
+	}
+	resp := &Group{
+		Name: g.Name(),
+		Typ:  g.Typ(),
+		Servers: lo.Map(lo.Filter(g.Items(), func(s group.IServerX, _ int) bool {
+			return s.Name() == names[1]
+		}), func(s group.IServerX, _ int) Server {
+			return Server{
+				Name:     s.Name(),
+				Typ:      s.Typ(),
+				RTT:      formatRtt(s.Server().Rtt(g.Name())),
+				Selected: g.Selected().Name() == s.Name(),
+			}
+		}),
+	}
 	var err error
 	for _, conn := range wsConnMap {
 		err = conn.WriteJSON(resp)

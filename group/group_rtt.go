@@ -137,12 +137,12 @@ func (r *rttGroup) Reset() {
 }
 
 func (r *rttGroup) autoSelectByRTT(ctx context.Context) {
-	r.testAllRTT()
+	r.testAllRTT(ctx)
 	timer := time.NewTimer(r.interval)
 	for {
 		select {
 		case <-timer.C:
-			r.testAllRTT()
+			r.testAllRTT(ctx)
 			events.Bus <- &events.Event{
 				Typ:   events.GroupRttEvent,
 				Ctx:   context.WithValue(ctx, "group_name", r.name),
@@ -150,17 +150,16 @@ func (r *rttGroup) autoSelectByRTT(ctx context.Context) {
 			}
 		case <-r.reset:
 			timer.Stop()
-			r.testAllRTT()
+			r.testAllRTT(ctx)
 			timer.Reset(r.interval)
 		case <-ctx.Done():
 			timer.Stop()
 			return
 		}
 	}
-	return
 }
 
-func (r *rttGroup) testAllRTT() {
+func (r *rttGroup) testAllRTT(ctx context.Context) {
 	if len(r.servers) == 0 {
 		return
 	}
@@ -172,6 +171,11 @@ func (r *rttGroup) testAllRTT() {
 		go func(s IServerX) {
 			if s.Server().TestRtt(r.name, r.testUrl) > 0 {
 				reply <- s
+				events.Bus <- &events.Event{
+					Typ:   events.GroupServerRttEvent,
+					Ctx:   context.WithValue(ctx, "group_name", r.name),
+					Value: []string{r.name, s.Name()},
+				}
 			} else {
 				reply <- nil
 			}
