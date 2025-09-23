@@ -18,4 +18,4 @@ build-all: build build-plugins upgrade-geo
 build-image: build-all
 	docker build -t ${TARGET} -f Dockerfile .
 export-clib:
-	go build -buildmode=c-archive -o _output/export/shuttle.a cmd/export/c_lib.go
+	CGO_ENABLED=1 go build -buildmode=c-archive -o _output/export/shuttle.a ./cmd/export/
