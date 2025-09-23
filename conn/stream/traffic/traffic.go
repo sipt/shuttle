@@ -11,6 +11,7 @@ import (
 )
 
 var down, up int64 = 0, 0
+var oldDown, oldUp int64 = 0, 0
 
 func init() {
 	stream.RegisterStream("traffic", newTrafficMetrics)
@@ -22,8 +23,8 @@ func newTrafficMetrics(ctx context.Context, _ typ.Runtime, _ map[string]string) 
 		for {
 			select {
 			case <-ticker.C:
-				atomic.SwapInt64(&down, 0)
-				atomic.SwapInt64(&up, 0)
+				oldDown = atomic.SwapInt64(&down, 0)
+				oldUp = atomic.SwapInt64(&up, 0)
 			case <-ctx.Done():
 				ticker.Stop()
 				return

@@ -42,7 +42,7 @@ func trafficHandleFunc(c *gin.Context) {
 		}
 	}()
 	for {
-		err = conn.WriteJSON(gin.H{"up": up, "down": down})
+		err = conn.WriteJSON(gin.H{"up": oldUp, "down": oldDown})
 		if err != nil {
 			return
 		}
