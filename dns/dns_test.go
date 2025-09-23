@@ -34,16 +34,17 @@ func TestResolveDomain(t *testing.T) {
 }
 
 func TestApplyConfig(t *testing.T) {
-	fileName := "../GeoLite2-Country.mmdb"
-	h, err := ApplyConfig(&model.Config{
+	// fileName := "../GeoLite2-Country.mmdb"
+	h, _, err := ApplyConfig(&model.Config{
 		DNS: struct {
-			IncludeSystem bool     `json:"include_system"`
-			Servers       []string `toml:"servers"`
+			IncludeSystem bool     `toml:"include-system" json:"include-system" yaml:"include-system"`
+			Servers       []string `toml:"servers" json:"servers" yaml:"servers"`
+			TimeoutSec    int      `toml:"timeout-sec" json:"timeout-sec" yaml:"timeout-sec"`
 			Mapping       []struct {
-				Domain string   `json:"domain"`
-				IP     []string `json:"ip"`
-				Server []string `json:"server"`
-			} `json:"mapping"`
+				Domain string   `toml:"domain" json:"domain" yaml:"domain"`
+				IP     []string `toml:"ip" json:"ip" yaml:"ip"`
+				Server []string `toml:"server" json:"server" yaml:"server"`
+			} `toml:"mapping" json:"mapping" yaml:"mapping"`
 		}{
 			Servers: []string{
 				"udp://8.8.8.8:53",

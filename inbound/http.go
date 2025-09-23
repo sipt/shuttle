@@ -2,12 +2,14 @@ package inbound
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -171,6 +173,11 @@ func httpHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, err
 		ICtxConn: connpkg.NewConn(c, context.WithValue(c, constant.KeyRequestInfo, ctxReq)),
 		Mutex:    &sync.Mutex{},
 	}
+	hc.reader, err = createFullRequestReader(req)
+	if err != nil {
+		return nil, errors.Errorf("create full request reader failed: %s", err.Error())
+	}
+
 	return hc, nil
 }
 
@@ -180,6 +187,26 @@ func filterProxyHeader(req *http.Request) {
 			req.Header.Del(k)
 		}
 	}
+}
+
+func createFullRequestReader(req *http.Request) (io.Reader, error) {
+	// 1. 构建头数据
+	var headerBuf bytes.Buffer
+	uri, err := url.ParseRequestURI(req.RequestURI)
+	if err != nil {
+		return nil, errors.Errorf("parse request URI failed: %s", err.Error())
+	}
+	fmt.Fprintf(&headerBuf, "%s %s %s\r\n", req.Method, uri.Path, req.Proto)
+	req.Header.Add("Host", uri.Host)
+	req.Header.Write(&headerBuf)
+	headerBuf.WriteString("\r\n")
+
+	// 2. 将头和体拼接起来
+	headerReader := bytes.NewReader(headerBuf.Bytes())
+
+	// 如果 req.Body 可能为空，io.MultiReader 依然能正常工作
+	// 因为它会处理 io.EOF
+	return io.MultiReader(headerReader, req.Body), nil
 }
 
 func httpsHandshake(req *http.Request, c connpkg.ICtxConn) (connpkg.ICtxConn, error) {
@@ -233,7 +260,8 @@ func (wc *wsConn) WriteTo(w io.Writer) (n int64, err error) {
 }
 
 type httpConn struct {
-	req *http.Request
+	req    *http.Request
+	reader io.Reader
 	connpkg.ICtxConn
 	*sync.Mutex
 }
@@ -246,7 +274,7 @@ func (h *httpConn) WriteTo(w io.Writer) (n int64, err error) {
 }
 
 func (h *httpConn) Read(b []byte) (int, error) {
-	return 0, errors.New("httpConn not support read")
+	return h.reader.Read(b)
 }
 
 func (h *httpConn) ReadFrom(r io.Reader) (n int64, err error) {

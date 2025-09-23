@@ -121,7 +121,7 @@ func TestTomlMarshal_Marshal(t *testing.T) {
   [rule.params]
     Comment = "source code"
 `
-
-	config2, err := m.UnMarshal([]byte(str))
+	config2 := &model.Config{}
+	_, err = m.UnMarshal([]byte(str), &config2)
 	assert.EqualValues(t, config, config2)
 }

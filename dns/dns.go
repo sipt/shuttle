@@ -111,7 +111,7 @@ func newMappingHandle(mappingDomain string, servers []string, ips []string, time
 				return next(ctx, domain)
 			}
 			reply := &DNS{
-				Typ:           TypStatic,
+				Typ:           TypDynamic,
 				MappingDomain: mappingDomain,
 				Domain:        domain,
 				Server:        serverAddrs,
@@ -123,6 +123,8 @@ func newMappingHandle(mappingDomain string, servers []string, ips []string, time
 				return next(ctx, domain)
 			}
 			reply.ExpireAt = time.Now().Add(timeout)
+			reply.CurrentIP = SelectIP(reply.IP)
+			reply.CurrentCountry = GeoLookUp(reply.CurrentIP)
 			return reply
 		}, nil
 	} else {
