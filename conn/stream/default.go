@@ -12,7 +12,7 @@ import (
 var down, up int64 = 0, 0
 
 func init() {
-	RegisterStream("traffic", newTrafficMetrics)
+	// RegisterStream("traffic", newTrafficMetrics)
 }
 
 func newTrafficMetrics(ctx context.Context, _ typ.Runtime, _ map[string]string) (typ.DecorateFunc, error) {

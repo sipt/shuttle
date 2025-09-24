@@ -23,10 +23,10 @@ import (
 	_ "github.com/sipt/shuttle/events/include"
 )
 
-var Path = flag.String("c", os.Getenv("CONFIG_PATH"), "config file Path")
-var RuntimePath = flag.String("r", os.Getenv("RUNTIME_PATH"), "runtime file Path")
-var Encoding = flag.String("e", os.Getenv("ENCODING"), "config file Encoding")
-var LogPath = flag.String("logpath", os.Getenv("LOGGER_PATH"), "logger file")
+var Path = flag.String("c", os.Getenv("SHUTTLE_CONFIG_PATH"), "config file Path")
+var RuntimePath = flag.String("r", os.Getenv("SHUTTLE_RUNTIME_PATH"), "runtime file Path")
+var Encoding = flag.String("e", os.Getenv("SHUTTLE_ENCODING"), "config file Encoding")
+var LogPath = flag.String("logpath", os.Getenv("SHUTTLE_LOGGER_PATH"), "logger file")
 
 func init() {
 	// register func to api
@@ -70,6 +70,7 @@ func Start() (err error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	params := map[string]string{"path": configPath}
+	logrus.WithField("config-path", configPath).WithField("encoding", *Encoding).WithField("config-encoding", configEncoding).Debug("load config")
 	config, err := conf.LoadConfig(ctx, "file", configEncoding, params, func() {
 		fmt.Println("config file change")
 	})

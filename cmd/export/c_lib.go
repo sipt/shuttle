@@ -18,6 +18,7 @@ type config struct {
 	ConfigFile  string `json:"config_file"`
 	GeoipFile   string `json:"geoip_file"`
 	RuntimeFile string `json:"runtime_file"`
+	LogPath     string `json:"log_path"`
 }
 
 //export start_shuttle
@@ -44,6 +45,7 @@ func start_shuttle(confStr *C.char) *C.char {
 	*cmd.Path = conf.ConfigFile
 	*dns.GeoipPath = conf.GeoipFile
 	*cmd.RuntimePath = conf.RuntimeFile
+	*cmd.LogPath = conf.LogPath
 	if err := cmd.Start(); err != nil {
 		return C.CString("error: " + err.Error())
 	}

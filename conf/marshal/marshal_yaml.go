@@ -8,6 +8,7 @@ import (
 )
 
 func init() {
+	Register("yml", newYamlMarshal)
 	Register("yaml", newYamlMarshal)
 }
 
