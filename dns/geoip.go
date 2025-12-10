@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var GeoipPath = flag.String("geoip", os.Getenv("GEOIP_DB"), "geo ip db path")
+var GeoipPath = flag.String("geoip", os.Getenv("SHUTTLE_GEOIP_DB"), "geo ip db path")
 
 var geoipDB *geoip2.Reader
 
